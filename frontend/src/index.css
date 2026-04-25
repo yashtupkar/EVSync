@@ -62,3 +62,26 @@ body {
   color: #1BAC4B !important;
   border: 1px solid #F3F4F6 !important;
 }
+
+/* Custom Rich Popup Styling */
+.station-rich-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.station-rich-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  background: transparent !important;
+}
+
+.station-rich-popup .leaflet-popup-tip-container,
+.station-rich-popup .leaflet-popup-close-button {
+  display: none !important;
+}
+
+.station-rich-popup.leaflet-popup {
+  margin-bottom: 5px;
+}

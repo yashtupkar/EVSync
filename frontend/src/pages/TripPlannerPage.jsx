@@ -21,6 +21,22 @@ import {
   History,
 } from "lucide-react";
 
+// Haversine formula to calculate distance between two coordinates
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
 const TripPlannerPage = () => {
   const [stations, setStations] = useState([]);
   const [departureTime, setDepartureTime] = useState("9:00 AM");
@@ -41,6 +57,26 @@ const TripPlannerPage = () => {
   const [isRouteCalculated, setIsRouteCalculated] = useState(false);
   const [routeTrigger, setRouteTrigger] = useState(0);
   const [routeData, setRouteData] = useState(null);
+
+  // Filtered stations near the route
+  const visibleStations = useMemo(() => {
+    if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
+      return stations;
+    }
+
+    // Return stations that are within 20km of any point on the route
+    return stations.filter(station => {
+      const stationLat = station.location.coordinates[1];
+      const stationLng = station.location.coordinates[0];
+      
+      // Check distance against route points (sampling every 5th point for performance)
+      return routeData.coordinates.some((point, index) => {
+        if (index % 5 !== 0 && index !== routeData.coordinates.length - 1) return false;
+        const dist = calculateDistance(stationLat, stationLng, point[0], point[1]);
+        return dist <= 20; // 20km radius
+      });
+    });
+  }, [stations, isRouteCalculated, routeData]);
 
   const debounceTimer = useRef(null);
 
@@ -610,7 +646,7 @@ const TripPlannerPage = () => {
           <section className="flex-grow h-[calc(100vh-120px)] bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden relative">
             <div className="absolute inset-0">
               <MapComponent
-                stations={stations}
+                stations={visibleStations}
                 hideSearch={true}
                 startLocation={useMemo(() => 
                   fromLocation ? [fromLocation.lat, fromLocation.lng] : null,

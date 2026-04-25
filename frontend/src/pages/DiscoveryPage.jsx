@@ -65,12 +65,30 @@ const DiscoveryPage = () => {
     return R * c;
   };
 
-  const filteredStations = stations.filter(
-    (station) =>
-      station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      station.city?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredStations = stations
+    .filter(
+      (station) =>
+        station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.city?.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    .map((station) => ({
+      ...station,
+      distance:
+        userLocation && station.location?.coordinates
+          ? calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              station.location.coordinates[1],
+              station.location.coordinates[0],
+            )
+          : null,
+    }))
+    .sort((a, b) => {
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
 
   const mapRef = useRef(null);
 
@@ -186,31 +204,22 @@ const DiscoveryPage = () => {
           </section>
 
           {/* Right Sidebar */}
-          <aside className="w-90 flex flex-col gap-4 shrink-0 pr-2">
+          <aside className="w-96 bg-white p-4 shadow-sm rounded-xl flex flex-col gap-4 shrink-0 pr-2">
             <div className="flex justify-between items-center px-2">
               <h2 className="text-lg font-bold text-gray-800">
-                Stations Found
+                Nearby Stations 
               </h2>
               <span className="bg-green-50 text-[#1BAC4B] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                 {filteredStations.length} Results
               </span>
             </div>
-            <div className="flex-grow overflow-y-auto custom-scrollbar space-y-4">
+            <div className="flex-grow overflow-y-auto px-2 custom-scrollbar space-y-4">
               {filteredStations.map((station) => (
                 <StationListItem
                   key={station._id}
                   station={station}
                   onClick={() => setSelectedStation(station)}
-                  distance={
-                    userLocation && station.lat && station.lng
-                      ? calculateDistance(
-                          userLocation.lat,
-                          userLocation.lng,
-                          station.lat,
-                          station.lng,
-                        )
-                      : null
-                  }
+                  distance={station.distance}
                 />
               ))}
             </div>

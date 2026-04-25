@@ -22,6 +22,10 @@ import {
   MapPin,
   Loader2,
   History,
+  Star,
+  Bookmark,
+  Navigation,
+  Heart
 } from "lucide-react";
 
 // Fix Leaflet marker icon issue
@@ -749,17 +753,64 @@ const MapComponent = ({
               simulating ? bearing : 0,
             )}
             eventHandlers={{
+              mouseover: (e) => e.target.openPopup(),
+              mouseout: (e) => e.target.closePopup(),
               click: () => onStationSelect(station),
             }}
           >
-            <Popup className="custom-popup">
-              <div className="p-2">
-                <h3 className="font-bold text-gray-800">{station.name}</h3>
-                <p className="text-xs text-gray-500">{station.address}</p>
-                <div className="flex gap-2 mt-2">
-                  <span className="bg-green-100 text-[#1BAC4B] px-2 py-0.5 rounded-full text-[10px] font-bold">
-                    {station.chargers?.[0]?.power}kW
-                  </span>
+            <Popup className="station-rich-popup" closeButton={false} autoPan={false}>
+              <div className="w-[300px] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col group">
+                {/* Image Section */}
+                <div className="h-32 w-full relative overflow-hidden">
+                  <img 
+                    src={station.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"} 
+                    alt={station.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
+
+                {/* Content Section */}
+                <div className="p-4 flex flex-col gap-1 relative">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-grow pr-12">
+                      <h3 className="font-bold text-gray-800 text-base leading-tight line-clamp-2">
+                        {station.name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-sm font-bold text-gray-700">{station.rating || "4.3"}</span>
+                        <div className="flex text-yellow-400">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={12} 
+                              fill={i < Math.floor(station.rating || 4) ? "currentColor" : "none"} 
+                              strokeWidth={2}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400 font-medium">({station.reviewsCount || "6"})</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="absolute right-4 top-4 flex flex-col gap-2">
+                      <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
+                        <Navigation size={20} fill="currentColor" className="rotate-45" />
+                      </button>
+                      <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
+                        <Bookmark size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-500 text-xs font-medium mt-1">
+                    Electric vehicle charging station
+                  </p>
+                  
+                  <div className="flex items-center gap-1.5 mt-1 text-[#1BAC4B]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Open 24 hours</span>
+                  </div>
                 </div>
               </div>
             </Popup>

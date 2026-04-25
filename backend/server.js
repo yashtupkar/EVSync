@@ -25,7 +25,7 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-connectDB(); // Disabled for Hackathon stability (Mock Mode)
+connectDB(); // Enabled as requested
 
 // Socket.io
 io.on('connection', (socket) => {

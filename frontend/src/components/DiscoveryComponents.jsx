@@ -123,7 +123,7 @@ export const FilterSection = ({ onShowStations }) => (
 export const StationListItem = ({ station, onClick, distance }) => (
   <div 
     onClick={onClick}
-    className="bg-white p-4 rounded-3xl border border-gray-100 hover:shadow-lg transition-all cursor-pointer group"
+    className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
   >
     <div className="flex justify-between items-start mb-2">
       <h3 className="font-bold text-sm text-gray-800 group-hover:text-[#1BAC4B] transition-colors line-clamp-1">{station.name}</h3>

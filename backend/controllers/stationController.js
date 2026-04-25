@@ -13,31 +13,49 @@ let mockStations = [
     rating: 4.6
   },
   {
-    _id: "bh2",
-    name: "Nehru Nagar Volt Station",
-    address: "Nehru Nagar Main Rd, Bhopal",
-    location: { type: "Point", coordinates: [77.3916, 23.2162] },
+    _id: "sh1",
+    name: "Sehore Highway Hub",
+    address: "SH 18, Sehore, MP",
+    location: { type: "Point", coordinates: [77.0850, 23.1970] },
+    images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
+    chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 22 }],
+    rating: 4.5
+  },
+  {
+    _id: "as1",
+    name: "Ashta Midpoint Chargers",
+    address: "Indore-Bhopal Rd, Ashta, MP",
+    location: { type: "Point", coordinates: [76.7180, 23.0180] },
     images: ["https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b"],
     chargers: [{ type: "Type 2", power: 22, status: "available", pricePerHour: 12 }],
-    rating: 4.3
+    rating: 4.2
   },
   {
-    _id: "bh3",
-    name: "Bhopal Junction FastCharge",
-    address: "Station Road, Bhopal Junction",
-    location: { type: "Point", coordinates: [77.4102, 23.2721] },
+    _id: "dw1",
+    name: "Dewas Industrial Power",
+    address: "Industrial Area, Dewas, MP",
+    location: { type: "Point", coordinates: [76.0640, 22.9660] },
     images: ["https://images.unsplash.com/photo-1601584115197-04ecc0da31d7"],
-    chargers: [{ type: "CCS2", power: 150, status: "in_use", pricePerHour: 35 }],
-    rating: 4.8
+    chargers: [{ type: "CCS2", power: 150, status: "available", pricePerHour: 30 }],
+    rating: 4.7
   },
   {
-    _id: "bh4",
-    name: "Bhadbhada Dam Charging",
-    address: "Bhadbhada Dam Road, Bhopal",
-    location: { type: "Point", coordinates: [77.3506, 23.2120] },
+    _id: "ib1",
+    name: "Indore Bypass QuickCharge",
+    address: "Indore Bypass, MP",
+    location: { type: "Point", coordinates: [75.9300, 22.7600] },
     images: ["https://images.unsplash.com/photo-1593941707882-a5bba14938c7"],
-    chargers: [{ type: "CCS2", power: 30, status: "available", pricePerHour: 15 }],
-    rating: 4.1
+    chargers: [{ type: "CCS2", power: 60, status: "available", pricePerHour: 20 }],
+    rating: 4.4
+  },
+  {
+    _id: "in1",
+    name: "Vijay Nagar Indore Station",
+    address: "Vijay Nagar, Indore, MP",
+    location: { type: "Point", coordinates: [75.8950, 22.7533] },
+    images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
+    chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 25 }],
+    rating: 4.9
   }
 ];
 
@@ -49,7 +67,7 @@ let mockUsers = [
 ];
 // ---------------------------
 
-const useMock = true; 
+const useMock = false; 
 
 exports.getAllStations = async (req, res) => {
   try {
