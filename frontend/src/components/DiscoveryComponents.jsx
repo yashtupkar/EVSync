@@ -120,7 +120,7 @@ export const FilterSection = ({ onShowStations }) => (
   </div>
 );
 
-export const StationListItem = ({ station, onClick }) => (
+export const StationListItem = ({ station, onClick, distance }) => (
   <div 
     onClick={onClick}
     className="bg-white p-4 rounded-3xl border border-gray-100 hover:shadow-lg transition-all cursor-pointer group"
@@ -132,7 +132,14 @@ export const StationListItem = ({ station, onClick }) => (
         <span>{station.rating || "4.6"}</span>
       </div>
     </div>
-    <p className="text-gray-400 text-[9px] font-bold mb-3 uppercase tracking-widest line-clamp-1">{station.address}</p>
+    <div className="flex justify-between items-center mb-3">
+      <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest line-clamp-1">{station.address}</p>
+      {distance && (
+        <span className="text-[10px] font-black text-[#1BAC4B] bg-green-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
+          {distance.toFixed(1)} km
+        </span>
+      )}
+    </div>
     
     <div className="flex justify-between items-center">
       <div className="flex items-center gap-2">

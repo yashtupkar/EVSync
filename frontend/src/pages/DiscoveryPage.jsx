@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import MapComponent from "../components/MapComponent";
 import Navbar from "../components/Navbar";
 import {
@@ -23,10 +24,11 @@ import {
   QuickActionCard,
   RangeOverviewCard,
   StationDetailView,
-  NavigationOverlay
+  NavigationOverlay,
 } from "../components/DiscoveryComponents";
 
 const DiscoveryPage = () => {
+  const navigate = useNavigate();
   const [selectedStation, setSelectedStation] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [simulatedLocation, setSimulatedLocation] = useState(null);
@@ -35,6 +37,40 @@ const DiscoveryPage = () => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [stations, setStations] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      });
+    }
+  }, []);
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const filteredStations = stations.filter(
+    (station) =>
+      station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      station.city?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   const mapRef = useRef(null);
 
@@ -54,7 +90,7 @@ const DiscoveryPage = () => {
   const handleStartDriving = () => {
     setIsNavigating(true);
     setSimulatedLocation(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleStopDriving = () => {
@@ -64,7 +100,7 @@ const DiscoveryPage = () => {
   };
 
   const handleRouteUpdate = (data) => {
-    if (!data || typeof data.distance === 'undefined') {
+    if (!data || typeof data.distance === "undefined") {
       setRouteInfo({
         distance: "---",
         duration: "---",
@@ -105,24 +141,28 @@ const DiscoveryPage = () => {
     <div className="min-h-screen w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
       <main className="p-4 flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
         {/* Top Layout Section */}
-        <div className="flex gap-4 h-[700px]">
+        <div className="flex gap-2 h-[700px]">
           {/* Left Sidebar */}
-          <aside className="w-80 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
+          <aside className="w-90 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
             <VehicleCard onChange={() => console.log("Change vehicle")} />
-            <ReachableStationsCard total={stations.length} withinRange={Math.floor(stations.length * 0.7)} />
+            <ReachableStationsCard
+              total={stations.length}
+              withinRange={Math.floor(stations.length * 0.7)}
+            />
             <FilterSection onShowStations={() => console.log("Filtering...")} />
           </aside>
 
           {/* Center Section (Smart Map with Integrated Overlays) */}
-          <section className="flex-grow bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden relative">
+          <section className="flex-grow bg-white border-4 border-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
             <div className="absolute inset-0">
               <MapComponent
-                stations={stations}
+                stations={filteredStations}
                 onStationSelect={setSelectedStation}
                 destination={isNavigating ? selectedStation : null}
                 simulatedLocation={simulatedLocation}
                 isSimulating={isNavigating}
                 hideControls={!!selectedStation}
+                showRoute={isNavigating}
                 onRouteUpdate={handleRouteUpdate}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -146,17 +186,31 @@ const DiscoveryPage = () => {
           </section>
 
           {/* Right Sidebar */}
-          <aside className="w-80 flex flex-col gap-4 shrink-0 pr-2">
+          <aside className="w-90 flex flex-col gap-4 shrink-0 pr-2">
             <div className="flex justify-between items-center px-2">
-              <h2 className="text-lg font-bold text-gray-800">Stations Found</h2>
-              <span className="bg-green-50 text-[#1BAC4B] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{stations.length} Total</span>
+              <h2 className="text-lg font-bold text-gray-800">
+                Stations Found
+              </h2>
+              <span className="bg-green-50 text-[#1BAC4B] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                {filteredStations.length} Results
+              </span>
             </div>
             <div className="flex-grow overflow-y-auto custom-scrollbar space-y-4">
-              {stations.map((station) => (
+              {filteredStations.map((station) => (
                 <StationListItem
                   key={station._id}
                   station={station}
                   onClick={() => setSelectedStation(station)}
+                  distance={
+                    userLocation && station.lat && station.lng
+                      ? calculateDistance(
+                          userLocation.lat,
+                          userLocation.lng,
+                          station.lat,
+                          station.lng,
+                        )
+                      : null
+                  }
                 />
               ))}
             </div>
@@ -165,13 +219,15 @@ const DiscoveryPage = () => {
 
         {/* Bottom Section: Quick Actions */}
         <div className="flex flex-col gap-4 mt-2">
-          <h2 className="text-lg font-bold text-gray-800 px-2">Quick Actions</h2>
+          <h2 className="text-lg font-bold text-gray-800 px-2">
+            Quick Actions
+          </h2>
           <div className="flex gap-4">
             <QuickActionCard
               icon={MapIcon}
               title="Trip Planner"
               desc="Plan your EV journey"
-              onClick={() => console.log("Trip Planner clicked")}
+              onClick={() => navigate("/trip-planner")}
             />
             <QuickActionCard
               icon={RouteIcon}
