@@ -25,7 +25,7 @@ import {
   Star,
   Bookmark,
   Navigation,
-  Heart
+  Heart,
 } from "lucide-react";
 
 // Fix Leaflet marker icon issue
@@ -162,7 +162,13 @@ const formatDuration = (seconds) => {
 };
 
 // Map View Controller
-const MapController = ({ center, isSimulating, bearing = 0, isFollowing, setIsFollowing }) => {
+const MapController = ({
+  center,
+  isSimulating,
+  bearing = 0,
+  isFollowing,
+  setIsFollowing,
+}) => {
   const map = useMap();
   const lastCenter = useRef(null);
   const isSimulationStarted = useRef(false);
@@ -274,7 +280,7 @@ const getInstruction = (step) => {
   }
 };
 
-const MapComponent = ({
+const TripPlannerMap = ({
   stations = [],
   onStationSelect,
   destination,
@@ -377,9 +383,9 @@ const MapComponent = ({
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distance in km
   };
@@ -507,7 +513,12 @@ const MapComponent = ({
     if (simMarkerPos && routeCoords.length > 0) {
       let minDistance = Infinity;
       routeCoords.forEach((coord, i) => {
-        const dist = calculateDistance(simMarkerPos[0], simMarkerPos[1], coord[0], coord[1]);
+        const dist = calculateDistance(
+          simMarkerPos[0],
+          simMarkerPos[1],
+          coord[0],
+          coord[1],
+        );
         if (dist < minDistance) {
           minDistance = dist;
           startCoordIdx = i;
@@ -521,7 +532,10 @@ const MapComponent = ({
 
     // Find which step this coordinate belongs to
     for (let i = 0; i < stepRanges.length; i++) {
-      if (startCoordIdx >= stepRanges[i][0] && startCoordIdx <= stepRanges[i][1]) {
+      if (
+        startCoordIdx >= stepRanges[i][0] &&
+        startCoordIdx <= stepRanges[i][1]
+      ) {
         stepIdx = i;
         break;
       }
@@ -653,7 +667,7 @@ const MapComponent = ({
       setIsLoadingRoute(true);
       try {
         // Use current simulation position as start if we're mid-trip
-        const start = (simulating && simMarkerPos) ? simMarkerPos : userLocation;
+        const start = simulating && simMarkerPos ? simMarkerPos : userLocation;
 
         // Handle different destination formats
         let endLat, endLng;
@@ -671,13 +685,19 @@ const MapComponent = ({
         const end = [endLat, endLng];
 
         // Construct waypoints string
-        const waypointsStr = waypoints.map(wp => {
-          const lat = wp.location?.coordinates ? wp.location.coordinates[1] : wp.lat;
-          const lng = wp.location?.coordinates ? wp.location.coordinates[0] : wp.lng;
-          return `${lng},${lat}`;
-        }).join(';');
+        const waypointsStr = waypoints
+          .map((wp) => {
+            const lat = wp.location?.coordinates
+              ? wp.location.coordinates[1]
+              : wp.lat;
+            const lng = wp.location?.coordinates
+              ? wp.location.coordinates[0]
+              : wp.lng;
+            return `${lng},${lat}`;
+          })
+          .join(";");
 
-        const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start[1]},${start[0]};${waypointsStr ? waypointsStr + ';' : ''}${end[1]},${end[0]}?overview=full&geometries=geojson&steps=true`;
+        const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start[1]},${start[0]};${waypointsStr ? waypointsStr + ";" : ""}${end[1]},${end[0]}?overview=full&geometries=geojson&steps=true`;
 
         console.log("MapComponent: Fetching route from", url);
 
@@ -731,7 +751,14 @@ const MapComponent = ({
     };
 
     fetchRoute();
-  }, [destination, userLocation, showRoute, routeTrigger, waypoints, simulating]);
+  }, [
+    destination,
+    userLocation,
+    showRoute,
+    routeTrigger,
+    waypoints,
+    simulating,
+  ]);
 
   // Adjust map bounds to fit both locations when route is shown
   useEffect(() => {
@@ -808,12 +835,19 @@ const MapComponent = ({
               click: () => onStationSelect(station),
             }}
           >
-            <Popup className="station-rich-popup" closeButton={false} autoPan={false}>
+            <Popup
+              className="station-rich-popup"
+              closeButton={false}
+              autoPan={false}
+            >
               <div className="w-[300px] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col group">
                 {/* Image Section */}
                 <div className="h-32 w-full relative overflow-hidden">
                   <img
-                    src={station.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+                    src={
+                      station.images?.[0] ||
+                      "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"
+                    }
                     alt={station.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
@@ -828,25 +862,37 @@ const MapComponent = ({
                         {station.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-sm font-bold text-gray-700">{station.rating || "4.3"}</span>
+                        <span className="text-sm font-bold text-gray-700">
+                          {station.rating || "4.3"}
+                        </span>
                         <div className="flex text-yellow-400">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
                               size={12}
-                              fill={i < Math.floor(station.rating || 4) ? "currentColor" : "none"}
+                              fill={
+                                i < Math.floor(station.rating || 4)
+                                  ? "currentColor"
+                                  : "none"
+                              }
                               strokeWidth={2}
                             />
                           ))}
                         </div>
-                        <span className="text-xs text-gray-400 font-medium">({station.reviewsCount || "6"})</span>
+                        <span className="text-xs text-gray-400 font-medium">
+                          ({station.reviewsCount || "6"})
+                        </span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="absolute right-4 top-4 flex flex-col gap-2">
                       <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
-                        <Navigation size={20} fill="currentColor" className="rotate-45" />
+                        <Navigation
+                          size={20}
+                          fill="currentColor"
+                          className="rotate-45"
+                        />
                       </button>
                       <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
                         <Bookmark size={20} />
@@ -859,7 +905,9 @@ const MapComponent = ({
                   </p>
 
                   <div className="flex items-center gap-1.5 mt-1 text-[#1BAC4B]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Open 24 hours</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                      Open 24 hours
+                    </span>
                   </div>
                 </div>
               </div>
@@ -937,8 +985,8 @@ const MapComponent = ({
           pathOptions={{
             color:
               mapStyle === "satellite" ||
-                mapStyle === "dark" ||
-                mapStyle === "night"
+              mapStyle === "dark" ||
+              mapStyle === "night"
                 ? "#FDB813"
                 : "#4285F4",
             weight: 6,
@@ -980,7 +1028,9 @@ const MapComponent = ({
                   <button
                     onClick={() => {
                       if (mapRef.current) {
-                        const targetPos = simulating ? simMarkerPos : userLocation;
+                        const targetPos = simulating
+                          ? simMarkerPos
+                          : userLocation;
                         mapRef.current.setView(targetPos, 15, {
                           animate: true,
                         });
@@ -1010,10 +1060,11 @@ const MapComponent = ({
                               setMapStyle(key);
                               setShowStyleMenu(false);
                             }}
-                            className={`flex items-center gap-3 p-3 rounded-xl text-xs font-black w-full transition-all ${mapStyle === key
+                            className={`flex items-center gap-3 p-3 rounded-xl text-xs font-black w-full transition-all ${
+                              mapStyle === key
                                 ? "bg-[#1BAC4B] text-white"
                                 : "text-gray-600 hover:bg-gray-50"
-                              }`}
+                            }`}
                           >
                             {style.label}
                           </button>
@@ -1066,18 +1117,18 @@ const MapComponent = ({
                         <span className="text-2xl">
                           {instructions[currentStep]
                             ? (() => {
-                              const type =
-                                instructions[currentStep].maneuver.type;
-                              const modifier =
-                                instructions[currentStep].maneuver.modifier ||
-                                "";
-                              if (type.includes("arrive")) return "🏁";
-                              if (type.includes("depart")) return "🚗";
-                              if (modifier.includes("left")) return "⬅️";
-                              if (modifier.includes("right")) return "➡️";
-                              if (type.includes("roundabout")) return "⭕";
-                              return "⬆️";
-                            })()
+                                const type =
+                                  instructions[currentStep].maneuver.type;
+                                const modifier =
+                                  instructions[currentStep].maneuver.modifier ||
+                                  "";
+                                if (type.includes("arrive")) return "🏁";
+                                if (type.includes("depart")) return "🚗";
+                                if (modifier.includes("left")) return "⬅️";
+                                if (modifier.includes("right")) return "➡️";
+                                if (type.includes("roundabout")) return "⭕";
+                                return "⬆️";
+                              })()
                             : "🚗"}
                         </span>
                       </div>
@@ -1102,10 +1153,11 @@ const MapComponent = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setShowRouteDetails(!showRouteDetails)}
-                          className={`p-3 rounded-2xl transition-all ${showRouteDetails
+                          className={`p-3 rounded-2xl transition-all ${
+                            showRouteDetails
                               ? "bg-[#1BAC4B] text-white"
                               : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                            }`}
+                          }`}
                         >
                           <Zap size={18} />
                         </button>
@@ -1133,16 +1185,18 @@ const MapComponent = ({
                           {instructions.map((step, idx) => (
                             <div
                               key={idx}
-                              className={`flex items-start gap-4 p-3 rounded-2xl transition-all ${idx === currentStep
+                              className={`flex items-start gap-4 p-3 rounded-2xl transition-all ${
+                                idx === currentStep
                                   ? "bg-[#1BAC4B]/5 border border-[#1BAC4B]/10"
                                   : "hover:bg-gray-50"
-                                }`}
+                              }`}
                             >
                               <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5 ${idx === currentStep
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5 ${
+                                  idx === currentStep
                                     ? "bg-[#1BAC4B] text-white"
                                     : "bg-gray-100 text-gray-400"
-                                  }`}
+                                }`}
                               >
                                 {idx + 1}
                               </div>
@@ -1292,4 +1346,4 @@ const MapComponent = ({
   );
 };
 
-export default MapComponent;
+export default TripPlannerMap;

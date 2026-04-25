@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import MapComponent from "../components/MapComponent";
 import {
   MapPin,
   Navigation,
@@ -19,7 +18,13 @@ import {
   Search,
   Loader2,
   History,
+  ArrowLeft,
+  Smartphone,
+  PhoneForwarded,
+  Bookmark,
+  Building2,
 } from "lucide-react";
+import TripPlannerMap from "../components/TripPlannerMap";
 
 // Haversine formula to calculate distance between two coordinates
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -30,9 +35,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 };
@@ -57,26 +62,89 @@ const TripPlannerPage = () => {
   const [isRouteCalculated, setIsRouteCalculated] = useState(false);
   const [routeTrigger, setRouteTrigger] = useState(0);
   const [routeData, setRouteData] = useState(null);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [waypoints, setWaypoints] = useState([]);
 
-  // Filtered stations near the route
-  const visibleStations = useMemo(() => {
+  // Filtered stations near the route for the map display
+  const nearbyStations = useMemo(() => {
     if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
       return stations;
     }
 
-    // Return stations that are within 20km of any point on the route
+    // Return stations that are within 15km of any point on the route
     return stations.filter(station => {
       const stationLat = station.location.coordinates[1];
       const stationLng = station.location.coordinates[0];
-      
-      // Check distance against route points (sampling every 5th point for performance)
+
       return routeData.coordinates.some((point, index) => {
-        if (index % 5 !== 0 && index !== routeData.coordinates.length - 1) return false;
+        if (index % 10 !== 0 && index !== routeData.coordinates.length - 1) return false;
         const dist = calculateDistance(stationLat, stationLng, point[0], point[1]);
-        return dist <= 20; // 20km radius
+        return dist <= 15; // 15km radius for map markers
       });
     });
   }, [stations, isRouteCalculated, routeData]);
+
+  // Intermediate stations for the itinerary (strictly on route or very close)
+  const itineraryStops = useMemo(() => {
+    if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
+      return [];
+    }
+
+    const stops = stations.map(station => {
+      const stationLat = station.location.coordinates[1];
+      const stationLng = station.location.coordinates[0];
+
+      let minDistance = Infinity;
+      let closestIndex = -1;
+
+      // Find closest point on route
+      routeData.coordinates.forEach((point, index) => {
+        const dist = calculateDistance(stationLat, stationLng, point[0], point[1]);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIndex = index;
+        }
+      });
+
+      // If station is within 5km of the route, consider it an intermediate stop
+      if (minDistance <= 5) {
+        const totalPoints = routeData.coordinates.length;
+        const totalDistanceKm = routeData.distance / 1000;
+        const distanceFromStart = (closestIndex / totalPoints) * totalDistanceKm;
+        const distanceFromEnd = totalDistanceKm - distanceFromStart;
+
+        // Skip stations within 5km of start or destination to keep it "intermediate"
+        if (distanceFromStart < 5 || distanceFromEnd < 5) return null;
+
+        return {
+          ...station,
+          distanceFromStart,
+          closestIndex
+        };
+      }
+      return null;
+    }).filter(s => s !== null);
+
+    // Sort by sequence on the route
+    const sortedStops = stops.sort((a, b) => a.closestIndex - b.closestIndex);
+
+    // Calculate arrival times for each stop
+    let currentDuration = 0;
+    // This is simplified, real calculation would involve matching legs
+    return sortedStops.map((stop, idx) => {
+      // Estimate duration based on distance (simplified)
+      const avgSpeedKmH = 50;
+      const durationHours = stop.distanceFromStart / avgSpeedKmH;
+      const arrivalTime = new Date(new Date().getTime() + (durationHours * 3600 * 1000));
+
+      return {
+        ...stop,
+        estimatedArrival: arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isWaypoint: waypoints.some(wp => wp._id === stop._id)
+      };
+    });
+  }, [stations, isRouteCalculated, routeData, waypoints]);
 
   const debounceTimer = useRef(null);
 
@@ -175,10 +243,10 @@ const TripPlannerPage = () => {
         />
       )}
 
-      <main className="p-4 flex flex-col gap-4 max-w-[1600px] mx-auto w-full relative z-50">
-        <div className="flex gap-2 min-h-[800px]">
+      <main className="p-4 h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] flex flex-col gap-4 max-w-[1600px] mx-auto w-full relative z-50 overflow-hidden">
+        <div className="flex gap-2 h-full overflow-hidden">
           {/* Left Sidebar - Plan Your Trip */}
-          <aside className="w-90 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
+          <aside className="w-90 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2 pb-10">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -262,78 +330,78 @@ const TripPlannerPage = () => {
 
                         {fromSuggestions.length > 0
                           ? fromSuggestions.map((suggestion) => (
-                              <button
-                                key={suggestion.place_id}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
-                                onClick={() => {
-                                  setFrom(suggestion.display_name);
-                                  setFromLocation({
-                                    lat: parseFloat(suggestion.lat),
-                                    lng: parseFloat(suggestion.lon),
-                                  });
-                                  saveToRecent(suggestion);
-                                  setFromSuggestions([]);
-                                  setShowFromSuggestions(false);
-                                  setIsRouteCalculated(false);
-                                }}
-                              >
-                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                                  <MapPin size={14} />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-gray-900 truncate">
-                                    {suggestion.display_name.split(",")[0]}
-                                  </div>
-                                  <div className="text-[10px] text-gray-500 truncate">
-                                    {suggestion.display_name
-                                      .split(",")
-                                      .slice(1)
-                                      .join(",")
-                                      .trim()}
-                                  </div>
-                                </div>
-                              </button>
-                            ))
-                          : recentSearches.length > 0 &&
-                            !isLoadingFrom && (
-                              <div className="mt-2">
-                                <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                  Recent Searches
-                                </div>
-                                {recentSearches.map((suggestion) => (
-                                  <button
-                                    key={`recent-from-${suggestion.place_id}`}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
-                                    onClick={() => {
-                                      setFrom(suggestion.display_name);
-                                      setFromLocation({
-                                        lat: parseFloat(suggestion.lat),
-                                        lng: parseFloat(suggestion.lon),
-                                      });
-                                      saveToRecent(suggestion);
-                                      setShowFromSuggestions(false);
-                                      setIsRouteCalculated(false);
-                                    }}
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
-                                      <History size={14} />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="text-xs font-bold text-gray-600 truncate">
-                                        {suggestion.display_name.split(",")[0]}
-                                      </div>
-                                      <div className="text-[10px] text-gray-400 truncate">
-                                        {suggestion.display_name
-                                          .split(",")
-                                          .slice(1)
-                                          .join(",")
-                                          .trim()}
-                                      </div>
-                                    </div>
-                                  </button>
-                                ))}
+                            <button
+                              key={suggestion.place_id}
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
+                              onClick={() => {
+                                setFrom(suggestion.display_name);
+                                setFromLocation({
+                                  lat: parseFloat(suggestion.lat),
+                                  lng: parseFloat(suggestion.lon),
+                                });
+                                saveToRecent(suggestion);
+                                setFromSuggestions([]);
+                                setShowFromSuggestions(false);
+                                setIsRouteCalculated(false);
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                                <MapPin size={14} />
                               </div>
-                            )}
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-gray-900 truncate">
+                                  {suggestion.display_name.split(",")[0]}
+                                </div>
+                                <div className="text-[10px] text-gray-500 truncate">
+                                  {suggestion.display_name
+                                    .split(",")
+                                    .slice(1)
+                                    .join(",")
+                                    .trim()}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                          : recentSearches.length > 0 &&
+                          !isLoadingFrom && (
+                            <div className="mt-2">
+                              <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                Recent Searches
+                              </div>
+                              {recentSearches.map((suggestion) => (
+                                <button
+                                  key={`recent-from-${suggestion.place_id}`}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
+                                  onClick={() => {
+                                    setFrom(suggestion.display_name);
+                                    setFromLocation({
+                                      lat: parseFloat(suggestion.lat),
+                                      lng: parseFloat(suggestion.lon),
+                                    });
+                                    saveToRecent(suggestion);
+                                    setShowFromSuggestions(false);
+                                    setIsRouteCalculated(false);
+                                  }}
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
+                                    <History size={14} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-gray-600 truncate">
+                                      {suggestion.display_name.split(",")[0]}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 truncate">
+                                      {suggestion.display_name
+                                        .split(",")
+                                        .slice(1)
+                                        .join(",")
+                                        .trim()}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
                         {from.length >= 3 &&
                           fromSuggestions.length === 0 &&
@@ -392,78 +460,78 @@ const TripPlannerPage = () => {
                       <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-[100] max-h-72 overflow-y-auto custom-scrollbar py-2">
                         {toSuggestions.length > 0
                           ? toSuggestions.map((suggestion) => (
-                              <button
-                                key={suggestion.place_id}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
-                                onClick={() => {
-                                  setTo(suggestion.display_name);
-                                  setToLocation({
-                                    lat: parseFloat(suggestion.lat),
-                                    lng: parseFloat(suggestion.lon),
-                                  });
-                                  saveToRecent(suggestion);
-                                  setToSuggestions([]);
-                                  setShowToSuggestions(false);
-                                  setIsRouteCalculated(false);
-                                }}
-                              >
-                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                                  <MapPin size={14} />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-gray-900 truncate">
-                                    {suggestion.display_name.split(",")[0]}
-                                  </div>
-                                  <div className="text-[10px] text-gray-500 truncate">
-                                    {suggestion.display_name
-                                      .split(",")
-                                      .slice(1)
-                                      .join(",")
-                                      .trim()}
-                                  </div>
-                                </div>
-                              </button>
-                            ))
-                          : recentSearches.length > 0 &&
-                            !isLoadingTo && (
-                              <div className="mt-2">
-                                <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                  Recent Searches
-                                </div>
-                                {recentSearches.map((suggestion) => (
-                                  <button
-                                    key={`recent-to-${suggestion.place_id}`}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
-                                    onClick={() => {
-                                      setTo(suggestion.display_name);
-                                      setToLocation({
-                                        lat: parseFloat(suggestion.lat),
-                                        lng: parseFloat(suggestion.lon),
-                                      });
-                                      saveToRecent(suggestion);
-                                      setShowToSuggestions(false);
-                                      setIsRouteCalculated(false);
-                                    }}
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
-                                      <History size={14} />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="text-xs font-bold text-gray-600 truncate">
-                                        {suggestion.display_name.split(",")[0]}
-                                      </div>
-                                      <div className="text-[10px] text-gray-400 truncate">
-                                        {suggestion.display_name
-                                          .split(",")
-                                          .slice(1)
-                                          .join(",")
-                                          .trim()}
-                                      </div>
-                                    </div>
-                                  </button>
-                                ))}
+                            <button
+                              key={suggestion.place_id}
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
+                              onClick={() => {
+                                setTo(suggestion.display_name);
+                                setToLocation({
+                                  lat: parseFloat(suggestion.lat),
+                                  lng: parseFloat(suggestion.lon),
+                                });
+                                saveToRecent(suggestion);
+                                setToSuggestions([]);
+                                setShowToSuggestions(false);
+                                setIsRouteCalculated(false);
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                                <MapPin size={14} />
                               </div>
-                            )}
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-gray-900 truncate">
+                                  {suggestion.display_name.split(",")[0]}
+                                </div>
+                                <div className="text-[10px] text-gray-500 truncate">
+                                  {suggestion.display_name
+                                    .split(",")
+                                    .slice(1)
+                                    .join(",")
+                                    .trim()}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                          : recentSearches.length > 0 &&
+                          !isLoadingTo && (
+                            <div className="mt-2">
+                              <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                Recent Searches
+                              </div>
+                              {recentSearches.map((suggestion) => (
+                                <button
+                                  key={`recent-to-${suggestion.place_id}`}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-all flex items-start gap-3 border-b border-gray-50 last:border-none"
+                                  onClick={() => {
+                                    setTo(suggestion.display_name);
+                                    setToLocation({
+                                      lat: parseFloat(suggestion.lat),
+                                      lng: parseFloat(suggestion.lon),
+                                    });
+                                    saveToRecent(suggestion);
+                                    setShowToSuggestions(false);
+                                    setIsRouteCalculated(false);
+                                  }}
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
+                                    <History size={14} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-gray-600 truncate">
+                                      {suggestion.display_name.split(",")[0]}
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 truncate">
+                                      {suggestion.display_name
+                                        .split(",")
+                                        .slice(1)
+                                        .join(",")
+                                        .trim()}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
                         {to.length >= 3 &&
                           toSuggestions.length === 0 &&
@@ -643,27 +711,36 @@ const TripPlannerPage = () => {
           </aside>
 
           {/* Map Area */}
-          <section className="flex-grow h-[calc(100vh-120px)] bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden relative">
+          <section className="flex-grow h-full bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden relative sticky top-0">
             <div className="absolute inset-0">
-              <MapComponent
-                stations={visibleStations}
+              <TripPlannerMap
+                stations={nearbyStations}
                 hideSearch={true}
-                startLocation={useMemo(() => 
+                startLocation={useMemo(() =>
                   fromLocation ? [fromLocation.lat, fromLocation.lng] : null,
-                [fromLocation])}
-                destination={useMemo(() => 
+                  [fromLocation])}
+                destination={useMemo(() =>
                   toLocation
                     ? {
-                        location: {
-                          coordinates: [toLocation.lng, toLocation.lat],
-                        },
-                      }
+                      location: {
+                        coordinates: [toLocation.lng, toLocation.lat],
+                      },
+                    }
                     : null,
-                [toLocation])}
+                  [toLocation])}
                 showRoute={isRouteCalculated}
                 routeTrigger={routeTrigger}
                 usePaperPins={true}
+                waypoints={useMemo(() => {
+                  if (!fromLocation || waypoints.length === 0) return waypoints;
+                  return [...waypoints].sort((a, b) => {
+                    const distA = calculateDistance(fromLocation.lat, fromLocation.lng, a.location.coordinates[1], a.location.coordinates[0]);
+                    const distB = calculateDistance(fromLocation.lat, fromLocation.lng, b.location.coordinates[1], b.location.coordinates[0]);
+                    return distA - distB;
+                  });
+                }, [waypoints, fromLocation])}
                 onRouteUpdate={(data) => setRouteData(data)}
+                onStationSelect={(station) => setSelectedStation(station)}
               />
             </div>
 
@@ -732,225 +809,386 @@ const TripPlannerPage = () => {
           </section>
 
           {/* Right Sidebar - Your Trip Itinerary */}
-          <aside className="w-96 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">
-                    Your Trip Itinerary
+          <aside className="w-96 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pb-10">
+            {selectedStation ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 h-fit">
+                {/* Image Header */}
+                <div className="h-56 w-full relative group">
+                  <img
+                    src={selectedStation.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+                    alt={selectedStation.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                  <button
+                    onClick={() => setSelectedStation(null)}
+                    className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-all active:scale-90"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                  <button className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black/70 transition-all">
+                    <History size={14} /> See photos
+                  </button>
+                </div>
+
+                {/* Title & Stats */}
+                <div className="p-6 pb-0">
+                  <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                    {selectedStation.name}
                   </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {routeData?.instructions?.length ? `${Math.floor(routeData.instructions.length / 5)} Stops Suggested` : "Planning route..."}
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {selectedStation.name} चार्जिंग स्टेशन
+                  </p>
+
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-sm font-bold text-gray-700">{selectedStation.rating || "4.3"}</span>
+                    <div className="flex text-yellow-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={14}
+                          fill={i < Math.floor(selectedStation.rating || 4) ? "currentColor" : "none"}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-400 font-medium">({selectedStation.reviewsCount || "6"})</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 font-medium">
+                    Electric vehicle charging station
                   </p>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all">
-                  <Share2 size={14} /> Share Trip
-                </button>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2 p-4 bg-gray-50 rounded-2xl">
-                <div className="text-center border-r border-gray-200">
-                  <div className="text-sm font-bold text-gray-900">190 km</div>
-                  <div className="text-[10px] text-gray-400 font-medium">
-                    Total Distance
-                  </div>
-                </div>
-                <div className="text-center border-r border-gray-200">
-                  <div className="text-sm font-bold text-gray-900">
-                    3 h 45 min
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-medium">
-                    Total Time
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-bold text-green-500">
-                    ~ 45 min
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-medium">
-                    Charging Time
-                  </div>
-                </div>
-              </div>
-
-              {/* Itinerary Timeline */}
-              <div className="space-y-0 relative">
-                {/* Timeline vertical line */}
-                <div className="absolute left-[7px] top-4 bottom-4 w-[2px] bg-gray-100"></div>
-
-                {/* Start Point */}
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 shadow-sm z-10"></div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        {from.split(',')[0] || "Start Point"}
-                      </h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                        Start
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-lg">
-                      <span className="text-[10px] font-bold text-gray-600">
-                        78%
-                      </span>
-                      <Battery size={12} className="text-green-500" />
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-3 text-[10px] text-gray-400 font-medium">
-                    <Car size={12} />
-                    <span>Drive {routeData ? (routeData.distance / 1000).toFixed(1) : "---"} km ({routeData ? Math.floor(routeData.duration / 3600) + " h " + Math.round((routeData.duration % 3600) / 60) + " min" : "---"})</span>
-                  </div>
+                {/* Tabs */}
+                <div className="flex border-b border-gray-100 mt-6">
+                  <button
+                    onClick={() => setActiveTab("overview")}
+                    className={`flex-1 py-3 text-sm font-bold transition-all relative ${activeTab === "overview" ? "text-green-600" : "text-gray-400 hover:text-gray-600"}`}
+                  >
+                    Overview
+                    {activeTab === "overview" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-green-500 rounded-full" />}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("reviews")}
+                    className={`flex-1 py-3 text-sm font-bold transition-all relative ${activeTab === "reviews" ? "text-green-600" : "text-gray-400 hover:text-gray-600"}`}
+                  >
+                    Reviews
+                    {activeTab === "reviews" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-green-500 rounded-full" />}
+                  </button>
                 </div>
 
-                {/* Stop 1 */}
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 flex items-center justify-center text-[8px] text-white font-bold z-10 shadow-sm">
-                    1
-                  </div>
-                  <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:border-green-500/30 transition-all">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-sm font-bold text-gray-900">
-                        New Market EcoCharge
-                      </h4>
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <Star size={10} fill="currentColor" />
-                        <span className="text-[10px] font-bold text-gray-900">
-                          4.8
-                        </span>
+                <div className="flex-grow overflow-y-auto custom-scrollbar">
+                  {activeTab === "overview" ? (
+                    <div className="p-6 space-y-8 pb-10">
+                      {/* Action Buttons */}
+                      <div className="flex justify-between items-center gap-2 px-1">
+                        {[
+                          { icon: Navigation, label: "Directions", color: "bg-[#1A73E8] text-white", onClick: () => { } },
+                          {
+                            icon: waypoints.some(wp => wp._id === selectedStation._id) ? Minus : Plus,
+                            label: waypoints.some(wp => wp._id === selectedStation._id) ? "Remove Stop" : "Add to Trip",
+                            color: waypoints.some(wp => wp._id === selectedStation._id) ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600",
+                            onClick: () => {
+                              if (waypoints.some(wp => wp._id === selectedStation._id)) {
+                                setWaypoints(waypoints.filter(wp => wp._id !== selectedStation._id));
+                              } else {
+                                setWaypoints([...waypoints, selectedStation]);
+                              }
+                            }
+                          },
+                          { icon: Bookmark, label: "Save", color: "bg-blue-50 text-blue-600", onClick: () => { } },
+                          { icon: Target, label: "Nearby", color: "bg-blue-50 text-blue-600", onClick: () => { } },
+                          { icon: Share2, label: "Share", color: "bg-blue-50 text-blue-600", onClick: () => { } }
+                        ].map((btn, idx) => (
+                          <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                            <button
+                              onClick={btn.onClick}
+                              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm ${btn.color}`}
+                            >
+                              <btn.icon size={20} fill={idx === 0 ? "white" : "none"} />
+                            </button>
+                            <span className="text-[10px] font-bold text-center text-gray-600 leading-tight">
+                              {btn.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Charger Types & Occupancy */}
+                      <div className="space-y-6 pt-4 border-t border-gray-50">
+                        {selectedStation.chargers?.map((charger, idx) => (
+                          <div key={idx} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-green-50 group-hover:text-green-500 transition-colors">
+                                <Zap size={20} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-gray-900">
+                                  {charger.type} · {charger.power} kW
+                                </div>
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                  Level 3 Fast Charger
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-bold text-gray-600">
+                                Total <span className="ml-2 text-gray-900">1</span>
+                              </div>
+                              <div className="text-[10px] font-bold text-green-500 mt-0.5">
+                                Available
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Location Details */}
+                      <div className="space-y-6 pt-4 border-t border-gray-50">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
+                            <MapPin size={20} />
+                          </div>
+                          <div className="flex-grow pt-1">
+                            <p className="text-sm font-medium text-gray-700 leading-relaxed">
+                              {selectedStation.address}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-purple-500 shrink-0">
+                            <Building2 size={20} />
+                          </div>
+                          <div className="flex-grow pt-2">
+                            <p className="text-sm font-medium text-gray-700">
+                              Located in: <span className="font-bold text-gray-900">Emperor Lounge</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-green-500 shrink-0">
+                            <Clock size={20} />
+                          </div>
+                          <div className="flex-grow pt-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-bold text-green-600">
+                                Open 24 hours
+                              </p>
+                              <ChevronDown size={16} className="text-gray-400" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Booking Action */}
+                      <div className="pt-6 border-t border-gray-50">
+                        <button
+                          className="w-full py-4 bg-[#1BAC4B] text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                          onClick={() => {
+                            const stop = itineraryStops.find(s => s._id === selectedStation._id);
+                            const time = stop ? stop.estimatedArrival : "12:30 PM";
+                            alert(`Slot booked successfully for ${time}!`);
+                          }}
+                        >
+                          <Calendar size={18} />
+                          Book Slot for {itineraryStops.find(s => s._id === selectedStation._id)?.estimatedArrival || "12:30 PM"}
+                        </button>
+                        <p className="text-[10px] text-gray-400 text-center mt-3 font-medium">
+                          Free cancellation up to 30 mins before arrival
+                        </p>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 mb-3">
-                      NH 46, Sehore, MP
+                  ) : (
+                    <div className="p-6 flex flex-col items-center justify-center text-center py-20 gap-4">
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                        <Star size={32} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">No reviews yet</h4>
+                        <p className="text-sm text-gray-400 mt-1">Be the first to rate this station</p>
+                      </div>
+                      <button className="mt-2 px-6 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-bold hover:bg-green-100 transition-all">
+                        Write a review
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Your Trip Itinerary
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {itineraryStops.length > 0 ? `${itineraryStops.length} Stops Found` : isRouteCalculated ? "No stops found on route" : "Planning route..."}
                     </p>
-                    <div className="inline-block px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-lg mb-4">
-                      73 km from start
-                    </div>
+                  </div>
+                  <button className="flex items-center gap-2 px-3 py-2 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all">
+                    <Share2 size={14} /> Share Trip
+                  </button>
+                </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                      <div className="flex items-center gap-2">
-                        <Zap size={14} className="text-green-500" />
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-900">
-                            60 kW
-                          </div>
-                          <div className="text-[8px] text-gray-400 uppercase font-black">
-                            CCS2
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Battery size={14} className="text-green-500" />
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-900">
-                            Charge for ~20 min
-                          </div>
-                          <div className="text-[8px] text-gray-400 uppercase font-black">
-                            10% → 65%
-                          </div>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-3 gap-2 p-4 bg-gray-50 rounded-2xl">
+                  <div className="text-center border-r border-gray-200">
+                    <div className="text-sm font-bold text-gray-900">
+                      {routeData ? (routeData.distance / 1000).toFixed(1) + " km" : "---"}
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium">
+                      Total Distance
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-3 text-[10px] text-gray-400 font-medium">
-                    <Car size={12} />
-                    <span>Drive 64 km (1 h 15 min)</span>
+                  <div className="text-center border-r border-gray-200">
+                    <div className="text-sm font-bold text-gray-900">
+                      {routeData ? Math.floor(routeData.duration / 3600) + " h " + Math.round((routeData.duration % 3600) / 60) + " min" : "---"}
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium">
+                      Total Time
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-bold text-green-500">
+                      ~ {itineraryStops.length * 20} min
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium">
+                      Charging Time
+                    </div>
                   </div>
                 </div>
 
-                {/* Stop 2 */}
-                <div className="relative pl-8 pb-8">
-                  <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 flex items-center justify-center text-[8px] text-white font-bold z-10 shadow-sm">
-                    2
-                  </div>
-                  <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:border-green-500/30 transition-all">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-sm font-bold text-gray-900">
-                        Dewas Highway ChargeHub
-                      </h4>
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <Star size={10} fill="currentColor" />
-                        <span className="text-[10px] font-bold text-gray-900">
-                          4.4
+                {/* Itinerary Timeline */}
+                <div className="space-y-0 relative">
+                  {/* Timeline vertical line */}
+                  <div className="absolute left-[7px] top-4 bottom-4 w-[2px] bg-gray-100"></div>
+
+                  {/* Start Point */}
+                  <div className="relative pl-8 pb-8">
+                    <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 shadow-sm z-10"></div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">
+                          {from.split(',')[0] || "Start Point"}
+                        </h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Start
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-lg">
+                        <span className="text-[10px] font-bold text-gray-600">
+                          78%
                         </span>
+                        <Battery size={12} className="text-green-500" />
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 mb-3">
-                      NH 52, Dewas, MP
+                    <div className="mt-4 flex items-center gap-3 text-[10px] text-gray-400 font-medium">
+                      <Car size={12} />
+                      <span>Drive {routeData ? (routeData.distance / 1000).toFixed(1) : "---"} km ({routeData ? Math.floor(routeData.duration / 3600) + " h " + Math.round((routeData.duration % 3600) / 60) + " min" : "---"})</span>
+                    </div>
+                  </div>
+
+                  {/* Intermediate Stops */}
+                  {itineraryStops.map((stop, index) => (
+                    <div
+                      key={stop._id || index}
+                      className="relative pl-8 pb-8 cursor-pointer group"
+                      onClick={() => setSelectedStation(stop)}
+                    >
+                      <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 flex items-center justify-center text-[8px] text-white font-bold z-10 shadow-sm group-hover:scale-110 transition-transform">
+                        {index + 1}
+                      </div>
+                      <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm group-hover:border-green-500/30 group-hover:shadow-md transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-green-600 transition-colors flex items-center">
+                            {stop.name}
+                            {stop.isWaypoint && (
+                              <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[8px] font-black uppercase rounded-md tracking-tighter">
+                                Planned
+                              </span>
+                            )}
+                          </h4>
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            <Star size={10} fill="currentColor" />
+                            <span className="text-[10px] font-bold text-gray-900">
+                              {stop.rating || "4.5"}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mb-3 line-clamp-1">
+                          {stop.address}
+                        </p>
+                        <div className="inline-block px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-lg mb-4">
+                          {stop.distanceFromStart.toFixed(1)} km from start
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                          <div className="flex items-center gap-2">
+                            <Zap size={14} className="text-green-500" />
+                            <div>
+                              <div className="text-[10px] font-bold text-gray-900">
+                                {stop.chargers?.[0]?.power || "50"} kW
+                              </div>
+                              <div className="text-[8px] text-gray-400 uppercase font-black">
+                                {stop.chargers?.[0]?.type || "CCS2"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Battery size={14} className="text-green-500" />
+                            <div>
+                              <div className="text-[10px] font-bold text-gray-900">
+                                Available
+                              </div>
+                              <div className="text-[8px] text-gray-400 uppercase font-black text-green-500">
+                                {stop.chargers?.filter(c => c.status === "available").length || "1"} / {stop.chargers?.length || "1"} Slots
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Destination */}
+                  <div className="relative pl-8">
+                    <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-red-500 shadow-sm z-10"></div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">
+                          {to.split(',')[0] || "Destination"}
+                        </h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Destination
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-2">
+                          Est. Arrival: 12:45 PM
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 px-2 py-1 bg-red-50 rounded-lg">
+                        <span className="text-[10px] font-bold text-red-600">
+                          ~18%
+                        </span>
+                        <Battery size={12} className="text-red-500 rotate-180" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Eco Tip */}
+                <div className="p-4 bg-green-50 rounded-2xl border border-green-100 flex items-start gap-4 mt-6">
+                  <div className="p-2 bg-white rounded-xl text-green-500 shadow-sm">
+                    <Leaf size={18} />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-green-900">Eco Tip</h5>
+                    <p className="text-[10px] text-green-700 font-medium mt-0.5">
+                      This trip will save ~12% energy compared to fastest route
                     </p>
-                    <div className="inline-block px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-lg mb-4">
-                      137 km from start
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                      <div className="flex items-center gap-2">
-                        <Zap size={14} className="text-green-500" />
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-900">
-                            60 kW
-                          </div>
-                          <div className="text-[8px] text-gray-400 uppercase font-black">
-                            CCS2
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Battery size={14} className="text-green-500" />
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-900">
-                            Charge for ~25 min
-                          </div>
-                          <div className="text-[8px] text-gray-400 uppercase font-black">
-                            15% → 70%
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-3 text-[10px] text-gray-400 font-medium">
-                    <Car size={12} />
-                    <span>Drive 53 km (1 h 10 min)</span>
-                  </div>
-                </div>
-
-                {/* Destination */}
-                <div className="relative pl-8">
-                  <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-red-500 shadow-sm z-10"></div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        Indore, MP
-                      </h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                        Destination
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-2">
-                        Est. Arrival: 12:45 PM
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-red-50 rounded-lg">
-                      <span className="text-[10px] font-bold text-red-600">
-                        ~18%
-                      </span>
-                      <Battery size={12} className="text-red-500 rotate-180" />
-                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Eco Tip */}
-              <div className="p-4 bg-green-50 rounded-2xl border border-green-100 flex items-start gap-4">
-                <div className="p-2 bg-white rounded-xl text-green-500 shadow-sm">
-                  <Leaf size={18} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-green-900">Eco Tip</h5>
-                  <p className="text-[10px] text-green-700 font-medium mt-0.5">
-                    This trip will save ~12% energy compared to fastest route
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
           </aside>
         </div>
       </main>
