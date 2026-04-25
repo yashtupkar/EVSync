@@ -1,0 +1,27 @@
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import DiscoveryPage from "./pages/DiscoveryPage";
+import AdminPanel from "./components/AdminPanel";
+import LoginPage from "./components/LoginPage";
+import ProfilePage from "./components/ProfilePage";
+import VehicleSelectionPage from "./components/VehicleSelectionPage";
+
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-[#F8FAF9] text-gray-900 selection:bg-[#1BAC4B] selection:text-white">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<DiscoveryPage />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/vehicle-selection" element={<VehicleSelectionPage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;

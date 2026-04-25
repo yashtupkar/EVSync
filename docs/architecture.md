@@ -62,10 +62,14 @@
 
 - `_id`
 - `name`
+- `type: commercial | community (home/dhaba)`
 - `location (GeoJSON - 2dsphere)`
 - `address`
 - `chargers`
 - `ownerId`
+- `pricingModel: fixed | dynamic`
+- `verified: boolean`
+- `rating: number`
 - `createdAt, updatedAt`
 
 ### Charger
@@ -74,9 +78,10 @@
 - `stationId`
 - `power (kW)`
 - `connectorType`
-- `status: available | reserved | in_use`
+- `status: available | reserved | in_use | offline`
 - `currentBooking`
 - `compatibleVehicles`
+- `qrCode: string (unique identifier)`
 - `createdAt, updatedAt`
 
 ### Booking
@@ -87,9 +92,10 @@
 - `chargerId`
 - `stationId`
 - `startTime, endTime`
-- `status: active | cancelled | completed | no_show`
+- `status: active | cancelled | completed | no_show | emergency_priority`
 - `cost`
 - `paymentId`
+- `isEmergency: boolean`
 - `createdAt, updatedAt`
 
 ### Payment
@@ -115,7 +121,30 @@
 
 ---
 
-## 4. API Design (REST)
+## 4. Advanced System Logic
+
+### 🚀 Advanced Features (USP 🔥)
+
+1. **Community Charging (Home/Dhaba)**:
+   - Users can register their home or commercial charger as a station.
+   - Earn revenue from shared access.
+2. **Fixed Pricing Model**:
+   - Standardized pricing per kWh across all community chargers to prevent price gouging.
+3. **QR-Based Instant Booking**:
+   - Users scan a physical QR code at the station to start an instant booking.
+4. **Offline Support (Caching)**:
+   - Client-side caching of nearby stations and offline route storage.
+5. **Smart Prediction**:
+   - Predictive analytics for wait times and slot availability based on historical data.
+6. **Reachability Logic**:
+   - Prevents users from selecting stations that are beyond their current range.
+7. **Emergency Priority**:
+   - Users with <10% battery can request "Emergency Priority".
+   - Higher visibility and priority in booking queues.
+
+---
+
+## 5. API Design (REST)
 
 ### Auth APIs
 
@@ -159,7 +188,7 @@
 
 ---
 
-## 5. Booking & Slot Logic
+## 6. Booking & Slot Logic
 
 - Time-based booking (`startTime`, `endTime`)
 - Overlap detection prevents double booking
@@ -169,7 +198,7 @@
 
 ---
 
-## 6. Charging Time Calculation
+## 7. Charging Time Calculation
 
 Charging Time (hours) =
 (Battery Capacity × (Target% - Current%) / 100)
@@ -188,7 +217,7 @@ Charging Time (hours) =
 
 ---
 
-## 7. Route-Based Planner Logic
+## 8. Route-Based Planner Logic
 
 - User inputs source & destination
 - Fetch route via Leaflet
@@ -201,7 +230,7 @@ Charging Time (hours) =
 
 ---
 
-## 8. User Flow
+## 9. User Flow
 
 ### Booking Flow
 
@@ -228,7 +257,7 @@ Charging Time (hours) =
 
 ---
 
-## 9. Admin Panel
+## 10. Admin Panel
 
 ### Features
 
@@ -246,7 +275,7 @@ Charging Time (hours) =
 
 ---
 
-## 10. Frontend Structure (React)
+## 11. Frontend Structure (React)
 
 /src
 /components
@@ -288,7 +317,7 @@ stationSlice.js
 
 ---
 
-## 11. Backend Structure (Node.js)
+## 12. Backend Structure (Node.js)
 
 /src
 /controllers
@@ -335,7 +364,7 @@ socket.js
 
 ---
 
-## 12. Real-Time System (Socket.io)
+## 13. Real-Time System (Socket.io)
 
 ### Events
 
@@ -351,7 +380,7 @@ socket.js
 
 ---
 
-## 13. Edge Cases
+## 14. Edge Cases
 
 - Double booking → Prevent via DB lock
 - OTP expiry → Retry limits
@@ -360,7 +389,7 @@ socket.js
 
 ---
 
-## 14. Future Enhancements
+## 15. Future Enhancements
 
 - AI recommendations
 - Real EV API integration

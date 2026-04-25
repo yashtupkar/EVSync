@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1BAC4B;
+  --color-primary-dark: #189a43;
+  --color-dark: #111827;
+  --color-light: #F8FAF9;
+  --font-sans: "Space Grotesk", sans-serif;
+}
+
+:root {
+  background-color: #F8FAF9;
+  color: #111827;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Fix for Leaflet controls theme */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 10px 15px rgba(0,0,0,0.05) !important;
+  border-radius: 1rem !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background-color: white !important;
+  color: #1BAC4B !important;
+  border: 1px solid #F3F4F6 !important;
+}

@@ -1,0 +1,52 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const { Server } = require('socket.io');
+const http = require('http');
+
+// Import Routes
+const stationRoutes = require('./routes/stationRoutes');
+const connectDB = require('./connections/db.connect');
+
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+connectDB(); // Disabled for Hackathon stability (Mock Mode)
+
+// Socket.io
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
+
+
+// Basic Route
+app.get('/', (req, res) => {
+  res.send('EV-Locater API is running...');
+});
+
+
+
+app.use('/api/stations', stationRoutes);
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
