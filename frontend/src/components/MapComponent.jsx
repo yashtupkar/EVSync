@@ -960,10 +960,10 @@ const MapComponent = ({
       </MapContainer>
 
       {/* Unified Bottom Bar Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none px-4 pb-6 md:pb-8">
+      <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none  ">
         <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
           {/* Top Row: Floating Controls (Zoom & Layers) - Positioned above the bar */}
-          {!hideControls && (
+        
             <div className="flex items-end justify-between px-2 pointer-events-none">
               {/* Left side: Compass (Moved here from top) */}
               <div className="bg-white/90 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white pointer-events-auto flex items-center justify-center">
@@ -1046,13 +1046,13 @@ const MapComponent = ({
                 </div>
               </div>
             </div>
-          )}
+          
 
           {/* Main Content Bar */}
           <div className="pointer-events-auto">
             {showRoute ? (
               /* Navigation Mode */
-              <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white overflow-hidden transition-all duration-500">
+              <div className="bg-white/95 backdrop-blur-xl rounded-t-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white overflow-hidden transition-all duration-500">
                 {isLoadingRoute ? (
                   <div className="p-5 flex items-center gap-4 animate-pulse">
                     <div className="w-10 h-10 border-3 border-[#1BAC4B] border-t-transparent rounded-full animate-spin" />
@@ -1070,7 +1070,7 @@ const MapComponent = ({
                     {/* Primary Stats & Current Step */}
                     <div className="p-4 flex items-center gap-4">
                       {/* Direction Icon */}
-                      <div className="w-12 h-12 bg-[#1BAC4B]/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 bg-[#1BAC4B]/10 rounded-t-2xl flex items-center justify-center flex-shrink-0">
                         <span className="text-2xl">
                           {instructions[currentStep]
                             ? (() => {
