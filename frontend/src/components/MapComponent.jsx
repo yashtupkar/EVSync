@@ -28,6 +28,9 @@ import {
   Heart
 } from "lucide-react";
 
+// Stable reference for empty arrays to prevent render loops in effects
+const EMPTY_ARRAY = [];
+
 // Fix Leaflet marker icon issue
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -50,7 +53,7 @@ const createStationIcon = (station, mapRotation = 0) => {
   return L.divIcon({
     className: "custom-station-icon",
     html: `
-      <div class="relative transition-transform duration-500" style="transform: rotate(${-mapRotation}deg)">
+      <div class="relative transition-transform duration-500" style="transform: rotate(${mapRotation}deg)">
         <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">
           <path d="M18 42C18 42 36 28.5 36 18C36 8.05888 27.9411 0 18 0C8.05888 0 0 8.05888 0 18C0 28.5 18 42 18 42Z" fill="white"/>
           <path d="M18 39.5C18 39.5 33 26.5 33 18C33 9.71573 26.2843 3 18 3C9.71573 3 3 9.71573 3 18C3 26.5 18 39.5 18 39.5Z" fill="${color}"/>
@@ -287,7 +290,7 @@ const MapComponent = ({
   onRouteUpdate,
   usePaperPins = false,
   routeTrigger = 0,
-  waypoints = [], // Array of {lat, lng} or station objects with coordinates
+  waypoints = EMPTY_ARRAY, // Array of {lat, lng} or station objects with coordinates
 }) => {
   const [userLocation, setUserLocation] = useState(
     startLocation || [23.2599, 77.4126],
@@ -650,6 +653,11 @@ const MapComponent = ({
         return;
       }
 
+      // Guard: Don't re-fetch if we are already simulating and have a route
+      if (simulating && routeCoords.length > 0) {
+        return;
+      }
+
       setIsLoadingRoute(true);
       try {
         // Use current simulation position as start if we're mid-trip
@@ -800,7 +808,7 @@ const MapComponent = ({
                   (c) => c.status === "available",
                 ),
               },
-              simulating ? bearing : 0,
+              simulating ? bearing : 0
             )}
             eventHandlers={{
               mouseover: (e) => e.target.openPopup(),

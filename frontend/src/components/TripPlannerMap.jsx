@@ -50,7 +50,7 @@ const createStationIcon = (station, mapRotation = 0) => {
   return L.divIcon({
     className: "custom-station-icon",
     html: `
-      <div class="relative transition-transform duration-500" style="transform: rotate(${-mapRotation}deg)">
+      <div class="relative transition-transform duration-500" style="transform: rotate(${mapRotation}deg)">
         <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">
           <path d="M18 42C18 42 36 28.5 36 18C36 8.05888 27.9411 0 18 0C8.05888 0 0 8.05888 0 18C0 28.5 18 42 18 42Z" fill="white"/>
           <path d="M18 39.5C18 39.5 33 26.5 33 18C33 9.71573 26.2843 3 18 3C9.71573 3 3 9.71573 3 18C3 26.5 18 39.5 18 39.5Z" fill="${color}"/>
@@ -827,7 +827,7 @@ const TripPlannerMap = ({
                   (c) => c.status === "available",
                 ),
               },
-              simulating ? bearing : 0,
+              simulating ? bearing : 0
             )}
             eventHandlers={{
               mouseover: (e) => e.target.openPopup(),
