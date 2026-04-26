@@ -1,0 +1,2341 @@
+{
+    "meta": {
+        "title": "India EV Dataset — Cars, Scooters, Rickshaws, 3-Wheelers & Global Brands",
+        "version": "1.0.0",
+        "updated_at": "2026-04-25",
+        "total_vehicles": 80,
+        "categories": [
+            "car",
+            "scooter",
+            "three_wheeler",
+            "rickshaw"
+        ],
+        "notes": "Range figures are manufacturer-claimed (ARAI/WLTP). Prices in INR (ex-showroom, approx). Battery sizes in kWh. Charging power in kW."
+    },
+    "brands": [
+        {
+            "id": "tata",
+            "name": "Tata Motors",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "mahindra",
+            "name": "Mahindra Electric",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "mg",
+            "name": "MG Motor India",
+            "country": "India/China",
+            "type": "indian"
+        },
+        {
+            "id": "hyundai",
+            "name": "Hyundai India",
+            "country": "South Korea",
+            "type": "global_india"
+        },
+        {
+            "id": "kia",
+            "name": "Kia India",
+            "country": "South Korea",
+            "type": "global_india"
+        },
+        {
+            "id": "byd",
+            "name": "BYD India",
+            "country": "China",
+            "type": "global_india"
+        },
+        {
+            "id": "ola",
+            "name": "Ola Electric",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "ather",
+            "name": "Ather Energy",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "tvs",
+            "name": "TVS Motor Company",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "bajaj",
+            "name": "Bajaj Auto",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "hero_elec",
+            "name": "Hero Electric",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "simple",
+            "name": "Simple Energy",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "revolt",
+            "name": "Revolt Motors",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "ampere",
+            "name": "Ampere Vehicles",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "okinawa",
+            "name": "Okinawa Autotech",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "bgauss",
+            "name": "BattRE / BGauss",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "piaggio",
+            "name": "Piaggio India",
+            "country": "Italy",
+            "type": "global_india"
+        },
+        {
+            "id": "altigreen",
+            "name": "Altigreen",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "mahindra_3w",
+            "name": "Mahindra Last Mile Mobility",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "euler",
+            "name": "Euler Motors",
+            "country": "India",
+            "type": "indian"
+        },
+        {
+            "id": "tesla",
+            "name": "Tesla",
+            "country": "USA",
+            "type": "global"
+        },
+        {
+            "id": "bmw",
+            "name": "BMW",
+            "country": "Germany",
+            "type": "global"
+        },
+        {
+            "id": "mercedes",
+            "name": "Mercedes-Benz",
+            "country": "Germany",
+            "type": "global"
+        },
+        {
+            "id": "audi",
+            "name": "Audi",
+            "country": "Germany",
+            "type": "global"
+        },
+        {
+            "id": "porsche",
+            "name": "Porsche",
+            "country": "Germany",
+            "type": "global"
+        },
+        {
+            "id": "volkswagen",
+            "name": "Volkswagen",
+            "country": "Germany",
+            "type": "global"
+        },
+        {
+            "id": "volvo",
+            "name": "Volvo",
+            "country": "Sweden",
+            "type": "global"
+        },
+        {
+            "id": "nissan",
+            "name": "Nissan",
+            "country": "Japan",
+            "type": "global"
+        }
+    ],
+    "data": [
+
+        {
+            "id": "in-car-001",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Nexon EV",
+            "variant": "Standard Range",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "india",
+            "release_year": 2020,
+            "price_inr_lakh": 14.49,
+            "usable_battery_size_kwh": 30.2,
+            "range_km": 312,
+            "top_speed_kmh": 120,
+            "motor_power_kw": 95,
+            "energy_consumption_wh_per_km": 96.8,
+            "ac_charger": {
+                "max_power_kw": 7.2,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.5
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 56
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Pristine White",
+                "Daytona Grey",
+                "Flame Red",
+                "Intensi-Teal"
+            ],
+            "features": [
+                "Harman infotainment",
+                "Connected car tech",
+                "iRA connected tech",
+                "Regen braking levels"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-002",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Nexon EV Max",
+            "variant": "Long Range",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 19.04,
+            "usable_battery_size_kwh": 40.5,
+            "range_km": 437,
+            "top_speed_kmh": 150,
+            "motor_power_kw": 143,
+            "energy_consumption_wh_per_km": 92.7,
+            "ac_charger": {
+                "max_power_kw": 7.2,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 7.5
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 56
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Pristine White",
+                "Daytona Grey",
+                "Oberon Black"
+            ],
+            "features": [
+                "Level 2 ADAS",
+                "360-degree camera",
+                "Ventilated seats",
+                "JBL sound system"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-003",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Tigor EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "sedan",
+            "origin": "india",
+            "release_year": 2021,
+            "price_inr_lakh": 12.49,
+            "usable_battery_size_kwh": 26,
+            "range_km": 306,
+            "top_speed_kmh": 120,
+            "motor_power_kw": 74,
+            "energy_consumption_wh_per_km": 85,
+            "ac_charger": {
+                "max_power_kw": 7.2,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 4.5
+            },
+            "dc_charger": {
+                "max_power_kw": 25,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 65
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Daytona Grey",
+                "Pristine White",
+                "Magnetic Red"
+            ],
+            "features": [
+                "7-inch touchscreen",
+                "iRA connected",
+                "Push-button start",
+                "Regen braking"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-004",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Punch EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "micro_suv",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 10.99,
+            "usable_battery_size_kwh": 35,
+            "range_km": 421,
+            "top_speed_kmh": 140,
+            "motor_power_kw": 90,
+            "energy_consumption_wh_per_km": 83.1,
+            "ac_charger": {
+                "max_power_kw": 7.2,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 6.0
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 56
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Seaweed Green",
+                "Pristine White",
+                "Fearless Purple",
+                "Empowered Oxide"
+            ],
+            "features": [
+                "10.25-inch touchscreen",
+                "ADAS Level 2",
+                "Wireless charging",
+                "Connected car"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-005",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Curvv EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "coupe_suv",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 17.49,
+            "usable_battery_size_kwh": 55,
+            "range_km": 502,
+            "top_speed_kmh": 160,
+            "motor_power_kw": 150,
+            "energy_consumption_wh_per_km": 110,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 6.5
+            },
+            "dc_charger": {
+                "max_power_kw": 70,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 40
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Pristine White",
+                "Oberon Black",
+                "Avenue White",
+                "Magnetic Red"
+            ],
+            "features": [
+                "12.3-inch curved display",
+                "Level 2 ADAS",
+                "V2L support",
+                "Panoramic sunroof"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-006",
+            "brand": "Tata",
+            "brand_id": "tata",
+            "model": "Harrier EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "full_size_suv",
+            "origin": "india",
+            "release_year": 2025,
+            "price_inr_lakh": 24.99,
+            "usable_battery_size_kwh": 65,
+            "range_km": 538,
+            "top_speed_kmh": 180,
+            "motor_power_kw": 170,
+            "energy_consumption_wh_per_km": 120,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 7.5
+            },
+            "dc_charger": {
+                "max_power_kw": 100,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 30
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Oberon Black",
+                "Pristine White",
+                "Ash Grey"
+            ],
+            "features": [
+                "AWD option",
+                "V2L/V2H",
+                "ADAS Level 2+",
+                "JBL 14-speaker",
+                "Panoramic roof"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-007",
+            "brand": "MG",
+            "brand_id": "mg",
+            "model": "ZS EV",
+            "variant": "Excite Pro",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "india",
+            "release_year": 2020,
+            "price_inr_lakh": 18.98,
+            "usable_battery_size_kwh": 50.3,
+            "range_km": 461,
+            "top_speed_kmh": 175,
+            "motor_power_kw": 130,
+            "energy_consumption_wh_per_km": 109,
+            "ac_charger": {
+                "max_power_kw": 7.4,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 8.5
+            },
+            "dc_charger": {
+                "max_power_kw": 76,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 60
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Candy White",
+                "Starry Black",
+                "Aurora Silver"
+            ],
+            "features": [
+                "Panoramic sunroof",
+                "ADAS",
+                "i-SMART connected",
+                "PM2.5 filter"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-008",
+            "brand": "MG",
+            "brand_id": "mg",
+            "model": "Comet EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "city_car",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 6.99,
+            "usable_battery_size_kwh": 17.3,
+            "range_km": 230,
+            "top_speed_kmh": 100,
+            "motor_power_kw": 42,
+            "energy_consumption_wh_per_km": 75.2,
+            "ac_charger": {
+                "max_power_kw": 3.3,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 7.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 400,
+            "colors": [
+                "Bubblegum",
+                "Starry Black",
+                "Candy White",
+                "Sherbet Lime"
+            ],
+            "features": [
+                "10.25-inch touchscreen",
+                "4 driving modes",
+                "Retractable door handles"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-009",
+            "brand": "MG",
+            "brand_id": "mg",
+            "model": "Windsor EV",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "crossover",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 13.5,
+            "usable_battery_size_kwh": 38,
+            "range_km": 331,
+            "top_speed_kmh": 160,
+            "motor_power_kw": 115,
+            "energy_consumption_wh_per_km": 114.8,
+            "ac_charger": {
+                "max_power_kw": 7.4,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 6.5
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 60
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Starburst Gold",
+                "Starry Black",
+                "Pearl White"
+            ],
+            "features": [
+                "Battery-as-a-Service available",
+                "V2L",
+                "Panoramic glass roof",
+                "Rotatable co-driver seat"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-010",
+            "brand": "Hyundai",
+            "brand_id": "hyundai",
+            "model": "Creta Electric",
+            "variant": "Long Range",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 17.99,
+            "usable_battery_size_kwh": 51.4,
+            "range_km": 473,
+            "top_speed_kmh": 165,
+            "motor_power_kw": 135,
+            "energy_consumption_wh_per_km": 108.7,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 6.0
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 58
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Atlas White",
+                "Abyss Black",
+                "Titan Grey",
+                "Cosmic Blue"
+            ],
+            "features": [
+                "V2L",
+                "ADAS Level 2",
+                "Dual-screen cockpit",
+                "Panoramic sunroof"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-011",
+            "brand": "Hyundai",
+            "brand_id": "hyundai",
+            "model": "Ioniq 5",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "premium_suv",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 45.95,
+            "usable_battery_size_kwh": 72.6,
+            "range_km": 631,
+            "top_speed_kmh": 185,
+            "motor_power_kw": 160,
+            "energy_consumption_wh_per_km": 150,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.5
+            },
+            "dc_charger": {
+                "max_power_kw": 220,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 18
+            },
+            "charging_voltage": 800,
+            "colors": [
+                "Lucid Blue",
+                "Atlas White",
+                "Gravity Gold",
+                "Abyss Black"
+            ],
+            "features": [
+                "800V architecture",
+                "V2L/V2G",
+                "Ultra-fast charging",
+                "Pixel LED lights"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-012",
+            "brand": "Kia",
+            "brand_id": "kia",
+            "model": "EV6",
+            "variant": "GT Line",
+            "vehicle_type": "car",
+            "segment": "premium_crossover",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 60.97,
+            "usable_battery_size_kwh": 77.4,
+            "range_km": 708,
+            "top_speed_kmh": 185,
+            "motor_power_kw": 168,
+            "energy_consumption_wh_per_km": 157,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": {
+                "max_power_kw": 233,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 18
+            },
+            "charging_voltage": 800,
+            "colors": [
+                "Snow White Pearl",
+                "Moonscape",
+                "Runway Red",
+                "Glacier"
+            ],
+            "features": [
+                "800V ultra-fast charge",
+                "V2L",
+                "Augmented Reality HUD",
+                "Meridian sound"
+            ],
+            "warranty_battery_years": 7
+        },
+        {
+            "id": "in-car-013",
+            "brand": "BYD",
+            "brand_id": "byd",
+            "model": "Atto 3",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 24.99,
+            "usable_battery_size_kwh": 60.5,
+            "range_km": 521,
+            "top_speed_kmh": 160,
+            "motor_power_kw": 150,
+            "energy_consumption_wh_per_km": 116,
+            "ac_charger": {
+                "max_power_kw": 7,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 9.5
+            },
+            "dc_charger": {
+                "max_power_kw": 88,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 50
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Ski White",
+                "Surf Blue",
+                "Boulder Grey",
+                "Parkour Red"
+            ],
+            "features": [
+                "Blade Battery LFP",
+                "Rotating 12.8-inch screen",
+                "BYD DiLink",
+                "V2L"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-014",
+            "brand": "BYD",
+            "brand_id": "byd",
+            "model": "Seal",
+            "variant": "Excellence",
+            "vehicle_type": "car",
+            "segment": "premium_sedan",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 41.0,
+            "usable_battery_size_kwh": 82.5,
+            "range_km": 650,
+            "top_speed_kmh": 180,
+            "motor_power_kw": 230,
+            "energy_consumption_wh_per_km": 127,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.5
+            },
+            "dc_charger": {
+                "max_power_kw": 150,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 30
+            },
+            "charging_voltage": 800,
+            "colors": [
+                "Cosmos Black",
+                "Mineral Blue",
+                "Mirror Silver"
+            ],
+            "features": [
+                "CTB technology",
+                "AWD",
+                "23-speaker Dynaudio",
+                "Intelligent Cabin"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-015",
+            "brand": "Mahindra",
+            "brand_id": "mahindra",
+            "model": "XEV 9e",
+            "variant": "Pack Three",
+            "vehicle_type": "car",
+            "segment": "premium_coupe_suv",
+            "origin": "india",
+            "release_year": 2025,
+            "price_inr_lakh": 30.5,
+            "usable_battery_size_kwh": 79,
+            "range_km": 656,
+            "top_speed_kmh": 195,
+            "motor_power_kw": 210,
+            "energy_consumption_wh_per_km": 120,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": {
+                "max_power_kw": 175,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 20
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Everest White",
+                "Midnight Black",
+                "Deep Forest"
+            ],
+            "features": [
+                "INGLO platform",
+                "3 screens",
+                "Harman Kardon",
+                "V2L/V2H",
+                "ADAS Level 2+"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-016",
+            "brand": "Mahindra",
+            "brand_id": "mahindra",
+            "model": "BE 6e",
+            "variant": "Pack Three",
+            "vehicle_type": "car",
+            "segment": "coupe_suv",
+            "origin": "india",
+            "release_year": 2025,
+            "price_inr_lakh": 18.9,
+            "usable_battery_size_kwh": 79,
+            "range_km": 682,
+            "top_speed_kmh": 201,
+            "motor_power_kw": 231,
+            "energy_consumption_wh_per_km": 115.8,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": {
+                "max_power_kw": 175,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 20
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Tango Red",
+                "Nebula Blue",
+                "Everest White"
+            ],
+            "features": [
+                "Fastest Indian production EV",
+                "INGLO platform",
+                "Infinity Roof",
+                "4D sound"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-017",
+            "brand": "Mahindra",
+            "brand_id": "mahindra",
+            "model": "XEV 7e",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "full_size_suv",
+            "origin": "india",
+            "release_year": 2025,
+            "price_inr_lakh": 25.0,
+            "usable_battery_size_kwh": 79,
+            "range_km": 542,
+            "top_speed_kmh": 180,
+            "motor_power_kw": 210,
+            "energy_consumption_wh_per_km": 145.8,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": {
+                "max_power_kw": 175,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 20
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Everest White",
+                "Midnight Black",
+                "Cobalt Blue"
+            ],
+            "features": [
+                "7-seater",
+                "INGLO platform",
+                "ADAS Level 2+",
+                "V2L"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "in-car-018",
+            "brand": "Volvo",
+            "brand_id": "volvo",
+            "model": "EX40",
+            "variant": "Single Motor",
+            "vehicle_type": "car",
+            "segment": "premium_compact_suv",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 55.0,
+            "usable_battery_size_kwh": 69,
+            "range_km": 438,
+            "top_speed_kmh": 160,
+            "motor_power_kw": 175,
+            "energy_consumption_wh_per_km": 157.5,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.0
+            },
+            "dc_charger": {
+                "max_power_kw": 150,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 32
+            },
+            "charging_voltage": 400,
+            "colors": [
+                "Crystal White",
+                "Thunder Grey",
+                "Denim Blue"
+            ],
+            "features": [
+                "Google built-in",
+                "Bowers & Wilkins sound",
+                "Harman ADAS",
+                "Pilot Assist"
+            ],
+            "warranty_battery_years": 8
+        },
+
+        {
+            "id": "in-2w-001",
+            "brand": "Ola Electric",
+            "brand_id": "ola",
+            "model": "S1 Pro",
+            "variant": "Gen 2",
+            "vehicle_type": "scooter",
+            "segment": "performance_scooter",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 1.47,
+            "usable_battery_size_kwh": 4.0,
+            "range_km": 195,
+            "top_speed_kmh": 120,
+            "motor_power_kw": 8.5,
+            "energy_consumption_wh_per_km": 20.5,
+            "ac_charger": {
+                "max_power_kw": 0.75,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 6.5
+            },
+            "dc_charger": {
+                "max_power_kw": 1.8,
+                "ports": [
+                    "hypercharger"
+                ],
+                "time_to_80pct_min": 75
+            },
+            "charging_voltage": 72,
+            "colors": [
+                "Jet Black",
+                "Neo Mint",
+                "Coral Glam",
+                "Porcelain White",
+                "Midnight Blue"
+            ],
+            "features": [
+                "Move OS 3",
+                "4 riding modes",
+                "Cruise control",
+                "Hill hold",
+                "Turn-by-turn nav"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-002",
+            "brand": "Ola Electric",
+            "brand_id": "ola",
+            "model": "S1 Air",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "mid_scooter",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 1.10,
+            "usable_battery_size_kwh": 3.0,
+            "range_km": 151,
+            "top_speed_kmh": 95,
+            "motor_power_kw": 6.0,
+            "energy_consumption_wh_per_km": 19.9,
+            "ac_charger": {
+                "max_power_kw": 0.75,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Coral Glam",
+                "Porcelain White",
+                "Midnight Blue",
+                "Jet Black"
+            ],
+            "features": [
+                "Move OS",
+                "3 riding modes",
+                "Digital console",
+                "Reverse assist"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-003",
+            "brand": "Ola Electric",
+            "brand_id": "ola",
+            "model": "S1 X",
+            "variant": "2 kWh",
+            "vehicle_type": "scooter",
+            "segment": "entry_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 0.79,
+            "usable_battery_size_kwh": 2.0,
+            "range_km": 91,
+            "top_speed_kmh": 90,
+            "motor_power_kw": 4.5,
+            "energy_consumption_wh_per_km": 22,
+            "ac_charger": {
+                "max_power_kw": 0.5,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 4.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Solis",
+                "Coral Glam",
+                "Midnight Blue",
+                "Jet Black"
+            ],
+            "features": [
+                "3 riding modes",
+                "Digital console",
+                "Regen braking"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-004",
+            "brand": "Ather Energy",
+            "brand_id": "ather",
+            "model": "450X",
+            "variant": "Gen 3",
+            "vehicle_type": "scooter",
+            "segment": "performance_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 1.46,
+            "usable_battery_size_kwh": 2.9,
+            "range_km": 146,
+            "top_speed_kmh": 90,
+            "motor_power_kw": 6.4,
+            "energy_consumption_wh_per_km": 19.9,
+            "ac_charger": {
+                "max_power_kw": 0.75,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.5
+            },
+            "dc_charger": {
+                "max_power_kw": 1.5,
+                "ports": [
+                    "ather_grid"
+                ],
+                "time_to_80pct_min": 60
+            },
+            "charging_voltage": 72,
+            "colors": [
+                "Space Grey",
+                "Cosmic Black",
+                "White"
+            ],
+            "features": [
+                "Ather Grid fast charging",
+                "Warp mode",
+                "Google Maps navigation",
+                "OTA updates",
+                "Incline assist"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-005",
+            "brand": "Ather Energy",
+            "brand_id": "ather",
+            "model": "450S",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "mid_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 1.30,
+            "usable_battery_size_kwh": 2.9,
+            "range_km": 135,
+            "top_speed_kmh": 90,
+            "motor_power_kw": 6.4,
+            "energy_consumption_wh_per_km": 21.5,
+            "ac_charger": {
+                "max_power_kw": 0.75,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Space Grey",
+                "Cosmic Black",
+                "Mint"
+            ],
+            "features": [
+                "3 riding modes",
+                "Google Maps",
+                "OTA updates"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-006",
+            "brand": "Ather Energy",
+            "brand_id": "ather",
+            "model": "Rizta",
+            "variant": "Z",
+            "vehicle_type": "scooter",
+            "segment": "family_scooter",
+            "origin": "india",
+            "release_year": 2024,
+            "price_inr_lakh": 1.10,
+            "usable_battery_size_kwh": 3.7,
+            "range_km": 160,
+            "top_speed_kmh": 80,
+            "motor_power_kw": 5.4,
+            "energy_consumption_wh_per_km": 23.1,
+            "ac_charger": {
+                "max_power_kw": 0.75,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 6.5
+            },
+            "dc_charger": {
+                "max_power_kw": 1.5,
+                "ports": [
+                    "ather_grid"
+                ],
+                "time_to_80pct_min": 70
+            },
+            "charging_voltage": 72,
+            "colors": [
+                "Ivory White",
+                "Mist Blue",
+                "Matt Black"
+            ],
+            "features": [
+                "Family-oriented",
+                "Large under-seat storage",
+                "Retro design",
+                "Digital + analogue console"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-007",
+            "brand": "TVS",
+            "brand_id": "tvs",
+            "model": "iQube S",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "mid_scooter",
+            "origin": "india",
+            "release_year": 2021,
+            "price_inr_lakh": 1.08,
+            "usable_battery_size_kwh": 4.56,
+            "range_km": 145,
+            "top_speed_kmh": 82,
+            "motor_power_kw": 4.4,
+            "energy_consumption_wh_per_km": 31.4,
+            "ac_charger": {
+                "max_power_kw": 0.95,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Titanium Grey",
+                "Starlight Blue",
+                "Pearl White"
+            ],
+            "features": [
+                "TVS SmartXonnect",
+                "3 riding modes",
+                "Call & SMS alerts",
+                "Navigation assist"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-008",
+            "brand": "TVS",
+            "brand_id": "tvs",
+            "model": "iQube ST",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "performance_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 1.49,
+            "usable_battery_size_kwh": 5.1,
+            "range_km": 212,
+            "top_speed_kmh": 100,
+            "motor_power_kw": 5.5,
+            "energy_consumption_wh_per_km": 24,
+            "ac_charger": {
+                "max_power_kw": 0.95,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Matte Stealth Black",
+                "Blazing Blue",
+                "Fiery Coral"
+            ],
+            "features": [
+                "Sport mode",
+                "7-inch touchscreen",
+                "Bluetooth 5.0",
+                "Turn-by-turn nav"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-009",
+            "brand": "Bajaj",
+            "brand_id": "bajaj",
+            "model": "Chetak Premium",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "premium_scooter",
+            "origin": "india",
+            "release_year": 2020,
+            "price_inr_lakh": 1.27,
+            "usable_battery_size_kwh": 3.2,
+            "range_km": 123,
+            "top_speed_kmh": 73,
+            "motor_power_kw": 4.08,
+            "energy_consumption_wh_per_km": 26,
+            "ac_charger": {
+                "max_power_kw": 0.82,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Hazel Beige",
+                "Hazel Brown",
+                "Indigo Metallic",
+                "Ceramic White"
+            ],
+            "features": [
+                "IP67 rated motor",
+                "Retro design",
+                "Bluetooth connectivity",
+                "Chetak app"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-010",
+            "brand": "Bajaj",
+            "brand_id": "bajaj",
+            "model": "Chetak Urbane",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "mid_scooter",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 1.03,
+            "usable_battery_size_kwh": 2.9,
+            "range_km": 113,
+            "top_speed_kmh": 63,
+            "motor_power_kw": 3.8,
+            "energy_consumption_wh_per_km": 25.7,
+            "ac_charger": {
+                "max_power_kw": 0.82,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 4.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Caribbean Blue",
+                "Hazel Beige",
+                "Ebony"
+            ],
+            "features": [
+                "2 riding modes",
+                "Bluetooth",
+                "Digital display"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-011",
+            "brand": "Hero Electric",
+            "brand_id": "hero_elec",
+            "model": "Optima HX",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "entry_scooter",
+            "origin": "india",
+            "release_year": 2021,
+            "price_inr_lakh": 0.72,
+            "usable_battery_size_kwh": 1.5,
+            "range_km": 82,
+            "top_speed_kmh": 42,
+            "motor_power_kw": 0.9,
+            "energy_consumption_wh_per_km": 18.3,
+            "ac_charger": {
+                "max_power_kw": 0.48,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 4.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "colors": [
+                "Red",
+                "Blue",
+                "White",
+                "Black"
+            ],
+            "features": [
+                "Low speed EV (no licence needed in some states)",
+                "Removable battery",
+                "Anti-theft alarm"
+            ],
+            "warranty_battery_years": 2
+        },
+        {
+            "id": "in-2w-012",
+            "brand": "Ampere",
+            "brand_id": "ampere",
+            "model": "Nexus",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "mid_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 1.10,
+            "usable_battery_size_kwh": 3.0,
+            "range_km": 136,
+            "top_speed_kmh": 75,
+            "motor_power_kw": 4.5,
+            "energy_consumption_wh_per_km": 22,
+            "ac_charger": {
+                "max_power_kw": 0.65,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 60,
+            "colors": [
+                "Pearl White",
+                "Midnight Black",
+                "Metallic Blue"
+            ],
+            "features": [
+                "3 riding modes",
+                "Greaves Connect app",
+                "Side stand indicator"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-013",
+            "brand": "Simple Energy",
+            "brand_id": "simple",
+            "model": "One",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "performance_scooter",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 1.45,
+            "usable_battery_size_kwh": 4.8,
+            "range_km": 212,
+            "top_speed_kmh": 105,
+            "motor_power_kw": 8.5,
+            "energy_consumption_wh_per_km": 22.6,
+            "ac_charger": {
+                "max_power_kw": 1.5,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 3.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Brazen Black",
+                "Grace White",
+                "Pewter Grey"
+            ],
+            "features": [
+                "7-inch TFT dashboard",
+                "Simple One app",
+                "4 riding modes",
+                "Traction control"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-014",
+            "brand": "Revolt Motors",
+            "brand_id": "revolt",
+            "model": "RV400",
+            "variant": "BRZ",
+            "vehicle_type": "scooter",
+            "segment": "electric_motorcycle",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 1.38,
+            "usable_battery_size_kwh": 3.24,
+            "range_km": 150,
+            "top_speed_kmh": 85,
+            "motor_power_kw": 3.24,
+            "energy_consumption_wh_per_km": 21.6,
+            "ac_charger": {
+                "max_power_kw": 0.96,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 4.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Rebel Red",
+                "Cosmic Black",
+                "Mist Grey"
+            ],
+            "features": [
+                "Artificial exhaust sound",
+                "4 riding modes",
+                "GPS tracking",
+                "Revolt app",
+                "Swappable battery"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-2w-015",
+            "brand": "Okinawa",
+            "brand_id": "okinawa",
+            "model": "Okhi-90",
+            "variant": "",
+            "vehicle_type": "scooter",
+            "segment": "performance_scooter",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 1.14,
+            "usable_battery_size_kwh": 3.6,
+            "range_km": 160,
+            "top_speed_kmh": 90,
+            "motor_power_kw": 5.2,
+            "energy_consumption_wh_per_km": 22.5,
+            "ac_charger": {
+                "max_power_kw": 0.72,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 5.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 72,
+            "colors": [
+                "Glossy Black",
+                "White",
+                "Red"
+            ],
+            "features": [
+                "3 riding modes",
+                "Anti-theft alarm",
+                "Find my vehicle"
+            ],
+            "warranty_battery_years": 3
+        },
+
+        {
+            "id": "in-3w-001",
+            "brand": "Mahindra",
+            "brand_id": "mahindra_3w",
+            "model": "Treo",
+            "variant": "Auto",
+            "vehicle_type": "three_wheeler",
+            "segment": "passenger_auto",
+            "origin": "india",
+            "release_year": 2019,
+            "price_inr_lakh": 3.60,
+            "usable_battery_size_kwh": 7.37,
+            "range_km": 170,
+            "top_speed_kmh": 55,
+            "motor_power_kw": 8,
+            "energy_consumption_wh_per_km": 43.4,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 8.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 400,
+            "seating_capacity": 3,
+            "colors": [
+                "Yellow & Black",
+                "Green & Black"
+            ],
+            "features": [
+                "MAIA platform",
+                "IP67 battery",
+                "Regen braking",
+                "DigiYug connected"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-002",
+            "brand": "Mahindra",
+            "brand_id": "mahindra_3w",
+            "model": "Treo Zor",
+            "variant": "Cargo",
+            "vehicle_type": "three_wheeler",
+            "segment": "cargo_3w",
+            "origin": "india",
+            "release_year": 2020,
+            "price_inr_lakh": 3.80,
+            "usable_battery_size_kwh": 10.24,
+            "range_km": 145,
+            "top_speed_kmh": 45,
+            "motor_power_kw": 10,
+            "energy_consumption_wh_per_km": 70.6,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 550,
+            "seating_capacity": 2,
+            "colors": [
+                "Yellow",
+                "Green",
+                "White"
+            ],
+            "features": [
+                "High payload",
+                "Flatbed / van variants",
+                "Low maintenance"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-003",
+            "brand": "Piaggio",
+            "brand_id": "piaggio",
+            "model": "Ape E-City",
+            "variant": "FX Max",
+            "vehicle_type": "three_wheeler",
+            "segment": "passenger_auto",
+            "origin": "india",
+            "release_year": 2021,
+            "price_inr_lakh": 3.65,
+            "usable_battery_size_kwh": 9.0,
+            "range_km": 200,
+            "top_speed_kmh": 45,
+            "motor_power_kw": 6.2,
+            "energy_consumption_wh_per_km": 45,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 9.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 370,
+            "seating_capacity": 3,
+            "colors": [
+                "Yellow & Black",
+                "Green"
+            ],
+            "features": [
+                "Dual battery option",
+                "Longest range 3W",
+                "Hill start assist"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-004",
+            "brand": "Altigreen",
+            "brand_id": "altigreen",
+            "model": "neEV",
+            "variant": "Tez",
+            "vehicle_type": "three_wheeler",
+            "segment": "passenger_auto",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 4.10,
+            "usable_battery_size_kwh": 9.5,
+            "range_km": 200,
+            "top_speed_kmh": 55,
+            "motor_power_kw": 12,
+            "energy_consumption_wh_per_km": 47.5,
+            "ac_charger": {
+                "max_power_kw": 1.5,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 6.5
+            },
+            "dc_charger": {
+                "max_power_kw": 10,
+                "ports": [
+                    "ccs2"
+                ],
+                "time_to_80pct_min": 45
+            },
+            "charging_voltage": 48,
+            "payload_kg": 420,
+            "seating_capacity": 3,
+            "colors": [
+                "Yellow & Black",
+                "Green & Black"
+            ],
+            "features": [
+                "Fast DC charging",
+                "Connected telematics",
+                "Long range battery",
+                "App monitoring"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-005",
+            "brand": "Euler Motors",
+            "brand_id": "euler",
+            "model": "HiLoad EV",
+            "variant": "",
+            "vehicle_type": "three_wheeler",
+            "segment": "cargo_3w",
+            "origin": "india",
+            "release_year": 2021,
+            "price_inr_lakh": 4.85,
+            "usable_battery_size_kwh": 14.0,
+            "range_km": 160,
+            "top_speed_kmh": 55,
+            "motor_power_kw": 10,
+            "energy_consumption_wh_per_km": 87.5,
+            "ac_charger": {
+                "max_power_kw": 1.5,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 10.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 60,
+            "payload_kg": 688,
+            "seating_capacity": 2,
+            "colors": [
+                "White",
+                "Blue",
+                "Orange"
+            ],
+            "features": [
+                "Highest payload in segment",
+                "Telematics",
+                "Fleet management",
+                "Zero emission delivery"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-006",
+            "brand": "Mahindra",
+            "brand_id": "mahindra_3w",
+            "model": "e-Alfa Mini",
+            "variant": "",
+            "vehicle_type": "rickshaw",
+            "segment": "e_rickshaw",
+            "origin": "india",
+            "release_year": 2020,
+            "price_inr_lakh": 1.80,
+            "usable_battery_size_kwh": 5.4,
+            "range_km": 110,
+            "top_speed_kmh": 25,
+            "motor_power_kw": 0.85,
+            "energy_consumption_wh_per_km": 49.1,
+            "ac_charger": {
+                "max_power_kw": 0.65,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 8.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 300,
+            "seating_capacity": 4,
+            "colors": [
+                "Yellow",
+                "Green",
+                "Blue"
+            ],
+            "features": [
+                "Lead-acid battery option",
+                "Low speed",
+                "Heavy-duty chassis",
+                "Easy maintenance"
+            ],
+            "warranty_battery_years": 1
+        },
+        {
+            "id": "in-3w-007",
+            "brand": "Bajaj",
+            "brand_id": "bajaj",
+            "model": "RE Electric",
+            "variant": "",
+            "vehicle_type": "three_wheeler",
+            "segment": "passenger_auto",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 3.95,
+            "usable_battery_size_kwh": 8.0,
+            "range_km": 155,
+            "top_speed_kmh": 55,
+            "motor_power_kw": 8,
+            "energy_consumption_wh_per_km": 51.6,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 7.5
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 380,
+            "seating_capacity": 3,
+            "colors": [
+                "Yellow & Black",
+                "Green"
+            ],
+            "features": [
+                "Bajaj brand trust",
+                "Low TCO",
+                "Wide service network",
+                "Stable 3W design"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-008",
+            "brand": "TVS",
+            "brand_id": "tvs",
+            "model": "King EV Max",
+            "variant": "",
+            "vehicle_type": "three_wheeler",
+            "segment": "passenger_auto",
+            "origin": "india",
+            "release_year": 2023,
+            "price_inr_lakh": 3.70,
+            "usable_battery_size_kwh": 8.6,
+            "range_km": 170,
+            "top_speed_kmh": 50,
+            "motor_power_kw": 8,
+            "energy_consumption_wh_per_km": 50.6,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 8.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 400,
+            "seating_capacity": 3,
+            "colors": [
+                "Yellow & Black",
+                "Green & Black"
+            ],
+            "features": [
+                "TVS ENTORQ motor",
+                "Wide wheelbase",
+                "Driver comfort seat",
+                "Regenerative braking"
+            ],
+            "warranty_battery_years": 3
+        },
+        {
+            "id": "in-3w-009",
+            "brand": "Piaggio",
+            "brand_id": "piaggio",
+            "model": "Ape E-Xtra",
+            "variant": "FX",
+            "vehicle_type": "three_wheeler",
+            "segment": "cargo_3w",
+            "origin": "india",
+            "release_year": 2022,
+            "price_inr_lakh": 4.20,
+            "usable_battery_size_kwh": 11.0,
+            "range_km": 150,
+            "top_speed_kmh": 45,
+            "motor_power_kw": 7.5,
+            "energy_consumption_wh_per_km": 73.3,
+            "ac_charger": {
+                "max_power_kw": 1.0,
+                "ports": [
+                    "proprietary"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 10.0
+            },
+            "dc_charger": null,
+            "charging_voltage": 48,
+            "payload_kg": 500,
+            "seating_capacity": 1,
+            "colors": [
+                "White",
+                "Yellow",
+                "Orange"
+            ],
+            "features": [
+                "Piaggio reliability",
+                "Low emission zone compliant",
+                "Easy loading flatbed"
+            ],
+            "warranty_battery_years": 3
+        },
+      
+        {
+            "id": "gl-car-001",
+            "brand": "Tesla",
+            "brand_id": "tesla",
+            "model": "Model 3",
+            "variant": "Long Range AWD",
+            "vehicle_type": "car",
+            "segment": "premium_sedan",
+            "origin": "global",
+            "release_year": 2024,
+            "price_usd": 45990,
+            "usable_battery_size_kwh": 75,
+            "range_km": 602,
+            "top_speed_kmh": 225,
+            "motor_power_kw": 258,
+            "energy_consumption_wh_per_km": 145,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.5
+            },
+            "dc_charger": {
+                "max_power_kw": 250,
+                "ports": [
+                    "ccs",
+                    "tesla_nacs"
+                ],
+                "time_to_80pct_min": 25
+            },
+            "charging_voltage": 400,
+            "features": [
+                "Autopilot",
+                "OTA updates",
+                "Supercharger network",
+                "15-inch touchscreen",
+                "Glass roof"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-002",
+            "brand": "Tesla",
+            "brand_id": "tesla",
+            "model": "Model Y",
+            "variant": "Long Range AWD",
+            "vehicle_type": "car",
+            "segment": "premium_suv",
+            "origin": "global",
+            "release_year": 2024,
+            "price_usd": 52990,
+            "usable_battery_size_kwh": 75,
+            "range_km": 533,
+            "top_speed_kmh": 217,
+            "motor_power_kw": 258,
+            "energy_consumption_wh_per_km": 149,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.5
+            },
+            "dc_charger": {
+                "max_power_kw": 250,
+                "ports": [
+                    "ccs",
+                    "tesla_nacs"
+                ],
+                "time_to_80pct_min": 25
+            },
+            "charging_voltage": 400,
+            "features": [
+                "Best-selling EV globally",
+                "Autopilot",
+                "7-seat option",
+                "Full Self-Driving capable"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-003",
+            "brand": "BMW",
+            "brand_id": "bmw",
+            "model": "iX3",
+            "variant": "M Sport",
+            "vehicle_type": "car",
+            "segment": "premium_suv",
+            "origin": "global",
+            "release_year": 2024,
+            "price_usd": 69900,
+            "usable_battery_size_kwh": 74,
+            "range_km": 461,
+            "top_speed_kmh": 180,
+            "motor_power_kw": 210,
+            "energy_consumption_wh_per_km": 185,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.0
+            },
+            "dc_charger": {
+                "max_power_kw": 150,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 34
+            },
+            "charging_voltage": 400,
+            "features": [
+                "BMW Curved Display",
+                "Harman Kardon",
+                "Adaptive cruise control",
+                "Park assist"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-004",
+            "brand": "BMW",
+            "brand_id": "bmw",
+            "model": "i7",
+            "variant": "xDrive60",
+            "vehicle_type": "car",
+            "segment": "luxury_sedan",
+            "origin": "global",
+            "release_year": 2023,
+            "price_usd": 119300,
+            "usable_battery_size_kwh": 101.7,
+            "range_km": 619,
+            "top_speed_kmh": 240,
+            "motor_power_kw": 400,
+            "energy_consumption_wh_per_km": 185,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 11.5
+            },
+            "dc_charger": {
+                "max_power_kw": 195,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 35
+            },
+            "charging_voltage": 400,
+            "features": [
+                "31-inch Theatre Screen",
+                "Bowers & Wilkins Diamond",
+                "Crystal Glass controls",
+                "Level 3 Autonomous"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-005",
+            "brand": "Mercedes",
+            "brand_id": "mercedes",
+            "model": "EQS 450+",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "luxury_sedan",
+            "origin": "global",
+            "release_year": 2023,
+            "price_usd": 104400,
+            "usable_battery_size_kwh": 107.8,
+            "range_km": 785,
+            "top_speed_kmh": 210,
+            "motor_power_kw": 245,
+            "energy_consumption_wh_per_km": 157,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 12.0
+            },
+            "dc_charger": {
+                "max_power_kw": 200,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 31
+            },
+            "charging_voltage": 400,
+            "features": [
+                "MBUX Hyperscreen 56-inch",
+                "Longest EV range sedan",
+                "Burmester 4D sound",
+                "Air suspension"
+            ],
+            "warranty_battery_years": 10
+        },
+        {
+            "id": "gl-car-006",
+            "brand": "Audi",
+            "brand_id": "audi",
+            "model": "e-tron GT",
+            "variant": "RS",
+            "vehicle_type": "car",
+            "segment": "premium_sporty_sedan",
+            "origin": "global",
+            "release_year": 2023,
+            "price_usd": 145900,
+            "usable_battery_size_kwh": 85,
+            "range_km": 487,
+            "top_speed_kmh": 250,
+            "motor_power_kw": 440,
+            "energy_consumption_wh_per_km": 210,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.5
+            },
+            "dc_charger": {
+                "max_power_kw": 270,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 20
+            },
+            "charging_voltage": 800,
+            "features": [
+                "800V architecture",
+                "Adaptive air suspension",
+                "Bang & Olufsen 3D",
+                "Matrix LED"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-007",
+            "brand": "Porsche",
+            "brand_id": "porsche",
+            "model": "Taycan 4S",
+            "variant": "",
+            "vehicle_type": "car",
+            "segment": "premium_sports_sedan",
+            "origin": "global",
+            "release_year": 2024,
+            "price_usd": 105150,
+            "usable_battery_size_kwh": 83.7,
+            "range_km": 530,
+            "top_speed_kmh": 250,
+            "motor_power_kw": 320,
+            "energy_consumption_wh_per_km": 200,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 9.5
+            },
+            "dc_charger": {
+                "max_power_kw": 270,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 22
+            },
+            "charging_voltage": 800,
+            "features": [
+                "0-100 in 4s",
+                "800V ultra-fast charge",
+                "Porsche Track Precision",
+                "PSCB ceramic brakes"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-008",
+            "brand": "Volkswagen",
+            "brand_id": "volkswagen",
+            "model": "ID.4",
+            "variant": "Pro",
+            "vehicle_type": "car",
+            "segment": "compact_suv",
+            "origin": "global",
+            "release_year": 2024,
+            "price_usd": 38995,
+            "usable_battery_size_kwh": 77,
+            "range_km": 541,
+            "top_speed_kmh": 160,
+            "motor_power_kw": 150,
+            "energy_consumption_wh_per_km": 174,
+            "ac_charger": {
+                "max_power_kw": 11,
+                "ports": [
+                    "type2"
+                ],
+                "phases": 3,
+                "time_to_full_hrs": 8.5
+            },
+            "dc_charger": {
+                "max_power_kw": 135,
+                "ports": [
+                    "ccs"
+                ],
+                "time_to_80pct_min": 38
+            },
+            "charging_voltage": 400,
+            "features": [
+                "Augmented Reality HUD",
+                "IDA voice assistant",
+                "Travel Assist",
+                "Plug & Charge"
+            ],
+            "warranty_battery_years": 8
+        },
+        {
+            "id": "gl-car-009",
+            "brand": "Nissan",
+            "brand_id": "nissan",
+            "model": "Leaf",
+            "variant": "e+ 62kWh",
+            "vehicle_type": "car",
+            "segment": "compact_hatchback",
+            "origin": "global",
+            "release_year": 2023,
+            "price_usd": 29040,
+            "usable_battery_size_kwh": 59,
+            "range_km": 385,
+            "top_speed_kmh": 150,
+            "motor_power_kw": 160,
+            "energy_consumption_wh_per_km": 183,
+            "ac_charger": {
+                "max_power_kw": 6.6,
+                "ports": [
+                    "type1",
+                    "type2"
+                ],
+                "phases": 1,
+                "time_to_full_hrs": 11.0
+            },
+            "dc_charger": {
+                "max_power_kw": 50,
+                "ports": [
+                    "chademo"
+                ],
+                "time_to_80pct_min": 60
+            },
+            "charging_voltage": 400,
+            "features": [
+                "Pioneer EV (since 2010)",
+                "ProPilot Assist",
+                "e-Pedal",
+                "NissanConnect"
+            ],
+            "warranty_battery_years": 8
+        }
+    ]
+}

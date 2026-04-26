@@ -7,10 +7,12 @@ import AdminPanel from "./components/AdminPanel";
 import LoginPage from "./components/LoginPage";
 import ProfilePage from "./components/ProfilePage";
 import VehicleSelectionPage from "./components/VehicleSelectionPage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <Router>
+      <Toaster/>
       <div className="min-h-screen bg-[#F8FAF9] text-gray-900 selection:bg-[#1BAC4B] selection:text-white">
         <Navbar />
         <Routes>

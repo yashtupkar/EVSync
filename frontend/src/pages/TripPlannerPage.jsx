@@ -66,6 +66,8 @@ const TripPlannerPage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [waypoints, setWaypoints] = useState([]);
 
+  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
   // Filtered stations near the route for the map display
   const nearbyStations = useMemo(() => {
     if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
@@ -220,7 +222,7 @@ const TripPlannerPage = () => {
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/stations");
+        const response = await fetch(`${backendURL}/api/stations`);
         const data = await response.json();
         setStations(data);
       } catch (error) {

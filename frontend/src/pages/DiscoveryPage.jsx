@@ -38,6 +38,8 @@ const DiscoveryPage = () => {
   const [stations, setStations] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState(null);
+  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -95,7 +97,7 @@ const DiscoveryPage = () => {
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/stations");
+        const response = await fetch(`${backendURL}/api/stations`);
         const data = await response.json();
         setStations(data);
       } catch (error) {

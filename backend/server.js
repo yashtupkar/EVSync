@@ -6,11 +6,12 @@ const dotenv = require('dotenv');
 const { Server } = require('socket.io');
 const http = require('http');
 
+dotenv.config();
+
 // Import Routes
 const stationRoutes = require('./routes/stationRoutes');
 const connectDB = require('./connections/db.connect');
-
-dotenv.config();
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -30,7 +31,7 @@ connectDB(); // Enabled as requested
 // Socket.io
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
-  
+
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
@@ -45,6 +46,7 @@ app.get('/', (req, res) => {
 
 
 app.use('/api/stations', stationRoutes);
+app.use('/auth', authRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
