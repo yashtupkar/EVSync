@@ -105,4 +105,23 @@ exports.verifyOTP = async (req, res) => {
     }
 }
 
+exports.verifyOnly = async (req, res) => {
+    const { mobile, otp } = req.body;
+    try {
+        const verificationChecks = await twilioClient.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_ID).verificationChecks.create({
+            to: mobile,
+            code: otp
+        });
+
+        if (verificationChecks.status !== 'approved') {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+
+        res.status(200).json({ success: true, message: 'Mobile verified' });
+    } catch (error) {
+        console.error('Error verifying OTP (Verify Only):', error);
+        res.status(500).json({ success: false, message: 'Failed to verify OTP' });
+    }
+}
+
 

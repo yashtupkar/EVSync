@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { 
   ArrowLeft, 
   Pencil, 
@@ -12,8 +13,15 @@ import {
   Leaf, 
   User, 
   Mail,
-  Camera
+  Camera,
+  Phone,
+  CheckCircle2
 } from "lucide-react";
+import { updateUserProfile, sendOtp } from "../features/auth/authSlice";
+import toast from "react-hot-toast";
+import axios from "axios";
+
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 /**
  * ProfilePage Component
@@ -21,22 +29,124 @@ import {
  */
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user, loading } = useSelector((state) => state.auth);
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    gender: "",
-    dob: ""
+    fullName: user?.name || "",
+    email: user?.email || "",
+    gender: user?.gender || "",
+    dob: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "",
+    mobile: user?.mobile || ""
   });
+
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  
+  // OTP States
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isMobileVerified, setIsMobileVerified] = useState(!!user?.mobile);
+  const [verifying, setVerifying] = useState(false);
+
+  const mobileNumber = `+91${formData.mobile}`;
+
+  const isGoogleUser = !!user?.googleId;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === "mobile" && isGoogleUser) {
+      setIsMobileVerified(value === user?.mobile && !!value);
+      setIsOtpSent(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.mobile || formData.mobile.length < 10) {
+      toast.error("Please enter a valid mobile number");
+      return;
+    }
+    
+    try {
+      setVerifying(true);
+      await dispatch(sendOtp(mobileNumber)).unwrap();
+      setIsOtpSent(true);
+      toast.success("OTP sent successfully!");
+    } catch (err) {
+      toast.error(err || "Failed to send OTP");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      toast.error("Please enter the OTP");
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      const response = await axios.post(`${backendURL}/auth/verify-only`, {
+        mobile: mobileNumber,
+        otp: otp
+      });
+
+      if (response.data.success) {
+        setIsMobileVerified(true);
+        setIsOtpSent(false);
+        toast.success("Mobile number verified!");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Invalid OTP");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (isGoogleUser && !isMobileVerified) {
+      toast.error("Please verify your mobile number first");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("name", formData.fullName);
+    data.append("email", formData.email);
+    data.append("gender", formData.gender);
+    data.append("dateOfBirth", formData.dob);
+    data.append("mobile", mobileNumber);
+    if (avatarFile) {
+      data.append("avatar", avatarFile);
+    }
+
+    try {
+      await dispatch(updateUserProfile(data)).unwrap();
+      toast.success("Profile updated successfully!");
+      navigate("/vehicle-selection");
+    } catch (err) {
+      toast.error(err || "Failed to update profile");
+    }
   };
 
   return (
     <div style={{
       backgroundImage: "url('/assets/login.png')",
-      
       backgroundPosition: 'bottom 0% left 20%',
       backgroundRepeat: 'no-repeat'
     }}  className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
@@ -58,7 +168,7 @@ const ProfilePage = () => {
       </header>
 
       {/* --- MAIN LAYOUT --- */}
-      <main className="flex-grow shadow-xl max-w-7xl rounded-xl overflow-hidden flex m-auto max-h-[80vh]   flex-col lg:flex-row pt-24 lg:pt-0">
+      <main className="flex-grow shadow-xl max-w-7xl rounded-xl overflow-hidden flex m-auto max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0">
         
         {/* LEFT COMPONENT: Branding & Visuals (Hidden on small screens) */}
         <section 
@@ -127,64 +237,118 @@ const ProfilePage = () => {
             <h2 className="text-2xl font-bold text-slate-800 mb-2">
               Complete Your <span className="text-[#1BAC4B]">Profile</span>
             </h2>
-            <p className="text-slate-500 mb-10 font-medium">
+            <p className="text-slate-500 mb-6 font-medium">
               Help us get to know you better for a better experience.
             </p>
 
             {/* Profile Image Section */}
-            <div className="flex justify-center mb-10">
+            <div className="flex justify-center mb-6">
               <div className="relative group">
-                <div className="w-32 h-32 rounded-3xl bg-slate-50 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-[#1BAC4B] transition-colors relative">
-                  <User className="w-16 h-16 text-slate-200" />
+                <div className="w-24 h-24 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-[#1BAC4B] transition-colors relative">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-slate-200" />
+                  )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                 </div>
-                <button className="absolute -bottom-2 -right-2 bg-[#1BAC4B] text-white p-2.5 rounded-xl shadow-lg hover:bg-[#189a43] transition-all transform hover:scale-110 active:scale-95">
-                  <Camera size={18} />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 bg-[#1BAC4B] text-white p-2 rounded-lg shadow-lg hover:bg-[#189a43] transition-all transform hover:scale-110"
+                >
+                  <Camera size={14} />
                 </button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
               </div>
             </div>
 
             {/* Form Fields */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-4 mb-6">
               {/* Full Name */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                   Full Name
                 </label>
-                <div className="flex items-center gap-3 px-4 py-3 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
-                  <User size={18} className="text-slate-400" />
+                <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
+                  <User size={16} className="text-slate-400" />
                   <input
                     type="text"
                     name="fullName"
                     placeholder="Enter your name"
                     value={formData.fullName}
                     onChange={handleInputChange}
-                    className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder:text-slate-300"
+                    className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder:text-slate-300 text-sm"
                   />
                 </div>
               </div>
 
               {/* Email */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                   Email Address
                 </label>
-                <div className="flex items-center gap-3 px-4 py-3 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
-                  <Mail size={18} className="text-slate-400" />
+                <div className={`flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl transition-colors ${isGoogleUser ? 'bg-slate-100' : 'bg-slate-50/50 focus-within:border-[#1BAC4B]'}`}>
+                  <Mail size={16} className="text-slate-400" />
                   <input
                     type="email"
                     name="email"
                     placeholder="your@email.com"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder:text-slate-300"
+                    disabled={isGoogleUser}
+                    className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder:text-slate-300 text-sm disabled:text-slate-500"
                   />
+                </div>
+              </div>
+
+              {/* Mobile Number */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
+                  Mobile Number
+                </label>
+                <div className="flex flex-col gap-2">
+                  <div className={`flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl transition-colors ${!isGoogleUser ? 'bg-slate-100' : 'bg-slate-50/50 focus-within:border-[#1BAC4B]'}`}>
+                    <Phone size={16} className="text-slate-400" />
+                    <input
+                      type="tel"
+                      name="mobile"
+                      placeholder="Mobile Number"
+                      value={formData.mobile}
+                      onChange={handleInputChange}
+                      disabled={!isGoogleUser}
+                      className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold text-sm disabled:text-slate-500"
+                    />
+                    {isGoogleUser && isMobileVerified && <CheckCircle2 size={16} className="text-[#1BAC4B]" />}
+                  </div>
+
+                  {isGoogleUser && !isMobileVerified && (
+                    <div className="flex flex-col gap-2">
+                      {!isOtpSent ? (
+                        <button onClick={handleSendOtp} disabled={verifying} className="text-[10px] font-bold text-[#1BAC4B] self-end px-2 py-1 bg-green-50 rounded-lg">
+                          {verifying ? "Sending..." : "Get OTP"}
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className="flex-1 px-3 py-1.5 border border-black/10 rounded-lg text-sm text-center font-bold"
+                          />
+                          <button onClick={handleVerifyOtp} disabled={verifying} className="bg-[#1BAC4B] text-white px-4 py-1.5 rounded-lg text-sm font-bold">
+                            Verify
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Gender and Birthday row */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                     Gender
                   </label>
@@ -193,7 +357,7 @@ const ProfilePage = () => {
                       name="gender"
                       value={formData.gender}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50/50 border border-black/10 rounded-xl focus:border-[#1BAC4B] outline-none text-slate-800 font-semibold appearance-none cursor-pointer transition-colors"
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-black/10 rounded-xl focus:border-[#1BAC4B] outline-none text-slate-800 font-semibold appearance-none cursor-pointer transition-colors text-sm"
                     >
                       <option value="" disabled>Select</option>
                       <option value="male">Male</option>
@@ -201,39 +365,38 @@ const ProfilePage = () => {
                       <option value="other">Other</option>
                     </select>
                     <ChevronDown
-                      size={18}
+                      size={14}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                     Birthday
                   </label>
-                  <div className="flex items-center gap-3 px-4 py-3 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
+                  <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
                     <input
-                      type="text"
+                      type="date"
                       name="dob"
-                      placeholder="DD/MM/YYYY"
                       value={formData.dob}
                       onChange={handleInputChange}
-                      className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder:text-slate-300"
+                      className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold text-xs"
                     />
-                    <Calendar size={18} className="text-slate-400" />
                   </div>
                 </div>
               </div>
             </div>
 
             <button
-              onClick={() => navigate("/vehicle-selection")}
-              className="w-full py-4 bg-[#1BAC4B] text-white rounded-2xl font-bold text-lg hover:bg-[#189a43] transition-all shadow-xl shadow-green-100 transform hover:-translate-y-0.5 active:translate-y-0"
+              onClick={handleSubmit}
+              disabled={loading || (isGoogleUser && !isMobileVerified)}
+              className="w-full py-3 bg-[#1BAC4B] text-white rounded-xl font-bold hover:bg-[#189a43] transition-all shadow-lg disabled:bg-slate-300"
             >
-              Finish Setup
+              {loading ? "Updating..." : "Finish Setup"}
             </button>
             
-            <p className="text-center pb-10 text-xs text-slate-400 mt-6 px-4 leading-relaxed">
+            <p className="text-center pb-10 text-[10px] text-slate-400 mt-4 px-4 leading-relaxed">
               By continuing, you agree to our Terms of Service and Privacy Policy regarding data handling.
             </p>
           </div>

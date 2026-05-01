@@ -7,6 +7,15 @@
   --color-light: #F8FAF9;
   --font-sans: "Space Grotesk", sans-serif;
 }
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
 
 :root {
   background-color: #F8FAF9;

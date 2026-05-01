@@ -1,65 +1,73 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Map, ShieldCheck, Zap, User, Route, Heart, Clock } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../features/auth/authSlice";
+import {
+  selectIsAuthenticated,
+  selectUser,
+} from "../features/auth/authSelectors";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
+  const dispatch = useDispatch();
   const location = useLocation();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectUser);
   const isAdmin = location.pathname === "/admin";
   const isLogin = location.pathname === "/login";
   const isProfile = location.pathname === "/profile";
   const isVehicle = location.pathname === "/vehicle-selection";
+const navigate = useNavigate();
+  const userInitials =
+    currentUser?.name?.slice(0, 2)?.toUpperCase() ||
+    currentUser?.email?.slice(0, 2)?.toUpperCase() ||
+    currentUser?.mobile?.slice(-2) ||
+    "EV";
 
+    const handleLogout = () => {
+      dispatch(logout());
+      toast.success("Logout successful");
+      navigate("/login");
+    }
   // Hide navbar on auth related pages
   if (isLogin || isProfile || isVehicle) return null;
 
   return (
     <nav
-      className="w-full px-10 py-4  flex items-center justify-between
-     gap-10 shadow-[0_15px_40px_rgba(0,0,0,0.06)] bg-white/80 backdrop-blur-xl border border-white/50 animate-in slide-in-from-top-4 duration-700"
+      className="w-full px-6 py-3 h-[60px] flex items-center justify-between
+     gap-6 shadow-sm bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 animate-in slide-in-from-top-4 duration-700"
     >
-      <Link to="/" className="flex items-center gap-4 group">
-        <div className="bg-[#1BAC4B] p-2.5 rounded-2xl text-white group-hover:rotate-12 transition-all shadow-lg shadow-green-100">
-          <Zap size={22} fill="currentColor" />
+      <Link to="/" className="flex items-center gap-3 group">
+        <div className="bg-emerald-500 p-2 rounded-xl text-white group-hover:rotate-12 transition-all shadow-md shadow-green-100">
+          <Zap size={20} fill="currentColor" />
         </div>
         <div className="flex flex-col leading-none">
-          <span className="text-2xl font-bold text-gray-900 tracking-tighter">
-            EV<span className="text-[#1BAC4B]">Sync</span>
+          <span className="text-xl font-bold text-gray-900 tracking-tighter">
+            EV<span className="text-emerald-500">Sync</span>
           </span>
-          <span className="text-[9px] font-bold uppercase text-gray-400 tracking-[0.2em] mt-1 ml-0.5">
+          <span className="text-[8px] font-bold uppercase text-gray-400 tracking-[0.2em] mt-1 ml-0.5">
             Smart Locater
           </span>
         </div>
       </Link>
 
-      <div className="h-10 w-[1px] bg-gray-100 mx-2"></div>
-
-      <div className="flex items-center gap-8">
-        <Link
-          to="/"
-          className={`flex flex-col items-center gap-1 group relative transition-all hover:scale-105 active:scale-95`}
-        >
-          <div
-            className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] ${location.pathname === "/" ? "text-[#1BAC4B]" : "text-gray-400 group-hover:text-gray-600"}`}
+      <div className="flex-1 flex justify-center items-center">
+        <div className="flex items-center gap-8 bg-gray-50 px-6 py-2 rounded-full border border-gray-100">
+          <Link
+            to="/"
+            className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${location.pathname === "/" ? "text-emerald-500" : "text-gray-500 hover:text-gray-800"}`}
           >
-            <Map size={18} /> Discovery
-          </div>
-          {location.pathname === "/" && (
-            <div className="absolute -bottom-[26px] w-12 h-1 bg-[#1BAC4B] rounded-full shadow-[0_0_10px_rgba(27,172,75,0.4)]"></div>
-          )}
-        </Link>
-        <Link
-          to="/trip-planner"
-          className={`flex flex-col items-center gap-1 group relative transition-all hover:scale-105 active:scale-95`}
-        >
-          <div
-            className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] ${location.pathname === "/trip-planner" ? "text-[#1BAC4B]" : "text-gray-400 group-hover:text-gray-600"}`}
+            <Map size={16} /> Discovery
+          </Link>
+          <div className="w-[4px] h-[4px] rounded-full bg-gray-300"></div>
+          <Link
+            to="/trip-planner"
+            className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${location.pathname === "/trip-planner" ? "text-emerald-500" : "text-gray-500 hover:text-gray-800"}`}
           >
-            <Route size={18} /> Trip Planner
-          </div>
-          {location.pathname === "/trip-planner" && (
-            <div className="absolute -bottom-[26px] w-12 h-1 bg-[#1BAC4B] rounded-full shadow-[0_0_10px_rgba(27,172,75,0.4)]"></div>
-          )}
-        </Link>
+            <Route size={16} /> Trip Planner
+          </Link>
+      
+      
         <Link
           to="/favorites"
           className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:scale-105 active:scale-95 text-gray-400 hover:text-gray-600`}
@@ -73,27 +81,62 @@ const Navbar = () => {
           <Clock size={18} /> History
         </Link>
       </div>
+      </div>
 
-      <div className="flex items-center gap-6">
-        <Link
-          to="/admin"
-          className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${isAdmin ? "text-[#1BAC4B]" : "text-gray-400 hover:text-gray-600"}`}
-        >
-          <ShieldCheck size={16} /> Admin
-        </Link>
-        <Link
-          to="/login"
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 text-gray-400 hover:text-gray-600"
-        >
-          <User size={16} /> Login
-        </Link>
-        <div className="h-8 w-[1px] bg-gray-100 mx-2"></div>
-        <div className="relative group">
-          <div className="w-10 h-10 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-800 cursor-pointer shadow-sm group-hover:border-[#1BAC4B]/30 group-hover:shadow-lg transition-all">
-            YT
+      <div className="flex items-center gap-4">
+        {isAuthenticated ? (
+          <div className="relative group">
+            {/* Avatar Profile */}
+            <div className="w-10 h-10 rounded-full bg-green-50 border-2 border-white flex items-center justify-center text-xs font-bold text-emerald-500 cursor-pointer shadow-sm group-hover:shadow-md transition-all ring-2 ring-transparent group-hover:ring-green-100 relative">
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} alt={currentUser?.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <span>{userInitials}</span>
+              )}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm"></div>
+            </div>
+
+            {/* Dropdown Menu */}
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right z-50">
+              <div className="p-4 border-b border-gray-50">
+                <p className="text-sm font-bold text-gray-900 truncate">{currentUser?.name || 'User'}</p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">{currentUser?.email || 'user@example.com'}</p>
+              </div>
+              <div className="p-2 flex flex-col gap-1">
+                <Link to="/profile" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                  <User size={16} /> My Profile
+                </Link>
+                <Link to="/favorites" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                  <Heart size={16} /> Saved Stations
+                </Link>
+                <Link to="/history" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                  <Clock size={16} /> Charging History
+                </Link>
+                {currentUser?.role === "admin" && (
+                  <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                    <ShieldCheck size={16} /> Admin Dashboard
+                  </Link>
+                )}
+              </div>
+              <div className="p-2 border-t border-gray-50">
+                <button 
+                  onClick={() => handleLogout()}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  Logout
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BAC4B] border-2 border-white rounded-full shadow-lg"></div>
-        </div>
+        ) : (
+          <Link
+            to="/login"
+            className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-emerald-500 text-white rounded-xl hover:bg-[#158f3e] transition-all hover:scale-105 active:scale-95 shadow-md shadow-green-200"
+          >
+            <User size={16} /> Login
+          </Link>
+        )}
       </div>
     </nav>
   );

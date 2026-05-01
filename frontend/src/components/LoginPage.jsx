@@ -1,99 +1,94 @@
-import React, { useState, useEffect } from "react";
-import { 
-  ArrowLeft, 
-  ChevronDown, 
-  MapPin, 
-  Navigation, 
-  Zap, 
-  Users, 
-  Leaf, 
-  Globe, 
-  User, 
-  Store, 
-  ShieldCheck,
-  Smartphone,
-  Fingerprint,
-  CheckCircle2
-} from "lucide-react";
-import { GoogleLogin } from '@react-oauth/google';
+import { useEffect, useState } from "react";
+import { ArrowLeft, MapPin, Navigation, Zap, Users, Leaf } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  loginWithGoogle,
+  resetOtpState,
+  sendOtp,
+  verifyOtp,
+} from "../features/auth/authSlice";
+import {
+  selectAuthLoading,
+  selectIsAuthenticated,
+  selectIsNewUser,
+} from "../features/auth/authSelectors";
 
 /**
  * LoginPage Component
  * A premium redesign matching the requested UI specifications.
  */
 const LoginPage = () => {
-  const [role, setRole] = useState("user"); // user | station_owner | admin
-  const [authMethod, setAuthMethod] = useState("phone"); // phone | otp
   const [view, setView] = useState("login"); // login | otp_verify
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(120);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const backendURL = import.meta.env.VITE_BACKEND_URL;
-  const mobile = "+91"+phone;
+  const loading = useSelector(selectAuthLoading);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isNewUser = useSelector(selectIsNewUser);
+  const mobile = `+91${phone}`;
 
-  const handleGoogleSuccess = async (credentialResponse)=>{
-    try{
-      const response = await axios.post(`${backendURL}/auth/google`,{
-        credential:credentialResponse.credential
-      });
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      
-      if(response.data.isNewUser){
-        navigate('/profile', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
-      toast.success('Google Login successful');
-    }catch(error){
-          console.log('Google Login error',error);
-          toast.error('Failed to log in with Google');
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const action = await dispatch(loginWithGoogle(credentialResponse.credential));
+
+    if (loginWithGoogle.fulfilled.match(action)) {
+      toast.success("Google login successful");
+      return;
     }
-  }
 
-  const handleSendOTP = async(e)=>{
-    e.preventDefault();
-      try {
-        const response = await axios.post(`${backendURL}/auth/login/phone`,{
-          mobile,
-        });
-        setAuthMethod('otp');
-        toast.success('OTP sent successfully');
-        setView('otp_verify');
-      } catch (error) {
-        toast.error(error.message);
-      }
-  }
+    toast.error(action.payload || "Failed to log in with Google");
+  };
 
-  const handleVerifyOTP = async(e)=>{
+  const handleSendOTP = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post(`${backendURL}/auth/login/phone/verify`,{
+
+    if (phone.trim().length !== 10) {
+      toast.error("Enter a valid 10-digit phone number");
+      return;
+    }
+
+    const action = await dispatch(sendOtp(mobile));
+
+    if (sendOtp.fulfilled.match(action)) {
+      setTimer(120);
+      setView("otp_verify");
+      toast.success("OTP sent successfully");
+      return;
+    }
+
+    toast.error(action.payload || "Failed to send OTP");
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+
+    if (otp.join("").length !== 6) {
+      toast.error("Enter the 6-digit OTP");
+      return;
+    }
+
+    const action = await dispatch(
+      verifyOtp({
         mobile,
-        otp:otp.join(""),
-      });
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      
-      if(response.data.isNewUser){
-        navigate('/profile', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
-      toast.success('OTP verified successfully');
-      
-    } catch (error) {
-      toast.error(error.message);
+        otp: otp.join(""),
+      })
+    );
+
+    if (verifyOtp.fulfilled.match(action)) {
+      toast.success("OTP verified successfully");
+      return;
     }
-  }
+
+    toast.error(action.payload || "Failed to verify OTP");
+  };
 
 
   const handleOtpChange = (index, value) => {
-    if (isNaN(value)) return;
+    if (Number.isNaN(Number(value)) && value !== "") return;
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
@@ -110,12 +105,24 @@ const LoginPage = () => {
     }
   }, [view, timer]);
 
-  // Prevent logged-in users from accessing login page
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      navigate("/", { replace: true });
+    if (!isAuthenticated) {
+      return;
     }
-  }, [navigate]);
+
+    if (isNewUser) {
+      navigate("/profile", { replace: true });
+      return;
+    }
+
+    navigate("/", { replace: true });
+  }, [isAuthenticated, isNewUser, navigate]);
+
+  useEffect(() => {
+    if (view !== "otp_verify") {
+      dispatch(resetOtpState());
+    }
+  }, [dispatch, view]);
 
   return (
     <div style={{
@@ -278,7 +285,9 @@ const LoginPage = () => {
 
                      <GoogleLogin
             onSuccess={handleGoogleSuccess}
-            onError={() => { console.log('Login Failed'); }}
+            onError={() => {
+              toast.error("Google login failed");
+            }}
           />
 
               <div className="text-center text-gray-400 text-sm my-4">---------- OR ----------</div>
@@ -291,15 +300,16 @@ const LoginPage = () => {
                       placeholder="Enter mobile number"
                   className="flex-1 border border-black/20 rounded-lg px-4"
                   value={phone}
-                  onChange={(e)=>setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     />
                   </div>
 
                   <button 
                 onClick={handleSendOTP}
-                className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    Send OTP
+                    {loading ? "Sending..." : "Send OTP"}
                   </button>
 
               <p className="text-xs text-center text-gray-500 mt-4">
@@ -309,7 +319,11 @@ const LoginPage = () => {
             ) : (
             <>
                 <button 
-                  onClick={() => setView("login")}
+                  onClick={() => {
+                    setView("login");
+                    setOtp(["", "", "", "", "", ""]);
+                    dispatch(resetOtpState());
+                  }}
                 className="mb-4"
                 >
                 <ArrowLeft />
@@ -346,13 +360,20 @@ const LoginPage = () => {
                 </span>
                   </p>
 
-              <button onClick={handleVerifyOTP} className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold">
-                  Verify & Continue
+              <button
+                onClick={handleVerifyOTP}
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                  {loading ? "Verifying..." : "Verify & Continue"}
                 </button>
 
               <p className="text-center text-sm mt-4 text-gray-500">
                 Didn’t receive OTP?{" "}
-                <span className="text-green-600 cursor-pointer">
+                <span
+                  className="text-green-600 cursor-pointer"
+                  onClick={handleSendOTP}
+                >
                   Resend
                 </span>
                   </p>

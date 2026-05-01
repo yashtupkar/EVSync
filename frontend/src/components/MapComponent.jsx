@@ -48,7 +48,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const createStationIcon = (station, mapRotation = 0) => {
   const isAvailable =
     station?.status === "available" || station?.isAvailable !== false;
-  const color = isAvailable ? "#1BAC4B" : "#EF4444";
+  const color = isAvailable ? "#1BAC4B" : "#f1be25ff";
 
   return L.divIcon({
     className: "custom-station-icon",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import MapComponent from "../components/MapComponent";
 import Navbar from "../components/Navbar";
 import {
@@ -26,9 +27,11 @@ import {
   StationDetailView,
   NavigationOverlay,
 } from "../components/DiscoveryComponents";
+import evData from "../../data/ev-data.json";
 
 const DiscoveryPage = () => {
   const navigate = useNavigate();
+  const { user, activeVehicleIndex } = useSelector((state) => state.auth);
   const [selectedStation, setSelectedStation] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [simulatedLocation, setSimulatedLocation] = useState(null);
@@ -37,9 +40,21 @@ const DiscoveryPage = () => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [stations, setStations] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [maxRange, setMaxRange] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
+  // Auto-sync filter with vehicle charger
+  useEffect(() => {
+    const activeVehicle = user?.vehicles?.[activeVehicleIndex];
+    if (activeVehicle) {
+      const details = evData.data.find(v => v.id === activeVehicle.vehicleId);
+      const chargerType = details?.dc_charger?.ports?.[0] || details?.ac_charger?.ports?.[0];
+      if (chargerType) setSelectedFilter(chargerType);
+    }
+  }, [activeVehicleIndex, user]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -68,12 +83,23 @@ const DiscoveryPage = () => {
   };
 
   const filteredStations = stations
-    .filter(
-      (station) =>
+    .filter((station) => {
+      const matchesSearch = 
         station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        station.city?.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
+        station.city?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const targetFilter = normalize(selectedFilter);
+
+      const matchesFilter = 
+        targetFilter === "all" || 
+        station.chargers?.some(c => normalize(c.type) === targetFilter);
+
+      const matchesAvailability = !showAvailableOnly || station.chargers?.some(c => c.status === "available");
+
+      return matchesSearch && matchesFilter && matchesAvailability;
+    })
     .map((station) => ({
       ...station,
       distance:
@@ -86,6 +112,11 @@ const DiscoveryPage = () => {
             )
           : null,
     }))
+    .filter((station) => {
+      // Secondary filter for distance after calculation
+      if (!maxRange) return true;
+      return station.distance !== null && station.distance <= maxRange;
+    })
     .sort((a, b) => {
       if (a.distance === null) return 1;
       if (b.distance === null) return -1;
@@ -163,13 +194,17 @@ const DiscoveryPage = () => {
         {/* Top Layout Section */}
         <div className="flex gap-2 h-[700px]">
           {/* Left Sidebar */}
-          <aside className="w-90 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
+          <aside className="w-80 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
             <VehicleCard onChange={() => console.log("Change vehicle")} />
             <ReachableStationsCard
               total={stations.length}
-              withinRange={Math.floor(stations.length * 0.7)}
+              withinRange={filteredStations.length}
+              onRangeFilter={setMaxRange}
             />
-            <FilterSection onShowStations={() => console.log("Filtering...")} />
+            <FilterSection onShowStations={(filter, available) => {
+              setSelectedFilter(filter);
+              setShowAvailableOnly(available);
+            }} />
           </aside>
 
           {/* Center Section (Smart Map with Integrated Overlays) */}
@@ -211,19 +246,37 @@ const DiscoveryPage = () => {
               <h2 className="text-lg font-bold text-gray-800">
                 Nearby Stations 
               </h2>
-              <span className="bg-green-50 text-[#1BAC4B] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+              <span className="bg-green-50 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                 {filteredStations.length} Results
               </span>
             </div>
             <div className="flex-grow overflow-y-auto px-2 custom-scrollbar space-y-4">
-              {filteredStations.map((station) => (
-                <StationListItem
-                  key={station._id}
-                  station={station}
-                  onClick={() => setSelectedStation(station)}
-                  distance={station.distance}
-                />
-              ))}
+              {filteredStations.length > 0 ? (
+                filteredStations.map((station) => (
+                  <StationListItem
+                    key={station._id}
+                    station={station}
+                    onClick={() => setSelectedStation(station)}
+                    distance={station.distance}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                    <Zap size={24} className="text-gray-300" />
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-800 mb-1">No chargers found</h3>
+                  <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                    No charging available for your vehicle charger type ({selectedFilter === "All" ? "any type" : selectedFilter}) in this area.
+                  </p>
+                  <button 
+                    onClick={() => setSelectedFilter("All")}
+                    className="mt-4 text-emerald-500 font-bold text-[10px] uppercase tracking-widest hover:underline"
+                  >
+                    Show all stations
+                  </button>
+                </div>
+              )}
             </div>
           </aside>
         </div>

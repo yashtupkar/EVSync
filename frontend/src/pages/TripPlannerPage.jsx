@@ -23,8 +23,11 @@ import {
   PhoneForwarded,
   Bookmark,
   Building2,
+  EvCharger,
+  PlugZap,
 } from "lucide-react";
 import TripPlannerMap from "../components/TripPlannerMap";
+import { VehicleCard } from "../components/DiscoveryComponents";
 
 // Haversine formula to calculate distance between two coordinates
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -233,7 +236,7 @@ const TripPlannerPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden relative">
+    <div className="max-h-screen w-full bg-zinc-100 flex flex-col font-sans overflow-x-hidden relative">
       {/* Click outside to close suggestions */}
       {(showFromSuggestions || showToSuggestions) && (
         <div
@@ -245,10 +248,10 @@ const TripPlannerPage = () => {
         />
       )}
 
-      <main className="p-4 h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] flex flex-col gap-4 max-w-[1600px] mx-auto w-full relative z-50 overflow-hidden">
+      <main className="px-4 py-2 h-full max-h-screen flex flex-col gap-4 max-w-[1600px] mx-auto w-full relative  overflow-hidden">
         <div className="flex gap-2 h-full overflow-hidden">
           {/* Left Sidebar - Plan Your Trip */}
-          <aside className="w-90 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2 pb-10">
+          <aside className="w-90 flex flex-col gap-4 shrink-0 no-scrollbar overflow-y-auto custom-scrollbar  pb-10">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -558,7 +561,7 @@ const TripPlannerPage = () => {
                 <div className="absolute left-[21px] top-[48px] bottom-[28px] w-[1px] border-l-2 border-dotted border-gray-200"></div>
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
                   Vehicle
                 </label>
@@ -586,9 +589,10 @@ const TripPlannerPage = () => {
                     <Car size={24} />
                   </div>
                 </div>
-              </div>
+              </div> */}
+              <VehicleCard/>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
                   Trip Preferences
                 </label>
@@ -612,7 +616,7 @@ const TripPlannerPage = () => {
                     </span>
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
@@ -634,7 +638,7 @@ const TripPlannerPage = () => {
               </div>
 
               <button
-                className="w-full py-4 bg-[#1BAC4B] text-white rounded-xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98]"
+                className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98]"
                 onClick={() => {
                   if (fromLocation && toLocation) {
                     setIsRouteCalculated(true);
@@ -713,7 +717,7 @@ const TripPlannerPage = () => {
           </aside>
 
           {/* Map Area */}
-          <section className="flex-grow h-full bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden relative sticky top-0">
+          <section className="flex-grow h-[90vh]  bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden relative sticky top-0">
             <div className="absolute inset-0">
               <TripPlannerMap
                 stations={nearbyStations}
@@ -747,20 +751,20 @@ const TripPlannerPage = () => {
             </div>
 
             {/* Map Overlays */}
-            <div className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none">
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
               <div className="flex gap-2 pointer-events-auto">
-                <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-1 min-w-[140px]">
-                  <div className="text-[10px] font-bold text-green-500 uppercase tracking-wider">
+                <div className="bg-emerald-500 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-1 min-w-[140px]">
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider">
                     Fastest Route
                   </div>
-                  <div className="text-lg font-bold text-gray-900">
+                  <div className="text-lg font-bold text-white">
                     3 h 45 min
                   </div>
-                  <div className="text-xs text-gray-500 font-medium">
+                  <div className="text-xs text-gray-100 font-medium">
                     190 km
                   </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-white/40 flex flex-col gap-1 min-w-[140px] opacity-80">
+                <div className="bg-white/60 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-white/40 flex flex-col gap-1 min-w-[140px] opacity-80">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     Eco Route
                   </div>
@@ -771,7 +775,7 @@ const TripPlannerPage = () => {
                     195 km
                   </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-white/40 flex flex-col gap-1 min-w-[140px] opacity-80">
+                <div className="bg-white/60 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-white/40 flex flex-col gap-1 min-w-[140px] opacity-80">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     Fewer Stops
                   </div>
@@ -811,7 +815,7 @@ const TripPlannerPage = () => {
           </section>
 
           {/* Right Sidebar - Your Trip Itinerary */}
-          <aside className="w-96 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pb-10">
+          <aside className="w-96 flex flex-col gap-4 shrink-0 no-scrollbar overflow-y-auto pb-10">
             {selectedStation ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 h-fit">
                 {/* Image Header */}
@@ -986,7 +990,7 @@ const TripPlannerPage = () => {
                       {/* Booking Action */}
                       <div className="pt-6 border-t border-gray-50">
                         <button
-                          className="w-full py-4 bg-[#1BAC4B] text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                          className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                           onClick={() => {
                             const stop = itineraryStops.find(s => s._id === selectedStation._id);
                             const time = stop ? stop.estimatedArrival : "12:30 PM";
@@ -1091,66 +1095,123 @@ const TripPlannerPage = () => {
                   </div>
 
                   {/* Intermediate Stops */}
-                  {itineraryStops.map((stop, index) => (
-                    <div
-                      key={stop._id || index}
-                      className="relative pl-8 pb-8 cursor-pointer group"
-                      onClick={() => setSelectedStation(stop)}
-                    >
-                      <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-white bg-green-500 flex items-center justify-center text-[8px] text-white font-bold z-10 shadow-sm group-hover:scale-110 transition-transform">
-                        {index + 1}
-                      </div>
-                      <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm group-hover:border-green-500/30 group-hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-green-600 transition-colors flex items-center">
-                            {stop.name}
-                            {stop.isWaypoint && (
-                              <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[8px] font-black uppercase rounded-md tracking-tighter">
-                                Planned
-                              </span>
-                            )}
-                          </h4>
-                          <div className="flex items-center gap-1 text-yellow-500">
-                            <Star size={10} fill="currentColor" />
-                            <span className="text-[10px] font-bold text-gray-900">
-                              {stop.rating || "4.5"}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mb-3 line-clamp-1">
-                          {stop.address}
-                        </p>
-                        <div className="inline-block px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-lg mb-4">
-                          {stop.distanceFromStart.toFixed(1)} km from start
+                  {itineraryStops.map((stop, index) => {
+                    const availableSlots = stop.chargers?.filter(c => c.status === "available").length || 0;
+                    const totalSlots = stop.chargers?.length || 0;
+                    const isFullyOccupied = totalSlots > 0 && availableSlots === 0;
+
+                    return (
+                      <div
+                        key={stop._id || index}
+                        className="relative pl-6 pb-10 cursor-pointer group"
+                        onClick={() => setSelectedStation(stop)}
+                      >
+                        {/* Timeline Connector Dot */}
+                        <div className={`absolute -left-1.5 top-1.5 w-6 h-6 rounded-full border-4 border-white ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} flex items-center justify-center text-[10px] text-white font-black z-10 shadow-md group-hover:scale-110 transition-all duration-300 ring-4 ring-gray-50`}>
+                          {index + 1}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                          <div className="flex items-center gap-2">
-                            <Zap size={14} className="text-green-500" />
-                            <div>
-                              <div className="text-[10px] font-bold text-gray-900">
-                                {stop.chargers?.[0]?.power || "50"} kW
+                        <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all duration-300 group-hover:-translate-y-1">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex gap-3">
+                              <div className={`w-10 h-10 ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center transition-colors`}>
+                                <EvCharger size={22} className={`${isFullyOccupied ? 'text-white' : 'text-white'} `} />
                               </div>
-                              <div className="text-[8px] text-gray-400 uppercase font-black">
-                                {stop.chargers?.[0]?.type || "CCS2"}
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                                    {stop.name}
+                                  </h4>
+                                  {stop.isWaypoint && (
+                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[8px] font-black uppercase rounded-md tracking-tighter">
+                                      Planned
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="flex items-center gap-0.5 text-yellow-500">
+                                    <Star size={10} fill="currentColor" />
+                                    <span className="text-[10px] font-bold text-gray-700">
+                                      {stop.rating || "4.5"}
+                                    </span>
+                                  </div>
+                                  <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
+                                  <span className="text-[10px] text-gray-400 font-medium">
+                                    {stop.distanceFromStart.toFixed(1)} km from start
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Battery size={14} className="text-green-500" />
-                            <div>
-                              <div className="text-[10px] font-bold text-gray-900">
-                                Available
+
+                          <p className="text-[11px] text-gray-500 mb-2 line-clamp-1 bg-gray-50/50 p-2 rounded-lg border border-gray-50">
+                            {stop.address}
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-100 border border-gray-200 ">
+                              <div className="p-1.5  rounded-lg shadow-sm text-white bg-emerald-500">
+                                <PlugZap size={14} />
                               </div>
-                              <div className="text-[8px] text-gray-400 uppercase font-black text-green-500">
-                                {stop.chargers?.filter(c => c.status === "available").length || "1"} / {stop.chargers?.length || "1"} Slots
+                              <div>
+                                <div className="text-[10px] font-bold text-gray-900 leading-none">
+                                  {stop.chargers?.[0]?.power || "50"} kW
+                                </div>
+                                <div className="text-[8px] text-gray-400 uppercase font-black tracking-widest mt-1">
+                                  {stop.chargers?.[0]?.type || "CCS2"}
+                                </div>
                               </div>
                             </div>
+
+                            <div className={`flex items-center gap-3 p-2 rounded-lg ${isFullyOccupied ? 'bg-amber-50/50 border-amber-100' : 'bg-emerald-50/50 border-emerald-100'} border group-hover:bg-white transition-all`}>
+                              <div className={`p-1.5 rounded-lg shadow-sm ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} text-white`}>
+                                <EvCharger size={14} />
+                              </div>
+                              <div>
+                                <div className={`text-[10px] font-bold ${isFullyOccupied ? 'text-amber-700' : 'text-emerald-700'} leading-none`}>
+                                  {isFullyOccupied ? 'Occupied' : 'Available'}
+                                </div>
+                                <div className={`text-[8px] uppercase font-black tracking-widest mt-1 ${isFullyOccupied ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                  {availableSlots} / {totalSlots} Slots
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 mt-4  border-t border-gray-50">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (stop.isWaypoint) {
+                                  setWaypoints(waypoints.filter(wp => wp._id !== stop._id));
+                                } else {
+                                  setWaypoints([...waypoints, stop]);
+                                }
+                              }}
+                              className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${stop.isWaypoint
+                                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                : "bg-green-100 text-green-600 hover:bg-green-50"
+                                }`}
+                            >
+                              {stop.isWaypoint ? <Minus size={14} /> : <Plus size={14} />}
+                              {stop.isWaypoint ? "Remove" : "Add to Trip"}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(`Slot booked successfully for ${stop.estimatedArrival}!`);
+                              }}
+                              className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-[#189641] shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Calendar size={14} />
+                              Book Slot
+                            </button>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Destination */}
                   <div className="relative pl-8">

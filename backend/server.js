@@ -12,6 +12,7 @@ dotenv.config();
 const stationRoutes = require('./routes/stationRoutes');
 const connectDB = require('./connections/db.connect');
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,6 +48,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/stations', stationRoutes);
 app.use('/auth', authRoutes);
+app.use('/api/user', userRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
