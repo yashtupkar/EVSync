@@ -1,0 +1,395 @@
+import { useEffect, useState } from "react";
+import { ArrowLeft, MapPin, Navigation, Zap, Users, Leaf, ShieldCheck, HardHat } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  loginWithGoogle,
+  resetOtpState,
+  sendOtp,
+  verifyOtp,
+} from "../features/auth/authSlice";
+import {
+  selectAuthLoading,
+  selectIsAuthenticated,
+  selectUser,
+} from "../features/auth/authSelectors";
+
+/**
+ * LoginPage Component
+ * A premium redesign matching the requested UI specifications.
+ */
+const LoginPage = () => {
+  const [view, setView] = useState("login"); // login | otp_verify
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [timer, setTimer] = useState(120);
+  const [requestedRole, setRequestedRole] = useState("user"); // user | station_owner | admin
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const loading = useSelector(selectAuthLoading);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
+  const mobile = `+91${phone}`;
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const action = await dispatch(loginWithGoogle({ 
+        credential: credentialResponse.credential,
+        requestedRole 
+    }));
+
+    if (loginWithGoogle.fulfilled.match(action)) {
+      toast.success("Google login successful");
+      return;
+    }
+
+    toast.error(action.payload || "Failed to log in with Google");
+  };
+
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+
+    if (phone.trim().length !== 10) {
+      const message = "Enter a valid 10-digit phone number";
+      setPhoneError(message);
+      toast.error(message);
+      return;
+    }
+
+    const action = await dispatch(sendOtp(mobile));
+
+    if (sendOtp.fulfilled.match(action)) {
+      setPhoneError("");
+      setTimer(120);
+      setView("otp_verify");
+      toast.success("OTP sent successfully");
+      return;
+    }
+
+    const message = action.payload || "Failed to send OTP";
+    if (/mobile|number/i.test(message)) {
+      setPhoneError(message);
+    }
+    toast.error(message);
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+
+    if (otp.join("").length !== 6) {
+      toast.error("Enter the 6-digit OTP");
+      return;
+    }
+
+    const action = await dispatch(
+      verifyOtp({
+        mobile,
+        otp: otp.join(""),
+        requestedRole
+      })
+    );
+
+    if (verifyOtp.fulfilled.match(action)) {
+      setPhoneError("");
+      toast.success("OTP verified successfully");
+      return;
+    }
+
+    const message = action.payload || "Failed to verify OTP";
+    if (/mobile|number/i.test(message)) {
+      setPhoneError(message);
+      setView("login");
+      setOtp(["", "", "", "", "", ""]);
+      dispatch(resetOtpState());
+    }
+    toast.error(message);
+  };
+
+
+  const handleOtpChange = (index, value) => {
+    if (Number.isNaN(Number(value)) && value !== "") return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (view === "otp_verify" && timer > 0) {
+      const interval = setInterval(() => setTimer((p) => p - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [view, timer]);
+
+    const isNewUser = useSelector(state => state.auth.isNewUser);
+
+    useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    // Role-based redirection logic
+    if (user.role === "admin") {
+        navigate("/admin", { replace: true });
+    } else if (user.role === "station_owner") {
+        if (isNewUser) {
+            navigate("/profile", { replace: true });
+        } else {
+            navigate("/owner-dashboard", { replace: true });
+        }
+    } else if (user.role === "operator") {
+        navigate("/operator-dashboard", { replace: true });
+    } else {
+        navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    if (view !== "otp_verify") {
+      dispatch(resetOtpState());
+    }
+  }, [dispatch, view]);
+
+  return (
+    <div style={{
+      backgroundImage: "url('/assets/login.png')",
+      backgroundPosition: 'bottom 0% left 20%',
+      backgroundRepeat: 'no-repeat'
+    }} className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
+      {/* --- TOP NAVIGATION BAR --- */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
+        <div className="flex items-center gap-2">
+          <div className="bg-emerald-500 p-2 rounded-xl shadow-lg shadow-green-100 flex items-center justify-center">
+            <Zap className="text-white w-6 h-6 fill-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-800 leading-none">
+              EV<span className="text-emerald-500">Sync</span>
+            </h1>
+            <p className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mt-0.5">
+              Smart Locater
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* --- MAIN LAYOUT --- */}
+      <main className="flex-grow shadow-xl rounded-xl overflow-hidden flex m-auto max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0">
+        
+        {/* LEFT COMPONENT: Branding & Visuals */}
+        <section className="hidden lg:flex w-1/2 flex-col bg-[#FBFCFE] bg-cover bg-center relative overflow-hidden">
+          <div 
+            className="absolute inset-0 z-0 opacity-100 mix-blend-multiply transition-opacity duration-1000"
+            style={{ 
+              backgroundImage: "url('/assets/login-bg.png')",
+              backgroundSize: '100%',
+              backgroundPosition: 'bottom -10% left 20%',
+              backgroundRepeat: 'no-repeat'
+            }}
+          />
+
+          <div className="z-10 h-full p-10">
+            <h2 className="text-3xl font-black text-slate-800 leading-[1.1] mb-4">
+              Powering Journeys.<br />
+              <span className="text-emerald-500">Sustainably.</span>
+            </h2>
+            
+            <p className="text-sm text-slate-600 mb-6 max-w-md font-medium leading-relaxed">
+              Find, access and manage EV charging stations with ease. Plan smarter. Drive further.
+            </p>
+
+            <div className="space-y-8 mb-30">
+              <div className="flex items-start gap-4">
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
+                  <MapPin size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Find Nearby Stations</h3>
+                  <p className="text-sm text-slate-500 font-medium">Locate fast and reliable charging<br />stations near you.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
+                  <Navigation size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Plan Your Trip</h3>
+                  <p className="text-sm text-slate-500 font-medium">Plan long trips with charging stops<br />optimized for your EV.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
+                  <Zap size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Real-time Updates</h3>
+                  <p className="text-sm text-slate-500 font-medium">Get real-time availability, pricing<br />and station status.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT COMPONENT: Auth Form */}
+        <section className="w-full lg:w-1/2 flex bg-white flex-col items-center justify-center py-10 relative">
+          <div className="w-[480px] p-8 md:p-12 transition-all duration-500">
+            
+            {view === "login" ? (
+              <>
+              <h2 className="text-2xl font-bold text-center mb-2">
+                  Welcome to EV<span className="text-emerald-500">Sync</span>
+              </h2>
+              <p className="text-center text-gray-500 mb-6">
+                Login to continue as {requestedRole.replace('_', ' ')}
+              </p>
+
+              {/* Role Tabs */}
+              <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+                <button 
+                    onClick={() => setRequestedRole("user")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'user' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <Users size={16} /> User
+                </button>
+                <button 
+                    onClick={() => setRequestedRole("station_owner")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'station_owner' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <HardHat size={16} /> Owner
+                </button>
+                <button 
+                    onClick={() => setRequestedRole("admin")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'admin' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <ShieldCheck size={16} /> Admin
+                </button>
+              </div>
+
+              <div className="text-center text-gray-400 text-sm my-4">-------- Login with --------</div>
+
+              
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                        toast.error("Google login failed");
+                    }}
+                />
+
+              <div className="text-center text-gray-400 text-sm my-4">---------- OR ----------</div>
+
+              <div className="flex gap-2 mb-4">
+                  <div className="px-5 py-2 border border-black/10 bg-slate-50 rounded-lg font-bold text-slate-600">+91</div>
+                  <input 
+                      type="text"
+                      placeholder="Enter mobile number"
+                      className={`flex-1 border rounded-lg px-4 py-2 outline-none font-medium transition-all ${
+                        phoneError
+                          ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                          : "border-black/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      }`}
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
+                        if (phoneError) {
+                          setPhoneError("");
+                        }
+                      }}
+                  />
+              </div>
+
+              {phoneError && (
+                <p className="mb-4 text-sm font-medium text-red-500">{phoneError}</p>
+              )}
+
+              <button 
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70 shadow-lg shadow-green-100 transition-all active:scale-95"
+              >
+                  {loading ? "Sending..." : "Send OTP"}
+              </button>
+
+              <p className="text-xs text-center text-gray-500 mt-6 font-medium">
+                By continuing, you agree to <span className="text-emerald-500 cursor-pointer">Terms</span> & <span className="text-emerald-500 cursor-pointer">Privacy Policy</span>
+              </p>
+              </>
+            ) : (
+            <>
+                <button 
+                  onClick={() => {
+                    setView("login");
+                    setOtp(["", "", "", "", "", ""]);
+                    dispatch(resetOtpState());
+                  }}
+                  className="mb-6 p-2 rounded-full hover:bg-slate-100 transition-all"
+                >
+                <ArrowLeft size={20} />
+                </button>
+
+              <h2 className="text-xl font-bold text-center mb-2">
+                Verify Your <span className="text-emerald-500">Number</span>
+              </h2>
+
+              <p className="text-center text-gray-500 mb-8 font-medium">
+                Enter the 6-digit OTP sent to {mobile}
+              </p>
+
+              {/* OTP */}
+              <div className="flex justify-between mb-8">
+                  {otp.map((digit, i) => (
+                    <input
+                      key={i}
+                      id={`otp-${i}`}
+                      value={digit}
+                      maxLength={1}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      className="w-14 h-16 text-center border border-black/10 bg-slate-50 rounded-xl text-2xl font-bold focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                    />
+                  ))}
+                </div>
+
+              <p className="text-center text-sm text-gray-500 mb-6 font-medium">
+                OTP expires in{" "}
+                <span className="text-emerald-500 font-bold">
+                  {timer}s
+                </span>
+              </p>
+
+              <button
+                onClick={handleVerifyOTP}
+                disabled={loading}
+                className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70 shadow-lg shadow-green-100 transition-all active:scale-95"
+              >
+                  {loading ? "Verifying..." : "Verify & Continue"}
+                </button>
+
+              <p className="text-center text-sm mt-6 text-gray-500 font-medium">
+                Didn’t receive OTP?{" "}
+                <span
+                  className="text-emerald-500 cursor-pointer font-bold hover:underline"
+                  onClick={handleSendOTP}
+                >
+                  Resend
+                </span>
+              </p>
+            </>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <div className="fixed top-0 right-0 w-1/3 h-1/3 bg-gradient-to-bl from-green-50/50 to-transparent -z-10 blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-1/4 h-1/4 bg-gradient-to-tr from-green-50/30 to-transparent -z-10 blur-3xl pointer-events-none" />
+    </div>
+  );
+};
+
+export default LoginPage;

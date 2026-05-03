@@ -39,6 +39,19 @@ exports.updateProfile = async (req,res) => {
     }
     catch(err){
         console.error(err.message);
+        if (err.code === 11000) {
+            const duplicateField = Object.keys(err.keyPattern || err.keyValue || {})[0];
+
+            if (duplicateField === 'mobile') {
+                return res.status(409).json({ msg: 'Mobile number already exists' });
+            }
+
+            if (duplicateField === 'email') {
+                return res.status(409).json({ msg: 'Email already exists' });
+            }
+
+            return res.status(409).json({ msg: 'User already exists' });
+        }
         res.status(500).send('Server Error');
     }
 }

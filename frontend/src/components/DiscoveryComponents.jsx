@@ -333,6 +333,7 @@ export const StationListItem = ({ station, onClick, distance }) => {
   const availableSlots = station.chargers?.filter(c => c.status === "available").length || 0;
   const totalSlots = station.chargers?.length || 0;
   const isFullyOccupied = totalSlots > 0 && availableSlots === 0;
+  const navigate = useNavigate();
 
   return (
     <div 
@@ -383,7 +384,7 @@ export const StationListItem = ({ station, onClick, distance }) => {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          alert(`Slot booked successfully for ${station.name}!`);
+          navigate(`/book-slot/${station._id}`);
         }}
         className="w-full mt-3 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
       >
@@ -507,7 +508,7 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
               Start Driving
             </button>
             <button 
-              onClick={() => alert(`Slot booked for ${station.name}!`)}
+              onClick={() => navigate(`/book-slot/${station._id}`)}
               className="bg-white text-emerald-500 text-sm border-2 border-emerald-500 px-6 py-3 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-green-50 transition-all flex items-center justify-center gap-4 min-w-[280px]"
             >
               <Calendar size={22} />

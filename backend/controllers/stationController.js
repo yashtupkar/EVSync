@@ -138,3 +138,18 @@ exports.getAllUsers = async (req, res) => {
     res.json(mockUsers);
   }
 };
+exports.getStationById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (useMock) {
+      const station = mockStations.find(s => s._id === id);
+      if (!station) return res.status(404).json({ message: "Station not found" });
+      return res.json(station);
+    }
+    const station = await Station.findById(id).populate('ownerId');
+    if (!station) return res.status(404).json({ message: "Station not found" });
+    res.json(station);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -13,6 +13,8 @@ const stationRoutes = require('./routes/stationRoutes');
 const connectDB = require('./connections/db.connect');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const adminRoutes = require('./routes/admin.routes');
+const stationOwnerRoutes = require('./routes/stationOwner.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -46,9 +48,14 @@ app.get('/', (req, res) => {
 
 
 
+const uploadRoutes = require('./routes/upload.routes');
+
 app.use('/api/stations', stationRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/station-owner', stationOwnerRoutes);
+app.use('/api/upload', uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

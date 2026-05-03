@@ -38,10 +38,11 @@ const persistedAuth = loadAuthFromStorage();
 
 export const loginWithGoogle = createAsyncThunk(
   "auth/loginWithGoogle",
-  async (credential, { rejectWithValue }) => {
+  async ({ credential, requestedRole }, { rejectWithValue }) => {
     try {
       const response = await axios.post(`${backendURL}/auth/google`, {
         credential,
+        requestedRole,
       });
 
       return response.data;
@@ -72,11 +73,12 @@ export const sendOtp = createAsyncThunk(
 
 export const verifyOtp = createAsyncThunk(
   "auth/verifyOtp",
-  async ({ mobile, otp }, { rejectWithValue }) => {
+  async ({ mobile, otp, requestedRole }, { rejectWithValue }) => {
     try {
       const response = await axios.post(`${backendURL}/auth/login/phone/verify`, {
         mobile,
         otp,
+        requestedRole,
       });
 
       return response.data;

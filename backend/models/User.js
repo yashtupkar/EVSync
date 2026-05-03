@@ -1,17 +1,38 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String,  },
+  name: { type: String },
   avatar: { type: String }, // Optional avatar URL
-  dateOfBirth: { type: Date, default: undefined }, // Added for Google login
-  gender: { type: String, default: undefined }, // Added for Google login
-  email: { type: String, default: undefined }, // Added for Google login
-  googleId: { type: String, default: undefined }, // Added for Google login
-  mobile: { type: String, default: undefined }, // Avoid storing null for Google-only users
-  role: { type: String, enum: ['user', 'admin', 'station_owner'], default: 'user' },
+  dateOfBirth: { type: Date, default: undefined },
+  gender: { type: String, default: undefined },
+  email: { type: String, default: undefined },
+  googleId: { type: String, default: undefined },
+  mobile: { type: String, default: undefined },
+  
+  // NEW FIELDS FOR ONBOARDING
+  role: { 
+    type: String, 
+    enum: ['user', 'admin', 'station_owner', 'operator'], 
+    default: 'user' 
+  },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'approved' // Regular users are approved by default
+  },
+  authProvider: { 
+    type: String, 
+    enum: ['google', 'phone', 'none'], 
+    default: 'none' 
+  },
+  managedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }, // For operators to track their owner
+
   vehicles: [{
-    vehicleId: { type: String, required: true }, // Stores the 'id' from ev-data.json (e.g., 'in-car-001')
-    nickname: { type: String } // Optional: let the user name their car
+    vehicleId: { type: String, required: true },
+    nickname: { type: String }
   }]
 }, { timestamps: true });
 

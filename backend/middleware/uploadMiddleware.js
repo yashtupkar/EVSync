@@ -9,16 +9,24 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure Storage
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'evsync_profiles', // Folder name in Cloudinary
-    allowed_formats: ['jpg', 'jpeg', 'png'], // Allowed file types
-    transformation: [{ width: 500, height: 500, crop: 'limit' }], // Optional: resize image
-  },
-});
+// Configure Storage generator
+const createUploader = (folderName) => {
+  const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: folderName,
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
+    },
+  });
+  return multer({ storage: storage });
+};
 
-const upload = multer({ storage: storage });
+// Export pre-configured uploaders
+const uploadProfile = createUploader('evsync_profiles');
+const uploadStation = createUploader('evsync_stations');
 
-module.exports = upload;
+module.exports = {
+  uploadProfile,
+  uploadStation,
+};

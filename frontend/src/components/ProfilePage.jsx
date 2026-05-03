@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
+const normalizeMobileForInput = (value = "") => value.replace(/^\+91/, "");
 
 /**
  * ProfilePage Component
@@ -38,7 +39,7 @@ const ProfilePage = () => {
     email: user?.email || "",
     gender: user?.gender || "",
     dob: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "",
-    mobile: user?.mobile || ""
+    mobile: normalizeMobileForInput(user?.mobile || "")
   });
 
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
@@ -49,17 +50,26 @@ const ProfilePage = () => {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(!!user?.mobile);
   const [verifying, setVerifying] = useState(false);
+  const [mobileError, setMobileError] = useState("");
 
-  const mobileNumber = `+91${formData.mobile}`;
+  const mobileNumber = formData.mobile ? `+91${formData.mobile}` : "";
 
   const isGoogleUser = !!user?.googleId;
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    const value = name === "mobile"
+      ? e.target.value.replace(/\D/g, "").slice(0, 10)
+      : e.target.value;
+
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === "mobile" && mobileError) {
+      setMobileError("");
+    }
     
     if (name === "mobile" && isGoogleUser) {
-      setIsMobileVerified(value === user?.mobile && !!value);
+      setIsMobileVerified(value === normalizeMobileForInput(user?.mobile) && !!value);
       setIsOtpSent(false);
     }
   };
@@ -78,16 +88,22 @@ const ProfilePage = () => {
 
   const handleSendOtp = async () => {
     if (!formData.mobile || formData.mobile.length < 10) {
-      toast.error("Please enter a valid mobile number");
+      const message = "Please enter a valid mobile number";
+      setMobileError(message);
+      toast.error(message);
       return;
     }
     
     try {
       setVerifying(true);
       await dispatch(sendOtp(mobileNumber)).unwrap();
+      setMobileError("");
       setIsOtpSent(true);
       toast.success("OTP sent successfully!");
     } catch (err) {
+      if (typeof err === "string" && /mobile|number/i.test(err)) {
+        setMobileError(err);
+      }
       toast.error(err || "Failed to send OTP");
     } finally {
       setVerifying(false);
@@ -137,9 +153,17 @@ const ProfilePage = () => {
 
     try {
       await dispatch(updateUserProfile(data)).unwrap();
+      setMobileError("");
       toast.success("Profile updated successfully!");
-      navigate("/vehicle-selection");
+      if (user.role === 'station_owner') {
+        navigate("/owner-dashboard");
+      } else {
+        navigate("/vehicle-selection");
+      }
     } catch (err) {
+      if (typeof err === "string" && /mobile|number/i.test(err)) {
+        setMobileError(err);
+      }
       toast.error(err || "Failed to update profile");
     }
   };
@@ -153,12 +177,12 @@ const ProfilePage = () => {
       {/* --- TOP NAVIGATION BAR --- */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2">
-          <div className="bg-[#1BAC4B] p-2 rounded-xl shadow-lg shadow-green-100 flex items-center justify-center">
+          <div className="bg-emerald-500 p-2 rounded-xl shadow-lg shadow-green-100 flex items-center justify-center">
             <Zap className="text-white w-6 h-6 fill-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-800 leading-none">
-              EV<span className="text-[#1BAC4B]">Sync</span>
+              EV<span className="text-emerald-500">Sync</span>
             </h1>
             <p className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mt-0.5">
               Smart Locater
@@ -187,7 +211,7 @@ const ProfilePage = () => {
           <div className="z-10 h-full p-10 ">
             <h2 className="text-3xl font-black text-slate-800 leading-[1.1] mb-4">
               Join the Green<br />
-              <span className="text-[#1BAC4B]">Revolution.</span>
+              <span className="text-emerald-500">Revolution.</span>
             </h2>
             
             <p className="text-sm text-slate-600 mb-8 max-w-md font-medium leading-relaxed">
@@ -197,7 +221,7 @@ const ProfilePage = () => {
             {/* Feature List */}
             <div className="space-y-8">
               <div className="flex items-start gap-4">
-                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-[#1BAC4B]">
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
                   <User size={22} />
                 </div>
                 <div>
@@ -207,8 +231,8 @@ const ProfilePage = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-[#1BAC4B]">
-                  <ShieldCheck size={22} className="text-[#1BAC4B]" />
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
+                  <ShieldCheck size={22} className="text-emerald-500" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800">Secure & Private</h3>
@@ -217,7 +241,7 @@ const ProfilePage = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-[#1BAC4B]">
+                <div className="mt-1 p-2.5 rounded-full border border-slate-100 bg-white shadow-sm text-emerald-500">
                   <Leaf size={22} />
                 </div>
                 <div>
@@ -235,7 +259,7 @@ const ProfilePage = () => {
             
 
             <h2 className="text-2xl font-bold text-slate-800 mb-2">
-              Complete Your <span className="text-[#1BAC4B]">Profile</span>
+              Complete Your <span className="text-emerald-500">Profile</span>
             </h2>
             <p className="text-slate-500 mb-6 font-medium">
               Help us get to know you better for a better experience.
@@ -244,7 +268,7 @@ const ProfilePage = () => {
             {/* Profile Image Section */}
             <div className="flex justify-center mb-6">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-[#1BAC4B] transition-colors relative">
+                <div className="w-24 h-24 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-emerald-500 transition-colors relative">
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -254,7 +278,7 @@ const ProfilePage = () => {
                 </div>
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 bg-[#1BAC4B] text-white p-2 rounded-lg shadow-lg hover:bg-[#189a43] transition-all transform hover:scale-110"
+                  className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-2 rounded-lg shadow-lg hover:bg-emerald-600 transition-all transform hover:scale-110"
                 >
                   <Camera size={14} />
                 </button>
@@ -269,7 +293,7 @@ const ProfilePage = () => {
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                   Full Name
                 </label>
-                <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
+                <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-emerald-500 transition-colors bg-slate-50/50">
                   <User size={16} className="text-slate-400" />
                   <input
                     type="text"
@@ -287,7 +311,7 @@ const ProfilePage = () => {
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                   Email Address
                 </label>
-                <div className={`flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl transition-colors ${isGoogleUser ? 'bg-slate-100' : 'bg-slate-50/50 focus-within:border-[#1BAC4B]'}`}>
+                <div className={`flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl transition-colors ${isGoogleUser ? 'bg-slate-100' : 'bg-slate-50/50 focus-within:border-emerald-500'}`}>
                   <Mail size={16} className="text-slate-400" />
                   <input
                     type="email"
@@ -307,7 +331,13 @@ const ProfilePage = () => {
                   Mobile Number
                 </label>
                 <div className="flex flex-col gap-2">
-                  <div className={`flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl transition-colors ${!isGoogleUser ? 'bg-slate-100' : 'bg-slate-50/50 focus-within:border-[#1BAC4B]'}`}>
+                  <div className={`flex items-center gap-3 px-4 py-2.5 border rounded-xl transition-colors ${
+                    mobileError
+                      ? 'border-red-500 bg-red-50/40'
+                      : !isGoogleUser
+                        ? 'border-black/10 bg-slate-100'
+                        : 'border-black/10 bg-slate-50/50 focus-within:border-emerald-500'
+                  }`}>
                     <Phone size={16} className="text-slate-400" />
                     <input
                       type="tel"
@@ -318,13 +348,17 @@ const ProfilePage = () => {
                       disabled={!isGoogleUser}
                       className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold text-sm disabled:text-slate-500"
                     />
-                    {isGoogleUser && isMobileVerified && <CheckCircle2 size={16} className="text-[#1BAC4B]" />}
+                    {isGoogleUser && isMobileVerified && <CheckCircle2 size={16} className="text-emerald-500" />}
                   </div>
+
+                  {mobileError && (
+                    <p className="text-sm font-medium text-red-500">{mobileError}</p>
+                  )}
 
                   {isGoogleUser && !isMobileVerified && (
                     <div className="flex flex-col gap-2">
                       {!isOtpSent ? (
-                        <button onClick={handleSendOtp} disabled={verifying} className="text-[10px] font-bold text-[#1BAC4B] self-end px-2 py-1 bg-green-50 rounded-lg">
+                        <button onClick={handleSendOtp} disabled={verifying} className="text-[10px] font-bold text-emerald-500 self-end px-2 py-1 bg-green-50 rounded-lg">
                           {verifying ? "Sending..." : "Get OTP"}
                         </button>
                       ) : (
@@ -336,7 +370,7 @@ const ProfilePage = () => {
                             onChange={(e) => setOtp(e.target.value)}
                             className="flex-1 px-3 py-1.5 border border-black/10 rounded-lg text-sm text-center font-bold"
                           />
-                          <button onClick={handleVerifyOtp} disabled={verifying} className="bg-[#1BAC4B] text-white px-4 py-1.5 rounded-lg text-sm font-bold">
+                          <button onClick={handleVerifyOtp} disabled={verifying} className="bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold">
                             Verify
                           </button>
                         </div>
@@ -357,7 +391,7 @@ const ProfilePage = () => {
                       name="gender"
                       value={formData.gender}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-black/10 rounded-xl focus:border-[#1BAC4B] outline-none text-slate-800 font-semibold appearance-none cursor-pointer transition-colors text-sm"
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-black/10 rounded-xl focus:border-emerald-500 outline-none text-slate-800 font-semibold appearance-none cursor-pointer transition-colors text-sm"
                     >
                       <option value="" disabled>Select</option>
                       <option value="male">Male</option>
@@ -375,7 +409,7 @@ const ProfilePage = () => {
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
                     Birthday
                   </label>
-                  <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-[#1BAC4B] transition-colors bg-slate-50/50">
+                  <div className="flex items-center gap-3 px-4 py-2.5 border border-black/10 rounded-xl focus-within:border-emerald-500 transition-colors bg-slate-50/50">
                     <input
                       type="date"
                       name="dob"
@@ -391,7 +425,7 @@ const ProfilePage = () => {
             <button
               onClick={handleSubmit}
               disabled={loading || (isGoogleUser && !isMobileVerified)}
-              className="w-full py-3 bg-[#1BAC4B] text-white rounded-xl font-bold hover:bg-[#189a43] transition-all shadow-lg disabled:bg-slate-300"
+              className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg disabled:bg-slate-300"
             >
               {loading ? "Updating..." : "Finish Setup"}
             </button>

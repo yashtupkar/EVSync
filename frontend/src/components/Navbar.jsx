@@ -11,26 +11,34 @@ import toast from "react-hot-toast";
 const Navbar = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const currentUser = useSelector(selectUser);
-  const isAdmin = location.pathname === "/admin";
+
   const isLogin = location.pathname === "/login";
   const isProfile = location.pathname === "/profile";
   const isVehicle = location.pathname === "/vehicle-selection";
-const navigate = useNavigate();
+  const isDashboard = location.pathname.startsWith("/admin") || 
+                      location.pathname.startsWith("/owner-dashboard") || 
+                      location.pathname.startsWith("/operator-dashboard") ||
+                      location.pathname.startsWith("/pending-approval");
+
   const userInitials =
     currentUser?.name?.slice(0, 2)?.toUpperCase() ||
     currentUser?.email?.slice(0, 2)?.toUpperCase() ||
     currentUser?.mobile?.slice(-2) ||
     "EV";
 
-    const handleLogout = () => {
-      dispatch(logout());
-      toast.success("Logout successful");
-      navigate("/login");
-    }
-  // Hide navbar on auth related pages
-  if (isLogin || isProfile || isVehicle) return null;
+   
+
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success("Logout successful");
+    navigate("/login");
+  }
+
+  // Hide navbar on auth, profile, vehicle, and dashboard related pages
+  if (isLogin || isProfile || isVehicle || isDashboard) return null;
 
   return (
     <nav
@@ -115,6 +123,16 @@ const navigate = useNavigate();
                 {currentUser?.role === "admin" && (
                   <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
                     <ShieldCheck size={16} /> Admin Dashboard
+                  </Link>
+                )}
+                {currentUser?.role === "station_owner" && (
+                  <Link to={currentUser.status === 'approved' ? "/owner-dashboard" : "/pending-approval"} className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                    <ShieldCheck size={16} /> Owner Dashboard
+                  </Link>
+                )}
+                {currentUser?.role === "operator" && (
+                  <Link to="/operator-dashboard" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                    <ShieldCheck size={16} /> Operator Dashboard
                   </Link>
                 )}
               </div>
