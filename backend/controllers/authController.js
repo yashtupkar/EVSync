@@ -50,7 +50,7 @@ exports.googleLogin = async (req, res) => {
         if (user && user.role !== requestedRole) {
             return res.status(403).json({ 
                 success: false, 
-                message: `Access Denied: Your account is registered as a ${user.role.replace('_', ' ')}. Please login with the correct role.` 
+                message: `Access Denied: ${requestedRole.replace('_', ' ').charAt(0).toUpperCase() + requestedRole.replace('_', ' ').slice(1)} account not found.` 
             });
         }
 
@@ -127,7 +127,7 @@ exports.verifyOTP = async (req, res) => {
         if (user && user.role !== requestedRole) {
             return res.status(403).json({ 
                 success: false, 
-                message: `Access Denied: Your account is registered as a ${user.role.replace('_', ' ')}. Please login with the correct role.` 
+                message: `Access Denied: ${requestedRole.replace('_', ' ').charAt(0).toUpperCase() + requestedRole.replace('_', ' ').slice(1)} account not found.` 
             });
         }
 
