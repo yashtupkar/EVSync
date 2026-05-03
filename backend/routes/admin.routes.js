@@ -11,6 +11,8 @@ const {
     updateAdminStation,
     deleteAdminStation
 } = require('../controllers/adminController');
+const { assignOperator } = require('../controllers/stationOwnerController');
+
 
 // All routes here require being logged in and having the admin role
 router.use(authMiddleware);
@@ -26,5 +28,7 @@ router.get('/users', getAllUsers);
 router.post('/station', createAdminStation);
 router.put('/station/:id', updateAdminStation);
 router.delete('/station/:id', deleteAdminStation);
+router.post('/assign-operator', assignOperator);
+
 
 module.exports = router;

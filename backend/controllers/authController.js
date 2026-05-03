@@ -47,6 +47,13 @@ exports.googleLogin = async (req, res) => {
         let isNewUser = false;
         let user = await User.findOne({ email });
 
+        if (user && user.role !== requestedRole) {
+            return res.status(403).json({ 
+                success: false, 
+                message: `Access Denied: Your account is registered as a ${user.role.replace('_', ' ')}. Please login with the correct role.` 
+            });
+        }
+
         if (!user) {
             user = await User.create({
                 name,
@@ -116,6 +123,13 @@ exports.verifyOTP = async (req, res) => {
 
         let isNewUser = false;
         let user = await User.findOne({ mobile });
+
+        if (user && user.role !== requestedRole) {
+            return res.status(403).json({ 
+                success: false, 
+                message: `Access Denied: Your account is registered as a ${user.role.replace('_', ' ')}. Please login with the correct role.` 
+            });
+        }
 
         if (!user) {
             user = await User.create({

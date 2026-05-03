@@ -7,12 +7,12 @@ const {
     assignOperator 
 } = require('../controllers/stationOwnerController');
 
-// All routes here require being logged in and having the station_owner role
+// All routes here require being logged in
 router.use(authMiddleware);
-router.use(authorize('station_owner'));
 
-router.post('/add', addStationRequest);
-router.get('/my-stations', getMyStations);
-router.post('/assign-operator', assignOperator);
+router.post('/add', authorize('station_owner'), addStationRequest);
+router.get('/my-stations', authorize('station_owner'), getMyStations);
+router.post('/assign-operator', authorize('station_owner', 'admin'), assignOperator);
+
 
 module.exports = router;

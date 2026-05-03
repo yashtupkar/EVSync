@@ -82,14 +82,15 @@ const Navbar = () => {
         >
           <Heart size={18} /> Favorites
         </Link>
-        <Link
-          to="/history"
-          className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:scale-105 active:scale-95 text-gray-400 hover:text-gray-600`}
-        >
-          <Clock size={18} /> History
-        </Link>
+          <Link
+            to="/my-bookings"
+            className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:scale-105 active:scale-95 ${location.pathname === "/my-bookings" ? "text-emerald-500" : "text-gray-400 hover:text-gray-600"}`}
+          >
+            <Clock size={18} /> My Bookings
+          </Link>
+        </div>
       </div>
-      </div>
+
 
       <div className="flex items-center gap-4">
         {isAuthenticated ? (
@@ -117,9 +118,10 @@ const Navbar = () => {
                 <Link to="/favorites" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
                   <Heart size={16} /> Saved Stations
                 </Link>
-                <Link to="/history" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
-                  <Clock size={16} /> Charging History
+                <Link to="/my-bookings" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
+                  <Clock size={16} /> My Bookings
                 </Link>
+
                 {currentUser?.role === "admin" && (
                   <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
                     <ShieldCheck size={16} /> Admin Dashboard

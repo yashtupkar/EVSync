@@ -15,6 +15,8 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const adminRoutes = require('./routes/admin.routes');
 const stationOwnerRoutes = require('./routes/stationOwner.routes');
+const bookingRoutes = require('./routes/booking.routes');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +58,8 @@ app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/station-owner', stationOwnerRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/bookings', bookingRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

@@ -186,3 +186,42 @@ exports.addReview = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Get the station assigned to the current operator
+ */
+exports.getOperatorStation = async (req, res) => {
+  try {
+    const station = await Station.findOne({ operatorIds: req.user.id });
+    if (!station) {
+      return res.status(404).json({ success: false, message: 'No station assigned to this operator' });
+    }
+    res.status(200).json({ success: true, station });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update the status of a specific charger in a station
+ */
+exports.updateChargerStatus = async (req, res) => {
+  const { id, chargerId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const station = await Station.findById(id);
+    if (!station) return res.status(404).json({ success: false, message: 'Station not found' });
+
+    const charger = station.chargers.find(c => c.chargerId === chargerId);
+    if (!charger) return res.status(404).json({ success: false, message: 'Charger not found' });
+
+    charger.status = status;
+    await station.save();
+
+    res.status(200).json({ success: true, message: 'Charger status updated', station });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

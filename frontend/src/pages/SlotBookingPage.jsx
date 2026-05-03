@@ -29,7 +29,9 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getStationById } from "../api/stationApi";
+import { getAvailableSlots, createBooking, confirmBooking } from "../api/bookingApi";
 import { useSelector } from "react-redux";
+
 import evData from "../../data/ev-data.json";
 
 // Removed mock data as it's now dynamic
@@ -62,6 +64,11 @@ const SlotBookingPage = () => {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [chargerFilter, setChargerFilter] = useState('All');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
 
   const activeVehicle = user?.vehicles?.[activeVehicleIndex];
   const vehicleDetails = activeVehicle 
@@ -89,6 +96,107 @@ const SlotBookingPage = () => {
     };
     if (stationId) fetchStation();
   }, [stationId]);
+
+  // Fetch Available Slots when Date or Charger changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!stationId || !selectedSlot || !selectedDateObj) return;
+      
+      setSlotsLoading(true);
+      try {
+        const response = await getAvailableSlots(stationId, selectedSlot, selectedDateObj.fullDate);
+        setAvailableSlots(response.data);
+        // Reset selected time if it's not available in new list
+        if (selectedTime !== "All Slots" && !response.data.find(s => s.time === selectedTime && s.status === 'available')) {
+          setSelectedTime("Select Time");
+        }
+      } catch (error) {
+        console.error("Error fetching slots:", error);
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+    fetchSlots();
+  }, [stationId, selectedSlot, selectedDateObj]);
+
+  const handleBooking = async () => {
+    if (!selectedSlot || selectedTime === "Select Time" || selectedTime === "All Slots") {
+      alert("Please select a charger and a specific time slot");
+      return;
+    }
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // 1. Create Pending Booking
+      const bookingData = {
+        stationId,
+        chargerId: selectedSlot,
+        date: selectedDateObj.fullDate,
+        timeSlot: selectedTime,
+        amount: 365, // Mock amount for now
+        vehicleDetails: selectedVehicle ? {
+          name: selectedVehicle.name,
+          image: selectedVehicle.image
+        } : null
+      };
+
+      const res = await createBooking(bookingData);
+      const { booking: newBooking, order } = res.data;
+
+      const options = {
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        name: "EVSync Payments",
+        description: `Booking for ${station.name}`,
+        image: "/assets/logo.png",
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await confirmBooking({
+              bookingId: newBooking._id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            
+            setIsProcessing(false);
+            navigate(`/booking-success/${newBooking._id}`);
+          } catch (confirmErr) {
+            console.error("Confirmation error:", confirmErr);
+            alert("Payment verification failed. Please contact support.");
+            setIsProcessing(false);
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+          contact: user.mobile
+        },
+        theme: {
+          color: "#10b981"
+        },
+        modal: {
+          ondismiss: () => setIsProcessing(false)
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      console.error("Booking error:", error);
+      alert(error.response?.data?.message || "Booking failed");
+      setIsProcessing(false);
+    }
+  };
+
+
 
   const dcChargers = station?.chargers?.filter(c => 
     ['CCS2', 'CHADEMO', 'DC'].includes(c.type?.toUpperCase())
@@ -406,14 +514,39 @@ const SlotBookingPage = () => {
               {/* Right: Time Slot */}
               <div className="w-[220px] space-y-3 flex flex-col justify-end">
                 <label className="text-[13px] font-bold text-gray-800 px-1">Select Time Slot</label>
-                <div className="h-[60px] bg-white border border-gray-200 rounded-xl px-4 flex items-center justify-between cursor-pointer hover:border-gray-300 transition-all">
-                  <div className="flex items-center gap-3 text-gray-800">
-                    <Clock size={18} className="text-gray-400" />
-                    <span className="text-[14px] font-bold tracking-tight">{selectedTime}</span>
+                <div className="relative group">
+                  <div className={`h-[60px] bg-white border ${slotsLoading ? 'opacity-50' : ''} border-gray-200 rounded-xl px-4 flex items-center justify-between cursor-pointer hover:border-gray-300 transition-all`}>
+                    <div className="flex items-center gap-3 text-gray-800">
+                      <Clock size={18} className="text-gray-400" />
+                      <span className="text-[14px] font-bold tracking-tight">{selectedTime}</span>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-400" />
                   </div>
-                  <ChevronDown size={18} className="text-gray-400" />
+                  
+                  {/* Custom Dropdown for Slots */}
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 max-h-[300px] overflow-y-auto hidden group-hover:block">
+                    {slotsLoading ? (
+                      <div className="p-4 text-center text-xs text-gray-400 font-bold">Loading slots...</div>
+                    ) : availableSlots.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-gray-400 font-bold">Select a charger first</div>
+                    ) : (
+                      availableSlots.map((slot, i) => (
+                        <div 
+                          key={i}
+                          onClick={() => slot.status === 'available' && setSelectedTime(slot.time)}
+                          className={`p-4 flex justify-between items-center cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50 ${slot.status !== 'available' ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}`}
+                        >
+                          <span className="text-[13px] font-bold text-gray-800">{slot.time}</span>
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${slot.status === 'available' ? 'text-emerald-500 bg-emerald-50' : 'text-red-400 bg-red-50'}`}>
+                            {slot.status}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
+
             </div>
           </section>
 
@@ -644,9 +777,19 @@ const SlotBookingPage = () => {
                 </div>
               </div>
 
-              <button className="w-full cursor-pointer bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(27,172,75,0.25)] transition-all active:scale-[0.98] tracking-tight">
-                Confirm Booking
+              <button 
+                onClick={handleBooking}
+                disabled={isProcessing}
+                className={`w-full cursor-pointer ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(27,172,75,0.25)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2`}
+              >
+                {isProcessing ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : 'Confirm Booking'}
               </button>
+
 
               <div className="flex items-center justify-center gap-2 text-[10.5px] text-gray-400 font-bold tracking-tight">
                 <Lock size={12} strokeWidth={3} />

@@ -20,13 +20,14 @@ import {
  * LoginPage Component
  * A premium redesign matching the requested UI specifications.
  */
-const LoginPage = () => {
+const LoginPage = ({ role }) => {
   const [view, setView] = useState("login"); // login | otp_verify
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(120);
-  const [requestedRole, setRequestedRole] = useState("user"); // user | station_owner | admin
+  const [requestedRole, setRequestedRole] = useState(role || "user"); // user | station_owner | admin | operator
+
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ const LoginPage = () => {
     }));
 
     if (loginWithGoogle.fulfilled.match(action)) {
-      toast.success("Google login successful");
+      toast.success("Login successful");
       return;
     }
 
@@ -196,12 +197,23 @@ const LoginPage = () => {
 
           <div className="z-10 h-full p-10">
             <h2 className="text-3xl font-black text-slate-800 leading-[1.1] mb-4">
-              Powering Journeys.<br />
-              <span className="text-emerald-500">Sustainably.</span>
+              {requestedRole === 'admin' ? 'Global Network Control.' : 
+               requestedRole === 'station_owner' ? 'Scale Your EV Business.' :
+               requestedRole === 'operator' ? 'Efficient Station Operations.' :
+               'Powering Journeys.'}<br />
+              <span className="text-emerald-500">
+                {requestedRole === 'admin' ? 'Intelligently.' : 
+                 requestedRole === 'station_owner' ? 'Profitably.' :
+                 requestedRole === 'operator' ? 'Seamlessly.' :
+                 'Sustainably.'}
+              </span>
             </h2>
             
             <p className="text-sm text-slate-600 mb-6 max-w-md font-medium leading-relaxed">
-              Find, access and manage EV charging stations with ease. Plan smarter. Drive further.
+              {requestedRole === 'admin' ? 'Manage global infrastructure, verify station requests, and monitor network health from a unified command center.' : 
+               requestedRole === 'station_owner' ? 'List your stations, track real-time revenue, and manage your operator team with high-performance tools.' :
+               requestedRole === 'operator' ? 'Verify customer bookings, monitor charger status, and ensure maximum uptime for your assigned station.' :
+               'Find, access and manage EV charging stations with ease. Plan smarter. Drive further.'}
             </p>
 
             <div className="space-y-8 mb-30">
@@ -210,8 +222,15 @@ const LoginPage = () => {
                   <MapPin size={22} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800">Find Nearby Stations</h3>
-                  <p className="text-sm text-slate-500 font-medium">Locate fast and reliable charging<br />stations near you.</p>
+                  <h3 className="font-bold text-slate-800">
+                    {requestedRole === 'admin' ? 'Network Overview' : requestedRole === 'station_owner' ? 'Multi-Station Management' : requestedRole === 'operator' ? 'Booking Verification' : 'Find Nearby Stations'}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium">
+                    {requestedRole === 'admin' ? 'Real-time monitoring of all charging nodes globally.' : 
+                     requestedRole === 'station_owner' ? 'Manage all your charging locations from one dashboard.' :
+                     requestedRole === 'operator' ? 'Scan customer QR codes and verify sessions instantly.' :
+                     'Locate fast and reliable charging stations near you.'}
+                  </p>
                 </div>
               </div>
 
@@ -220,8 +239,15 @@ const LoginPage = () => {
                   <Navigation size={22} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800">Plan Your Trip</h3>
-                  <p className="text-sm text-slate-500 font-medium">Plan long trips with charging stops<br />optimized for your EV.</p>
+                  <h3 className="font-bold text-slate-800">
+                    {requestedRole === 'admin' ? 'Partner Verification' : requestedRole === 'station_owner' ? 'Revenue Analytics' : requestedRole === 'operator' ? 'Live Monitoring' : 'Plan Your Trip'}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium">
+                    {requestedRole === 'admin' ? 'Streamlined approval workflow for new station owners.' : 
+                     requestedRole === 'station_owner' ? 'Deep insights into occupancy and financial performance.' :
+                     requestedRole === 'operator' ? 'Track live charger occupancy and energy usage data.' :
+                     'Plan long trips with charging stops optimized for your EV.'}
+                  </p>
                 </div>
               </div>
 
@@ -230,12 +256,22 @@ const LoginPage = () => {
                   <Zap size={22} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800">Real-time Updates</h3>
-                  <p className="text-sm text-slate-500 font-medium">Get real-time availability, pricing<br />and station status.</p>
+                  <h3 className="font-bold text-slate-800">
+                    {requestedRole === 'admin' ? 'System Integrity' : requestedRole === 'station_owner' ? 'Operator Assignment' : requestedRole === 'operator' ? 'Uptime Control' : 'Real-time Updates'}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium">
+                    {requestedRole === 'admin' ? 'Maintain high standards of service across the entire network.' : 
+                     requestedRole === 'station_owner' ? 'Easily assign and manage on-site operators via email.' :
+                     requestedRole === 'operator' ? 'Manage hardware health and report on-site technical issues.' :
+                     'Get real-time availability, pricing and station status.'}
+                  </p>
                 </div>
               </div>
             </div>
+
           </div>
+
+
         </section>
 
         {/* RIGHT COMPONENT: Auth Form */}
@@ -251,29 +287,21 @@ const LoginPage = () => {
                 Login to continue as {requestedRole.replace('_', ' ')}
               </p>
 
-              {/* Role Tabs */}
-              <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-                <button 
-                    onClick={() => setRequestedRole("user")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'user' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  <Users size={16} /> User
-                </button>
-                <button 
-                    onClick={() => setRequestedRole("station_owner")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'station_owner' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  <HardHat size={16} /> Owner
-                </button>
-                <button 
-                    onClick={() => setRequestedRole("admin")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg transition-all ${requestedRole === 'admin' ? 'bg-white shadow text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  <ShieldCheck size={16} /> Admin
-                </button>
-              </div>
+              {/* Role Display (Non-interactive)
+              <div className="flex items-center justify-center gap-3 mb-8 px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="p-2 rounded-lg bg-emerald-500">
+                  {requestedRole === 'admin' ? <ShieldCheck className="text-white w-5 h-5" /> : 
+                   requestedRole === 'station_owner' ? <HardHat className="text-white w-5 h-5" /> :
+                   requestedRole === 'operator' ? <Zap className="text-white w-5 h-5" /> :
+                   <Users className="text-white w-5 h-5" />}
+                </div>
 
-              <div className="text-center text-gray-400 text-sm my-4">-------- Login with --------</div>
+                <h3 className="font-black text-slate-800 uppercase tracking-[0.1em]">
+                  {requestedRole.replace('_', ' ')} <span className="text-slate-400 ml-1">Portal</span>
+                </h3>
+              </div> */}
+
+
 
               
                 <GoogleLogin
@@ -312,10 +340,12 @@ const LoginPage = () => {
               <button 
                   onClick={handleSendOTP}
                   disabled={loading}
-                  className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70 shadow-lg shadow-green-100 transition-all active:scale-95"
+                  className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black uppercase tracking-[0.1em] hover:bg-emerald-600 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
               >
-                  {loading ? "Sending..." : "Send OTP"}
+                  {loading ? "Sending..." : "Send Secure OTP"}
               </button>
+
+
 
               <p className="text-xs text-center text-gray-500 mt-6 font-medium">
                 By continuing, you agree to <span className="text-emerald-500 cursor-pointer">Terms</span> & <span className="text-emerald-500 cursor-pointer">Privacy Policy</span>

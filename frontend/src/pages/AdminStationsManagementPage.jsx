@@ -8,8 +8,12 @@ import { Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
     Zap, Search, Plus, MapPin, CheckCircle2, XCircle, Clock,
-    MoreVertical, Edit3, Trash2, ShieldCheck, Filter
+    MoreVertical, Edit3, Trash2, ShieldCheck, Filter, UserPlus, X
 } from 'lucide-react';
+import axios from 'axios';
+
+const backendURL = import.meta.env.VITE_BACKEND_URL;
+
 
 const AdminStationsManagementPage = () => {
     const token = useSelector(selectToken);
@@ -22,6 +26,11 @@ const AdminStationsManagementPage = () => {
     // Modal states
     const [showForm, setShowForm] = useState(false);
     const [editingStation, setEditingStation] = useState(null);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [assigningStationId, setAssigningStationId] = useState(null);
+    const [operatorData, setOperatorData] = useState({ name: '', email: '' });
+    const [assigning, setAssigning] = useState(false);
+
 
     useEffect(() => {
         fetchStations();
@@ -88,6 +97,37 @@ const AdminStationsManagementPage = () => {
             toast.error("Failed to delete station");
         }
     };
+
+    const handleAssignOperator = async (e) => {
+        e.preventDefault();
+        if (!operatorData.email || !operatorData.name) {
+            toast.error("Please fill all details");
+            return;
+        }
+
+        try {
+            setAssigning(true);
+            const res = await axios.post(`${backendURL}/api/admin/assign-operator`, {
+                stationId: assigningStationId,
+                operatorEmail: operatorData.email,
+                operatorName: operatorData.name
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                toast.success("Operator assigned successfully!");
+                setShowAssignModal(false);
+                setOperatorData({ name: '', email: '' });
+                fetchStations();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to assign operator");
+        } finally {
+            setAssigning(false);
+        }
+    };
+
 
     const filteredStations = stations.filter(s => 
         s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -222,6 +262,18 @@ const AdminStationsManagementPage = () => {
                                                         >
                                                             <Edit3 size={16} />
                                                         </button>
+                                                        {station.stationType === 'manned' && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setAssigningStationId(station._id);
+                                                                    setShowAssignModal(true);
+                                                                }}
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                                title="Assign Operator"
+                                                            >
+                                                                <UserPlus size={16} />
+                                                            </button>
+                                                        )}
                                                         <button 
                                                             onClick={() => handleDeleteStation(station._id)}
                                                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -229,6 +281,7 @@ const AdminStationsManagementPage = () => {
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
+
                                                     </div>
                                                 </td>
                                             </tr>
@@ -250,8 +303,69 @@ const AdminStationsManagementPage = () => {
                         onSubmitOverride={handleFormSubmit}
                     />
                 )}
+
+                {/* Assign Operator Modal */}
+                {showAssignModal && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
+                        <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Assign Operator</h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">Assign a manned operator to this station.</p>
+                                </div>
+                                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-all">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleAssignOperator} className="space-y-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Operator Name</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                        placeholder="Full name of operator"
+                                        value={operatorData.name}
+                                        onChange={(e) => setOperatorData({...operatorData, name: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Operator Email</label>
+                                    <input 
+                                        type="email" 
+                                        required
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                        placeholder="email@example.com"
+                                        value={operatorData.email}
+                                        onChange={(e) => setOperatorData({...operatorData, email: e.target.value})}
+                                    />
+                                </div>
+                                
+                                <div className="pt-4 flex gap-3">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowAssignModal(false)}
+                                        className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit"
+                                        disabled={assigning}
+                                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {assigning ? <RefreshCcw size={16} className="animate-spin" /> : 'Confirm Assignment'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
+
     );
 };
 

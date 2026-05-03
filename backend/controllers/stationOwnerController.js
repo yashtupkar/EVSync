@@ -71,30 +71,43 @@ exports.getMyStations = async (req, res) => {
  * Assign an operator to a manned station
  */
 exports.assignOperator = async (req, res) => {
-    const { stationId, operatorMobile, operatorName } = req.body;
+    const { stationId, operatorEmail, operatorName } = req.body;
     try {
-        const station = await Station.findOne({ _id: stationId, ownerId: req.user.id });
+        const station = await Station.findById(stationId);
+        
         if (!station) {
-            return res.status(404).json({ success: false, message: 'Station not found or unauthorized' });
+            return res.status(404).json({ success: false, message: 'Station not found' });
+        }
+
+        // Authorization check: Admin can manage any station, Owners only their own
+        const isOwner = station.ownerId.toString() === req.user.id;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to manage this station' });
         }
 
         if (station.stationType !== 'manned') {
             return res.status(400).json({ success: false, message: 'Only manned stations can have operators' });
         }
 
-        // Find or create operator user
-        let operator = await User.findOne({ mobile: operatorMobile });
+        // Find or create operator user by email
+        let operator = await User.findOne({ email: operatorEmail });
+        
+        // The operator should always be managed by the station owner
+        const managerId = station.ownerId;
+
         if (!operator) {
             operator = await User.create({
                 name: operatorName,
-                mobile: operatorMobile,
+                email: operatorEmail,
                 role: 'operator',
                 status: 'approved',
-                managedBy: req.user.id
+                managedBy: managerId
             });
         } else {
             operator.role = 'operator';
-            operator.managedBy = req.user.id;
+            operator.managedBy = managerId;
             await operator.save();
         }
 
@@ -109,3 +122,4 @@ exports.assignOperator = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+

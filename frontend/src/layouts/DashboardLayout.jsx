@@ -150,9 +150,10 @@ const DashboardLayout = ({
                             {isSidebarOpen && (
                                 <div className="overflow-hidden">
                                     <p className="font-bold text-slate-800 text-sm truncate">{user?.name || 'Devplex'}</p>
-                                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                                    <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
                                         Approved Partner <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center"><CheckCircle size={6} className="text-white" /></div>
-                                    </p>
+                                    </div>
+
                                 </div>
                             )}
                         </div>
