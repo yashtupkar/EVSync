@@ -1,0 +1,56 @@
+/* Station marker label — shown below the pin */
+.station-label {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: white;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+  text-shadow:
+    0px 1px 3px rgba(0,0,0,0.9),
+    0px 0px 4px rgba(0,0,0,1),
+    1px 1px 2px rgba(0,0,0,0.8);
+  z-index: 20;
+}
+
+/* Hide labels when map has .hide-station-labels class (applied on zoom < 13) */
+.hide-station-labels .station-label {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure custom-station-icon wrapper is overflow-visible so label isn't clipped */
+.custom-station-icon {
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Station popup — ensure it doesn't get clipped */
+.station-rich-popup {
+  z-index: 1000 !important;
+}
+
+.station-rich-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 1rem !important;
+  overflow: hidden;
+}
+
+.station-rich-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+
+.station-rich-popup .leaflet-popup-tip-container {
+  display: none !important;
+}

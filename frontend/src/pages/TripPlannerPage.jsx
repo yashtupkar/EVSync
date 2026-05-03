@@ -170,20 +170,39 @@ const TripPlannerPage = () => {
     localStorage.setItem("recent_searches", JSON.stringify(newRecent));
   };
 
-  // Get user current location on mount
+  const watchId = useRef(null);
+
+  const hasSetInitialLocation = useRef(false);
+
+  // Get user current location and watch for changes
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
+      watchId.current = navigator.geolocation.watchPosition(
+        (position) => {
           const { latitude, longitude } = position.coords;
           setFromLocation({ lat: latitude, lng: longitude });
-          setFrom("Your Location");
+          
+          if (!hasSetInitialLocation.current) {
+            setFrom("Your Location");
+            hasSetInitialLocation.current = true;
+          }
         },
         (error) => {
-          console.error("Error getting current location:", error);
+          console.error("Error watching location:", error);
         },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 5000,
+        }
       );
     }
+
+    return () => {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+    };
   }, []);
 
   const fetchSuggestions = useCallback(

@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "../map-labels.css";
 import {
   Search,
   Map as MapIcon,
@@ -51,12 +52,13 @@ const createStationIcon = (station, mapRotation = 0) => {
     className: "custom-station-icon",
     html: `
       <div class="relative transition-transform duration-500" style="transform: rotate(${mapRotation}deg)">
-        <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">
+        <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg relative z-10">
           <path d="M18 42C18 42 36 28.5 36 18C36 8.05888 27.9411 0 18 0C8.05888 0 0 8.05888 0 18C0 28.5 18 42 18 42Z" fill="white"/>
           <path d="M18 39.5C18 39.5 33 26.5 33 18C33 9.71573 26.2843 3 18 3C9.71573 3 3 9.71573 3 18C3 26.5 18 39.5 18 39.5Z" fill="${color}"/>
           <circle cx="18" cy="18" r="12" fill="white"/>
           <path d="M19 8L10 20H17L16 28L25 16H18L19 8Z" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
         </svg>
+        ${station?.name ? `<div class="station-label" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);white-space:nowrap;color:white;font-size:12.5px;font-weight:600;pointer-events:none;opacity:1;transition:opacity 0.25s ease;text-shadow:0 1px 3px rgba(0,0,0,0.9),0 0 4px rgba(0,0,0,1);z-index:20;">${station.name}</div>` : ''}
       </div>
     `,
     iconSize: [36, 42],
@@ -168,19 +170,46 @@ const MapController = ({
   bearing = 0,
   isFollowing,
   setIsFollowing,
+  setHoveredStation,
 }) => {
   const map = useMap();
   const lastCenter = useRef(null);
   const isSimulationStarted = useRef(false);
 
   useEffect(() => {
+    const updateLabels = () => {
+      const container = map.getContainer();
+      if (map.getZoom() < 13) {
+        container.classList.add('hide-station-labels');
+      } else {
+        container.classList.remove('hide-station-labels');
+      }
+    };
+    
+    updateLabels();
+
     const onDragStart = () => {
       if (isSimulating) {
         setIsFollowing(false);
       }
+      if (setHoveredStation) setHoveredStation(null);
     };
+
+    const onInteraction = () => {
+      if (setHoveredStation) setHoveredStation(null);
+    };
+    
     map.on("dragstart", onDragStart);
-    return () => map.off("dragstart", onDragStart);
+    map.on("zoomstart", onInteraction);
+    map.on("mousemove", onInteraction);
+    map.on("zoomend", updateLabels);
+    
+    return () => {
+      map.off("dragstart", onDragStart);
+      map.off("zoomstart", onInteraction);
+      map.off("mousemove", onInteraction);
+      map.off("zoomend", updateLabels);
+    };
   }, [map, isSimulating, setIsFollowing]);
 
   useEffect(() => {
@@ -304,7 +333,16 @@ const TripPlannerMap = ({
       setUserLocation(startLocation);
     }
   }, [startLocation]);
-  const [mapStyle, setMapStyle] = useState("default"); // 'default', 'satellite', 'terrain', 'modern'
+
+  // Hover card state
+  const [hoveredStation, setHoveredStation] = useState(null);
+  const [cardPos, setCardPos] = useState({ x: 0, y: 0 });
+
+  const [mapStyle, setMapStyle] = useState(localStorage.getItem("evsync_map_style") || "default");
+
+  useEffect(() => {
+    localStorage.setItem("evsync_map_style", mapStyle);
+  }, [mapStyle]);
   const [showStyleMenu, setShowStyleMenu] = useState(false);
 
   const mapStyles = {
@@ -790,7 +828,54 @@ const TripPlannerMap = ({
   }, [showRoute, destination, userLocation, routeTrigger, simulating]);
 
   return (
-    <div className="w-full h-full   relative overflow-hidden bg-[#f8fafc]">
+    <div className="w-full h-full relative overflow-hidden bg-[#f8fafc]">
+
+      {/* Custom hover card overlay — rendered outside MapContainer to avoid autoPan */}
+      {hoveredStation && (
+        <div
+          className="absolute z-[9999] pointer-events-none"
+          style={{ left: cardPos.x, top: cardPos.y, width: 300 }}
+        >
+          <div className="overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
+            <div className="h-32 w-full relative overflow-hidden">
+              <img
+                src={hoveredStation.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+                alt={hoveredStation.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            </div>
+            <div className="p-4 flex flex-col gap-1 relative">
+              <div className="flex justify-between items-start">
+                <div className="flex-grow pr-12">
+                  <h3 className="font-bold text-gray-800 text-base leading-tight line-clamp-2">{hoveredStation.name}</h3>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-sm font-bold text-gray-700">{hoveredStation.rating || "4.3"}</span>
+                    <div className="flex text-yellow-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={12} fill={i < Math.floor(hoveredStation.rating || 4) ? "currentColor" : "none"} strokeWidth={2} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-400 font-medium">({hoveredStation.reviewsCount || "6"})</span>
+                  </div>
+                </div>
+                <div className="absolute right-4 top-4 flex flex-col gap-2">
+                  <button className="pointer-events-auto w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
+                    <Navigation size={20} fill="currentColor" className="rotate-45" />
+                  </button>
+                  <button className="pointer-events-auto w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
+                    <Bookmark size={20} />
+                  </button>
+                </div>
+              </div>
+              <p className="text-gray-500 text-xs font-medium mt-1">Electric vehicle charging station</p>
+              <div className="flex items-center gap-1.5 mt-1 text-[#1BAC4B]">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Open 24 hours</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <MapContainer
         center={userLocation}
         zoom={13}
@@ -810,6 +895,7 @@ const TripPlannerMap = ({
           bearing={bearing}
           isFollowing={isFollowing}
           setIsFollowing={setIsFollowing}
+          setHoveredStation={setHoveredStation}
         />
 
         {/* Stations */}
@@ -830,89 +916,34 @@ const TripPlannerMap = ({
               simulating ? bearing : 0
             )}
             eventHandlers={{
-              mouseover: (e) => e.target.openPopup(),
-              mouseout: (e) => e.target.closePopup(),
+              mouseover: (e) => {
+                L.DomEvent.stopPropagation(e);
+                const map = mapRef.current;
+                if (!map) return;
+                const latlng = e.target.getLatLng();
+                const point = map.latLngToContainerPoint(latlng);
+                const containerRect = map.getContainer().getBoundingClientRect();
+                const cardW = 300;
+                const cardH = 240;
+                const MARGIN = 12;
+
+                let x = point.x - cardW / 2;
+                if (x + cardW > containerRect.width - MARGIN) x = containerRect.width - cardW - MARGIN;
+                if (x < MARGIN) x = MARGIN;
+
+                let y = point.y - cardH - 50;
+                if (y < MARGIN) y = point.y + 16;
+
+                setCardPos({ x, y });
+                setHoveredStation(station);
+              },
+              mousemove: (e) => {
+                L.DomEvent.stopPropagation(e);
+              },
+              mouseout: () => setHoveredStation(null),
               click: () => onStationSelect(station),
             }}
-          >
-            <Popup
-              className="station-rich-popup"
-              closeButton={false}
-              autoPan={false}
-            >
-              <div className="w-[300px] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col group">
-                {/* Image Section */}
-                <div className="h-32 w-full relative overflow-hidden">
-                  <img
-                    src={
-                      station.images?.[0] ||
-                      "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"
-                    }
-                    alt={station.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                </div>
-
-                {/* Content Section */}
-                <div className="p-4 flex flex-col gap-1 relative">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-grow pr-12">
-                      <h3 className="font-bold text-gray-800 text-base leading-tight line-clamp-2">
-                        {station.name}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-sm font-bold text-gray-700">
-                          {station.rating || "4.3"}
-                        </span>
-                        <div className="flex text-yellow-400">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={12}
-                              fill={
-                                i < Math.floor(station.rating || 4)
-                                  ? "currentColor"
-                                  : "none"
-                              }
-                              strokeWidth={2}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-400 font-medium">
-                          ({station.reviewsCount || "6"})
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="absolute right-4 top-4 flex flex-col gap-2">
-                      <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
-                        <Navigation
-                          size={20}
-                          fill="currentColor"
-                          className="rotate-45"
-                        />
-                      </button>
-                      <button className="w-10 h-10 bg-blue-50 text-[#1A73E8] rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
-                        <Bookmark size={20} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-500 text-xs font-medium mt-1">
-                    Electric vehicle charging station
-                  </p>
-
-                  <div className="flex items-center gap-1.5 mt-1 text-[#1BAC4B]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">
-                      Open 24 hours
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+          />
         ))}
 
         {/* User Location or Simulated Marker */}

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import MapComponent from "../components/MapComponent";
 import Navbar from "../components/Navbar";
 import {
@@ -16,6 +19,7 @@ import {
   Route as RouteIcon,
   Map as MapIcon,
   Star,
+  ArrowLeft,
 } from "lucide-react";
 import {
   VehicleCard,
@@ -28,6 +32,27 @@ import {
   NavigationOverlay,
 } from "../components/DiscoveryComponents";
 import evData from "../../data/ev-data.json";
+
+// Minimal station icon for the detail map preview
+const createStationIcon = (station) => {
+  const isAvailable = station?.status === "available" || station?.isAvailable !== false;
+  const color = isAvailable ? "#1BAC4B" : "#f1be25ff";
+  return L.divIcon({
+    className: "custom-station-icon",
+    html: `
+      <div style="position:relative">
+        <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2))">
+          <path d="M18 42C18 42 36 28.5 36 18C36 8.05888 27.9411 0 18 0C8.05888 0 0 8.05888 0 18C0 28.5 18 42 18 42Z" fill="white"/>
+          <path d="M18 39.5C18 39.5 33 26.5 33 18C33 9.71573 26.2843 3 18 3C9.71573 3 3 9.71573 3 18C3 26.5 18 39.5 18 39.5Z" fill="${color}"/>
+          <circle cx="18" cy="18" r="12" fill="white"/>
+          <path d="M19 8L10 20H17L16 28L25 16H18L19 8Z" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+  });
+};
 
 const DiscoveryPage = () => {
   const navigate = useNavigate();
@@ -46,6 +71,50 @@ const DiscoveryPage = () => {
   const [userLocation, setUserLocation] = useState(null);
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
+  const [mapStyle] = useState(localStorage.getItem("evsync_map_style") || "default");
+  const mapStyles = {
+    default: {
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    streets: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    modern: {
+      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution:
+        "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    },
+    terrain: {
+      url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      attribution:
+        'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    },
+    dark: {
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    night: {
+      url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    retro: {
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
+    },
+  };
+
   // Auto-sync filter with vehicle charger
   useEffect(() => {
     const activeVehicle = user?.vehicles?.[activeVehicleIndex];
@@ -56,15 +125,40 @@ const DiscoveryPage = () => {
     }
   }, [activeVehicleIndex, user]);
 
+  const watchId = useRef(null);
+
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        setUserLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-      });
+      // Start watching the position in real-time
+      watchId.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setUserLocation({
+            lat: latitude,
+            lng: longitude,
+          });
+          // Also update simulated location if not simulating to keep marker in sync
+          if (!isSimulating) {
+             // simulatedLocation is used for the "driving" marker
+             // so if we are not simulating, the driving marker should be at userLocation
+          }
+        },
+        (error) => {
+          console.error("Error watching location:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 5000,
+        }
+      );
     }
+
+    return () => {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+    };
   }, []);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -189,10 +283,10 @@ const DiscoveryPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-90vh w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
       <main className="p-4 flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
         {/* Top Layout Section */}
-        <div className="flex gap-2 h-[700px]">
+        <div className="flex gap-2 h-[750px]">
           {/* Left Sidebar */}
           <aside className="w-80 flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar pr-2">
             <VehicleCard onChange={() => console.log("Change vehicle")} />
@@ -228,14 +322,53 @@ const DiscoveryPage = () => {
               />
             </div>
 
-            {/* Station Detail View (Now as a pure overlay on top of smart map) */}
+            {/* Station Detail View — map on top, card below */}
             {selectedStation && !isNavigating && (
-              <div className="absolute inset-0 z-[2000]">
-                <StationDetailView
-                  station={selectedStation}
-                  onClose={() => setSelectedStation(null)}
-                  onNavigate={handleStartDriving}
-                />
+              <div className="absolute inset-0 z-[2000] flex flex-col bg-white overflow-hidden">
+                {/* Top: Simple Leaflet map centered on selected station */}
+                <div className="relative h-[30%] shrink-0">
+                  <MapContainer
+                    center={[
+                      selectedStation.location.coordinates[1],
+                      selectedStation.location.coordinates[0],
+                    ]}
+                    zoom={15}
+                    zoomControl={false}
+                    scrollWheelZoom={false}
+                    dragging={false}
+                    className="w-full h-full"
+                    key={selectedStation._id}
+                  >
+                    <TileLayer 
+                      url={mapStyles[mapStyle]?.url || mapStyles.default.url} 
+                      attribution={mapStyles[mapStyle]?.attribution || mapStyles.default.attribution}
+                    />
+                    <Marker
+                      position={[
+                        selectedStation.location.coordinates[1],
+                        selectedStation.location.coordinates[0],
+                      ]}
+                      icon={createStationIcon(selectedStation)}
+                    />
+                  </MapContainer>
+                  {/* Back button */}
+                  <button
+                    onClick={() => setSelectedStation(null)}
+                    className="absolute top-4 left-4 z-[500] flex items-center gap-2 bg-white text-gray-700 text-[11px] font-bold px-4 py-2.5 rounded-full shadow-lg border border-gray-100 hover:bg-gray-50 transition-all"
+                  >
+                    <ArrowLeft size={14} />
+                    Back to Discovery
+                  </button>
+                </div>
+
+                {/* Bottom: Station Detail Card */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+                  <StationDetailView
+                    station={selectedStation}
+                    onClose={() => setSelectedStation(null)}
+                    onNavigate={handleStartDriving}
+                  />
+                </div>
               </div>
             )}
           </section>
@@ -281,38 +414,7 @@ const DiscoveryPage = () => {
           </aside>
         </div>
 
-        {/* Bottom Section: Quick Actions */}
-        <div className="flex flex-col gap-4 mt-2">
-          <h2 className="text-lg font-bold text-gray-800 px-2">
-            Quick Actions
-          </h2>
-          <div className="flex gap-4">
-            <QuickActionCard
-              icon={MapIcon}
-              title="Trip Planner"
-              desc="Plan your EV journey"
-              onClick={() => navigate("/trip-planner")}
-            />
-            <QuickActionCard
-              icon={RouteIcon}
-              title="Find Routes"
-              desc="Optimize your travel"
-              onClick={() => console.log("Find Routes clicked")}
-            />
-            <QuickActionCard
-              icon={Heart}
-              title="Favorites"
-              desc="Saved charging points"
-              onClick={() => console.log("Favorites clicked")}
-            />
-            <QuickActionCard
-              icon={Clock}
-              title="History"
-              desc="Recent charging sessions"
-              onClick={() => console.log("History clicked")}
-            />
-          </div>
-        </div>
+    
       </main>
     </div>
   );

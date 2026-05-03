@@ -41,7 +41,15 @@ const stationSchema = new mongoose.Schema({
   rejectionReason: { type: String },
   
   rating: { type: Number, default: 0 },
-  reviewsCount: { type: Number, default: 0 }
+  reviewsCount: { type: Number, default: 0 },
+  reviews: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userName: { type: String },
+    userAvatar: { type: String },
+    rating: { type: Number, min: 1, max: 5 },
+    comment: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 stationSchema.index({ location: '2dsphere' });

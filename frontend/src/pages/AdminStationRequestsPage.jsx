@@ -61,6 +61,42 @@ const AdminStationRequestsPage = () => {
     const [processingId, setProcessingId] = useState('');
     const [rejectionReasons, setRejectionReasons] = useState({});
 
+    const [mapStyle] = useState(localStorage.getItem("evsync_map_style") || "default");
+    const mapStyles = {
+        default: {
+            url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        },
+        streets: {
+            url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        },
+        modern: {
+            url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        },
+        satellite: {
+            url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        },
+        terrain: {
+            url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+        },
+        dark: {
+            url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        },
+        night: {
+            url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        },
+        retro: {
+            url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
+        },
+    };
+
     useEffect(() => {
         if (token) {
             fetchStations();
@@ -398,7 +434,10 @@ const AdminStationRequestsPage = () => {
                                                     scrollWheelZoom={false}
                                                     style={{ height: '100%', width: '100%' }}
                                                 >
-                                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                                    <TileLayer 
+                                                        url={mapStyles[mapStyle]?.url || mapStyles.default.url} 
+                                                        attribution={mapStyles[mapStyle]?.attribution || mapStyles.default.attribution}
+                                                    />
                                                     <Marker position={[selectedStation.location?.coordinates[1] || 23.2599, selectedStation.location?.coordinates[0] || 77.4126]}>
                                                         <Popup>{selectedStation.name}</Popup>
                                                     </Marker>

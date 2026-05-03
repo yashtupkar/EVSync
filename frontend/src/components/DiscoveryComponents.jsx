@@ -21,7 +21,8 @@ import {
   ArrowLeft,
   ChevronDown,
   Check,
-  Car
+  Car,
+  ChevronLeft
 } from "lucide-react";
 
 import { useSelector, useDispatch } from "react-redux";
@@ -438,132 +439,355 @@ export const RangeOverviewCard = ({ battery = 78, range = 286 }) => (
 );
 
 export const StationDetailView = ({ station, onClose, onNavigate }) => {
+  const navigate = useNavigate();
   const availableChargers = station.chargers?.filter(c => c.status === "available") || [];
   const totalChargers = station.chargers?.length || 0;
+  const maxPower = station.chargers?.reduce((max, c) => Math.max(max, c.power || 0), 0) || 0;
+  const minPrice = station.chargers?.reduce((min, c) => Math.min(min, c.pricePerUnit || c.pricePerMinute || 999), 999);
+  const dcChargers = station.chargers?.filter(c => c.type?.toUpperCase().includes("DC") || c.type?.toUpperCase().includes("CCS") || c.type?.toUpperCase().includes("CHADEMO")) || [];
+  const hasDC = dcChargers.length > 0;
+  const [activeImageIndex, setActiveImageIndex] = React.useState(0);
+  const [showReviewForm, setShowReviewForm] = React.useState(false);
+  const [userRating, setUserRating] = React.useState(0);
+  const [userComment, setUserComment] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { user } = useSelector((state) => state.auth);
+  const chargerScrollRef = React.useRef(null);
+
+  const scroll = (dir) => {
+    if (chargerScrollRef.current) {
+      chargerScrollRef.current.scrollBy({ left: dir * 180, behavior: "smooth" });
+    }
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!user) return alert("Please login to write a review");
+    if (userRating === 0) return alert("Please select a rating");
+    if (!userComment.trim()) return alert("Please enter a comment");
+
+    setIsSubmitting(true);
+    const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    try {
+      const response = await fetch(`${backendURL}/api/stations/${station._id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          userName: user.name,
+          userAvatar: user.avatar,
+          rating: userRating,
+          comment: userComment
+        })
+      });
+
+      if (response.ok) {
+        setShowReviewForm(false);
+        setUserRating(0);
+        setUserComment("");
+        // Ideally we should update the local station object or refetch
+        alert("Review added successfully!");
+        window.location.reload(); // Simple way to update for now
+      }
+    } catch (error) {
+      console.error("Error adding review:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const nextImage = (e) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev + 1) % station.images.length);
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev - 1 + station.images.length) % station.images.length);
+  };
 
   return (
-    <div className="h-full bg-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
-      {/* Hero Section */}
-      <div className="relative h-80 shrink-0">
-        <img 
-          src={station.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-        
-        <button 
-          onClick={onClose}
-          className="absolute top-6 left-6 p-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl hover:bg-white hover:text-gray-900 transition-all font-bold text-[10px] uppercase flex items-center gap-2 group"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
-          Back to Discovery
-        </button>
+    <div className="bg-white flex flex-col">
 
-        <div className="absolute bottom-8 left-10 right-10">
-          <div className="flex items-center gap-3 mb-3">
-             <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase rounded-lg tracking-widest">Open Now</span>
-             <div className="flex items-center gap-1.5 text-yellow-400 bg-black/20 backdrop-blur-md px-3 py-1 rounded-lg">
-               <Star size={12} fill="currentColor" />
-               <span className="text-xs font-bold text-white">{station.rating || "4.5"}</span>
-             </div>
+      {/* Station Header Row */}
+      <div className="flex gap-4 p-5 border-b border-gray-100 items-start">
+        {/* Station Image Slider */}
+        <div className="w-48 h-32 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative group/img">
+          <img
+            src={station.images?.[activeImageIndex] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+            alt={station.name}
+            className="w-full h-full object-cover transition-transform duration-500"
+          />
+          
+          {station.images?.length > 1 && (
+            <>
+              <button 
+                onClick={prevImage}
+                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+              >
+                <Plus size={12} className="rotate-45" /> 
+              </button>
+              <button 
+                onClick={nextImage}
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+              >
+                <Plus size={12} />
+              </button>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                {station.images.map((_, i) => (
+                  <div key={i} className={`w-1 h-1 rounded-full ${i === activeImageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Station Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Open 24/7</span>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-2 leading-tight">{station.name}</h2>
-          <div className="flex items-center gap-2 text-white/70">
-            <MapPin size={16} className="text-emerald-500" />
-            <p className="text-sm font-medium">{station.address}</p>
+          <h2 className="text-lg font-bold text-gray-900 leading-tight">{station.name}</h2>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Star size={12} fill="currentColor" className="text-yellow-400" />
+            <span className="text-sm font-bold text-gray-700">{station.rating || "4.3"}</span>
+            <span className="text-xs text-gray-400 font-medium">({station.reviewsCount || "124"} reviews)</span>
           </div>
+          <div className="flex items-start gap-1 mt-1">
+            <MapPin size={11} className="text-gray-400 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-gray-500 font-medium leading-snug">{station.address}</p>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{maxPower} kW</span>
+            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{station.chargers?.[0]?.type || "CCS2"}</span>
+            {station.distance && (
+              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md">{station.distance.toFixed(1)} km away</span>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2 shrink-0">
+          <button
+            onClick={() => navigate(`/book-slot/${station._id}`)}
+            className="flex items-center gap-2 bg-emerald-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all whitespace-nowrap"
+          >
+            <Calendar size={14} />
+            Book Now
+          </button>
+          <button
+            onClick={() => onNavigate(station)}
+            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-[11px] font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all whitespace-nowrap"
+          >
+            <Navigation size={14} />
+            Start Driving
+          </button>
         </div>
       </div>
 
-      <div className="flex-grow overflow-y-auto p-10 custom-scrollbar space-y-12 pb-20">
-        {/* Quick Stats & Primary Action */}
-        <div className="flex justify-between items-end gap-10">
-          <div className="flex gap-6">
-            <div className="bg-gray-50 p-6 rounded-[24px] border border-gray-100 flex flex-col gap-2 min-w-[140px] hover:shadow-lg transition-all">
-               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Available Slots</span>
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-100">
-                    <Battery size={20} />
-                 </div>
-                 <span className="text-2xl font-bold text-gray-900">{availableChargers.length}<span className="text-gray-300 text-lg ml-1">/ {totalChargers}</span></span>
-               </div>
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 divide-x divide-gray-100 border-b border-gray-100">
+        {[
+          { label: "Available Slots", value: `${availableChargers.length} / ${totalChargers}`, icon: Battery, color: "text-emerald-500" },
+          { label: "Max Power", value: `${maxPower} kW`, icon: Zap, color: "text-blue-500" },
+          { label: "Price", value: `₹${minPrice === 999 ? "—" : minPrice}/kWh`, icon: PlugZap, color: "text-purple-500" },
+          { label: "Station Type", value: hasDC ? "DC Fast" : "AC", icon: EvCharger, color: "text-amber-500" },
+        ].map((stat, i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-4">
+            <div className={`w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center ${stat.color} shrink-0`}>
+              <stat.icon size={18} />
             </div>
-            <div className="bg-gray-50 p-6 rounded-[24px] border border-gray-100 flex flex-col gap-2 min-w-[140px] hover:shadow-lg transition-all">
-               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Max Power</span>
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
-                    <PlugZap size={20} />
-                 </div>
-                 <span className="text-2xl font-bold text-gray-900">{station.chargers?.[0]?.power || "60"}<span className="text-gray-300 text-lg ml-1">kW</span></span>
-               </div>
+            <div>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
+              <p className="text-sm font-bold text-gray-800">{stat.value}</p>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => onNavigate(station)}
-              className="bg-emerald-500 text-sm text-white px-6 py-3 rounded-xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-green-200 hover:bg-[#189a43] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 min-w-[280px]"
-            >
-              <Navigation size={22} fill="white" />
-              Start Driving
-            </button>
-            <button 
-              onClick={() => navigate(`/book-slot/${station._id}`)}
-              className="bg-white text-emerald-500 text-sm border-2 border-emerald-500 px-6 py-3 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-green-50 transition-all flex items-center justify-center gap-4 min-w-[280px]"
-            >
-              <Calendar size={22} />
-              Book Slot
-            </button>
-          </div>
+      {/* Chargers Section */}
+      <div className="p-5">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Available Chargers</h3>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{hasDC ? "Level 3 Fast Charging" : "AC Charging"}</span>
         </div>
 
-        {/* Chargers Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">Charging Infrastructure</h3>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider">Level 3 Fast Charging Available</span>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-6">
+        {/* Horizontally scrollable charger cards with prev/next */}
+        <div className="relative">
+          <button
+            onClick={() => scroll(-1)}
+            className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-all"
+          >
+            <ArrowLeft size={13} className="text-gray-600" />
+          </button>
+
+          <div
+            ref={chargerScrollRef}
+            className="flex gap-3 overflow-x-auto px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
             {station.chargers?.map((c, i) => (
-              <div key={i} className="bg-white p-6 rounded-[2.5rem] border-2 border-gray-50 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all flex justify-between items-center group">
-                 <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl ${c.status === 'available' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} flex items-center justify-center transition-colors group-hover:bg-emerald-500 group-hover:text-white`}>
-                      <EvCharger size={28} />
+              <div
+                key={i}
+                className={`shrink-0 w-40 rounded-2xl border p-4 flex flex-col gap-2 transition-all ${
+                  c.status === "available"
+                    ? "border-gray-200 bg-white hover:border-emerald-200 hover:shadow-md"
+                    : "border-amber-100 bg-amber-50/40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.status === "available" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-500"}`}>
+                    <EvCharger size={18} />
+                  </div>
+                  {c.status === "available" && (
+                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                      <Check size={10} className="text-white" strokeWidth={3} />
                     </div>
-                    <div>
-                      <span className="block font-bold text-gray-900 text-xl">{c.type}</span>
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{c.power}kW Superfast</span>
-                    </div>
-                 </div>
-                 <div className="flex flex-col items-end gap-2">
-                    <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl tracking-tighter ${c.status === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {c.status}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-400">Slot #{i+1}</span>
-                 </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-black text-gray-700">{c.chargerId || `Slot #${i+1}`}</p>
+                  <p className="text-[9px] text-gray-400 font-medium uppercase">{c.type} · {c.power} kW</p>
+                </div>
+                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg text-center ${c.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                  {c.status}
+                </span>
+                <p className="text-[11px] font-bold text-gray-800">₹{c.pricePerUnit || c.pricePerMinute}/kWh</p>
               </div>
             ))}
           </div>
+
+          <button
+            onClick={() => scroll(1)}
+            className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-all"
+          >
+            <ChevronRight size={13} className="text-gray-600" />
+          </button>
         </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-3 gap-6">
-           {[
-             { icon: Clock, label: "Operating Hours", val: "Open 24/7", color: "text-purple-500", bg: "bg-purple-50" },
-             { icon: MapPin, label: "Location Type", val: "Premium Lounge", color: "text-blue-500", bg: "bg-blue-50" },
-             { icon: Zap, label: "Power Grid", val: "Tier 1 Stability", color: "text-amber-500", bg: "bg-amber-50" }
-           ].map((item, idx) => (
-             <div key={idx} className="p-6 rounded-[24px] border border-gray-100 flex items-start gap-4">
-                <div className={`w-10 h-10 ${item.bg} ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
-                  <item.icon size={20} />
+        {/* Info Note */}
+        <div className="flex items-center gap-3 mt-5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+          <Info size={14} className="text-blue-400 shrink-0" />
+          <p className="text-[10px] font-bold text-blue-500">You can cancel or modify your booking up to 15 minutes before the start time.</p>
+        </div>
+
+          {/* Station Image Slider */}
+        <div className="w-full h-90 mt-4  rounded-xl overflow-hidden shrink-0 border border-gray-100 relative group/img">
+          <img
+            src={station.images?.[activeImageIndex] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+            alt={station.name}
+            className="w-full h-full object-cover transition-transform duration-500"
+          />
+          
+          {station.images?.length > 1 && (
+            <>
+              <button 
+                onClick={prevImage}
+                className="absolute left-1 cursor-pointer top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60  text-white rounded-full flex items-center justify-center "
+              >
+                <ChevronLeft size={18} /> 
+              </button>
+              <button 
+                onClick={nextImage}
+                className="absolute right-1 cursor-pointer top-1/2 -translate-y-1/2 w-12 h-12 bg-black/60  text-white rounded-full flex items-center justify-center "
+              >
+                <ChevronRight size={18} />
+              </button>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                {station.images.map((_, i) => (
+                  <div key={i} className={`w-1 h-1 rounded-full ${i === activeImageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-8 border-t border-gray-100 pt-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-[11px] font-black text-gray-800 uppercase tracking-widest">User Reviews</h3>
+            <button 
+              onClick={() => setShowReviewForm(!showReviewForm)}
+              className="text-[10px] font-bold text-emerald-500 uppercase hover:underline"
+            >
+              {showReviewForm ? "Cancel" : "Write a Review"}
+            </button>
+          </div>
+
+          {showReviewForm && (
+            <div className="bg-gray-50 p-6 rounded-2xl border border-emerald-100 mb-8 animate-in fade-in slide-in-from-top-2 duration-300">
+              <h4 className="text-sm font-bold text-gray-800 mb-4">Rate your experience</h4>
+              
+              <div className="flex gap-2 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setUserRating(star)}
+                    className="transition-transform active:scale-90"
+                  >
+                    <Star 
+                      size={24} 
+                      fill={star <= userRating ? "#facc15" : "none"} 
+                      className={star <= userRating ? "text-yellow-400" : "text-gray-300"} 
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={userComment}
+                onChange={(e) => setUserComment(e.target.value)}
+                placeholder="Share your thoughts about this charging station..."
+                className="w-full h-24 p-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none mb-4"
+              />
+
+              <button
+                onClick={handleReviewSubmit}
+                disabled={isSubmitting}
+                className="w-full py-3 bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 disabled:opacity-50 transition-all"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {station.reviews?.length > 0 ? (
+              station.reviews.map((review, idx) => (
+                <div key={idx} className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      {review.userAvatar ? (
+                        <img 
+                          src={review.userAvatar} 
+                          alt={review.userName} 
+                          className="w-8 h-8 rounded-full object-cover border border-emerald-100"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
+                          {review.userName?.charAt(0) || "U"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">{review.userName || "Anonymous"}</p>
+                        <p className="text-[9px] text-gray-400 font-medium">{new Date(review.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 text-yellow-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={10} fill={i < review.rating ? "currentColor" : "none"} className={i < review.rating ? "" : "text-gray-200"} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                    {review.comment}
+                  </p>
                 </div>
-                <div>
-                  <span className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{item.label}</span>
-                  <span className="text-sm font-bold text-gray-800">{item.val}</span>
-                </div>
-             </div>
-           ))}
+              ))
+            ) : (
+              <div className="py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                <p className="text-xs text-gray-400 font-medium italic">No reviews yet. Be the first to review!</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

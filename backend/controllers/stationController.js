@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Station = require('../models/Station');
 const User = require('../models/User');
 
@@ -150,6 +151,38 @@ exports.getStationById = async (req, res) => {
     if (!station) return res.status(404).json({ message: "Station not found" });
     res.json(station);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.addReview = async (req, res) => {
+  const { id } = req.params;
+  const { userId, userName, userAvatar, rating, comment } = req.body;
+
+  try {
+    const station = await Station.findById(id);
+    if (!station) return res.status(404).json({ message: "Station not found" });
+
+    const newReview = {
+      userId: mongoose.Types.ObjectId.isValid(userId) ? userId : null,
+      userName,
+      userAvatar,
+      rating: Number(rating),
+      comment,
+      createdAt: new Date()
+    };
+
+    station.reviews.push(newReview);
+    station.reviewsCount = (station.reviewsCount || 0) + 1;
+    
+    // Calculate new average rating
+    const totalRating = station.reviews.reduce((sum, item) => sum + (item.rating || 0), 0);
+    station.rating = Number((totalRating / station.reviews.length).toFixed(1));
+
+    await station.save({ validateBeforeSave: false });
+    res.status(201).json(station);
+  } catch (error) {
+    console.error("Error in addReview:", error);
     res.status(500).json({ message: error.message });
   }
 };

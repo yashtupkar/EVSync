@@ -8,5 +8,6 @@ router.get('/:id', stationController.getStationById);
 router.get('/', stationController.getAllStations);
 router.post('/', stationController.createStation);
 router.get('/users', stationController.getAllUsers);
+router.post('/:id/reviews', stationController.addReview);
 
 module.exports = router;
