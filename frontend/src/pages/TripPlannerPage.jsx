@@ -25,6 +25,17 @@ import {
   Building2,
   EvCharger,
   PlugZap,
+  Wifi,
+  Coffee,
+  ParkingCircle,
+  Soup,
+  Headphones,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Trash2,
+  MessageSquare
 } from "lucide-react";
 import TripPlannerMap from "../components/TripPlannerMap";
 import { VehicleCard } from "../components/DiscoveryComponents";
@@ -68,6 +79,10 @@ const TripPlannerPage = () => {
   const [selectedStation, setSelectedStation] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [waypoints, setWaypoints] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [favorites, setFavorites] = useState([]);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
@@ -168,6 +183,113 @@ const TripPlannerPage = () => {
     ].slice(0, 5); // Keep last 5
     setRecentSearches(newRecent);
     localStorage.setItem("recent_searches", JSON.stringify(newRecent));
+  };
+
+  // Load trip data from localStorage
+  useEffect(() => {
+    const savedTrip = localStorage.getItem("evsync_trip_data");
+    if (savedTrip) {
+      try {
+        const data = JSON.parse(savedTrip);
+        if (data.from) setFrom(data.from);
+        if (data.to) setTo(data.to);
+        if (data.fromLocation) setFromLocation(data.fromLocation);
+        if (data.toLocation) setToLocation(data.toLocation);
+        if (data.waypoints) setWaypoints(data.waypoints);
+        if (data.isRouteCalculated) setIsRouteCalculated(data.isRouteCalculated);
+        if (data.routeData) setRouteData(data.routeData);
+      } catch (e) {
+        console.error("Error parsing saved trip:", e);
+      }
+    }
+    
+    const savedFavorites = localStorage.getItem("evsync_favorites");
+    if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
+  }, []);
+
+  // Save trip data to localStorage
+  useEffect(() => {
+    const tripData = {
+      from,
+      to,
+      fromLocation,
+      toLocation,
+      waypoints,
+      isRouteCalculated,
+      routeData
+    };
+    localStorage.setItem("evsync_trip_data", JSON.stringify(tripData));
+  }, [from, to, fromLocation, toLocation, waypoints, isRouteCalculated, routeData]);
+
+  // Save favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem("evsync_favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const clearTrip = () => {
+    setFrom("");
+    setTo("");
+    setFromLocation(null);
+    setToLocation(null);
+    setWaypoints([]);
+    setIsRouteCalculated(false);
+    setRouteData(null);
+    localStorage.removeItem("evsync_trip_data");
+  };
+
+  const toggleFavorite = (stationId) => {
+    setFavorites(prev => 
+      prev.includes(stationId) 
+        ? prev.filter(id => id !== stationId) 
+        : [...prev, stationId]
+    );
+  };
+
+  const handleShare = (station) => {
+    const shareText = `Check out this charging station: ${station.name} - ${station.address}`;
+    if (navigator.share) {
+      navigator.share({
+        title: station.name,
+        text: shareText,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  const getAmenityIcon = (label) => {
+    const icons = {
+      restroom: Soup,
+      cafe: Coffee,
+      wifi: Wifi,
+      parking: ParkingCircle,
+      waiting: Clock,
+      support: Headphones,
+      food: Soup,
+      restaurant: Soup,
+      washroom: Soup
+    };
+    return icons[label.toLowerCase()] || Info;
+  };
+
+  const handleNextImage = () => {
+    if (selectedStation?.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % selectedStation.images.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (selectedStation?.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + selectedStation.images.length) % selectedStation.images.length);
+    }
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return "https://images.unsplash.com/photo-1593941707882-a5bba14938c7";
+    if (url.startsWith("http")) return url;
+    return `${backendURL}${url.startsWith("/") ? "" : "/"}${url}`;
   };
 
   const watchId = useRef(null);
@@ -273,9 +395,19 @@ const TripPlannerPage = () => {
           <aside className="w-90 flex flex-col gap-4 shrink-0 no-scrollbar overflow-y-auto custom-scrollbar  pb-10">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Plan Your Trip
-                </h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Plan Your Trip
+                  </h2>
+                  {(from || to || isRouteCalculated) && (
+                    <button 
+                      onClick={clearTrip}
+                      className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg transition-all"
+                    >
+                      <Trash2 size={12} /> Clear
+                    </button>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
                   Find the best route and charging stops
                 </p>
@@ -837,81 +969,124 @@ const TripPlannerPage = () => {
           <aside className="w-96 flex flex-col gap-4 shrink-0 no-scrollbar overflow-y-auto pb-10">
             {selectedStation ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 h-fit">
-                {/* Image Header */}
-                <div className="h-56 w-full relative group">
+                {/* Image Header with Slider */}
+                <div className="h-64 w-full relative group">
                   <img
-                    src={selectedStation.images?.[0] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
+                    src={getImageUrl(selectedStation.images?.[currentImageIndex])}
                     alt={selectedStation.name}
-                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"; }}
+                    className="w-full h-full object-cover transition-all duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  
+                  {/* Back Button */}
                   <button
-                    onClick={() => setSelectedStation(null)}
-                    className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-all active:scale-90"
+                    onClick={() => {
+                      setSelectedStation(null);
+                      setCurrentImageIndex(0);
+                    }}
+                    className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-all active:scale-90 z-10"
                   >
                     <ArrowLeft size={20} />
                   </button>
-                  <button className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black/70 transition-all">
-                    <History size={14} /> See photos
+
+                  {/* Favorite Button */}
+                  <button
+                    onClick={() => toggleFavorite(selectedStation._id)}
+                    className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-90 z-10"
+                  >
+                    <Heart size={20} className={favorites.includes(selectedStation._id) ? "fill-red-500 text-red-500" : "text-gray-400"} />
                   </button>
+
+                  {/* Image Navigation Arrows */}
+                  {selectedStation.images?.length > 1 && (
+                    <>
+                      <button 
+                        onClick={handlePrevImage}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button 
+                        onClick={handleNextImage}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                      
+                      <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
+                        {selectedStation.images.map((_, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`} 
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+                    <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-1 rounded-md shadow-lg">
+                      {selectedStation.operatingHours || "24 HOURS"}
+                    </span>
+                    <button className="bg-black/50 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-black/70 transition-all">
+                      <History size={14} /> See all {selectedStation.images?.length || 1} photos
+                    </button>
+                  </div>
                 </div>
 
-                {/* Title & Stats */}
+                {/* Title & Info */}
                 <div className="p-6 pb-0">
-                  <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                    {selectedStation.name}
-                  </h2>
-                  <p className="text-sm text-gray-400 mt-0.5">
-                    {selectedStation.name} चार्जिंग स्टेशन
-                  </p>
-
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="text-sm font-bold text-gray-700">{selectedStation.rating || "4.3"}</span>
-                    <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={14}
-                          fill={i < Math.floor(selectedStation.rating || 4) ? "currentColor" : "none"}
-                        />
-                      ))}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-grow">
+                      <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                        {selectedStation.name}
+                      </h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {selectedStation.stationType || "Public"} Charging Hub
+                      </p>
                     </div>
-                    <span className="text-sm text-gray-400 font-medium">({selectedStation.reviewsCount || "6"})</span>
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
+                        <Star size={14} className="fill-amber-400 text-amber-400" />
+                        <span className="text-sm font-bold text-amber-700">{selectedStation.rating || "4.5"}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                        {selectedStation.reviewsCount || 12} Reviews
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 font-medium">
-                    Electric vehicle charging station
-                  </p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-100 mt-6">
+                <div className="flex border-b border-gray-100 mt-6 sticky top-0 bg-white z-20">
                   <button
                     onClick={() => setActiveTab("overview")}
-                    className={`flex-1 py-3 text-sm font-bold transition-all relative ${activeTab === "overview" ? "text-green-600" : "text-gray-400 hover:text-gray-600"}`}
+                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeTab === "overview" ? "text-emerald-600" : "text-gray-400 hover:text-gray-600"}`}
                   >
                     Overview
-                    {activeTab === "overview" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-green-500 rounded-full" />}
+                    {activeTab === "overview" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />}
                   </button>
                   <button
                     onClick={() => setActiveTab("reviews")}
-                    className={`flex-1 py-3 text-sm font-bold transition-all relative ${activeTab === "reviews" ? "text-green-600" : "text-gray-400 hover:text-gray-600"}`}
+                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeTab === "reviews" ? "text-emerald-600" : "text-gray-400 hover:text-gray-600"}`}
                   >
                     Reviews
-                    {activeTab === "reviews" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-green-500 rounded-full" />}
+                    {activeTab === "reviews" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />}
                   </button>
                 </div>
 
-                <div className="flex-grow overflow-y-auto custom-scrollbar">
+                <div className="flex-grow overflow-y-auto no-scrollbar">
                   {activeTab === "overview" ? (
                     <div className="p-6 space-y-8 pb-10">
                       {/* Action Buttons */}
                       <div className="flex justify-between items-center gap-2 px-1">
                         {[
-                          { icon: Navigation, label: "Directions", color: "bg-[#1A73E8] text-white", onClick: () => { } },
+                          { icon: Navigation, label: "Directions", color: "bg-[#1A73E8] text-white", onClick: () => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedStation.location.coordinates[1]},${selectedStation.location.coordinates[0]}`, "_blank") },
                           {
                             icon: waypoints.some(wp => wp._id === selectedStation._id) ? Minus : Plus,
                             label: waypoints.some(wp => wp._id === selectedStation._id) ? "Remove Stop" : "Add to Trip",
-                            color: waypoints.some(wp => wp._id === selectedStation._id) ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600",
+                            color: waypoints.some(wp => wp._id === selectedStation._id) ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600",
                             onClick: () => {
                               if (waypoints.some(wp => wp._id === selectedStation._id)) {
                                 setWaypoints(waypoints.filter(wp => wp._id !== selectedStation._id));
@@ -920,14 +1095,13 @@ const TripPlannerPage = () => {
                               }
                             }
                           },
-                          { icon: Bookmark, label: "Save", color: "bg-blue-50 text-blue-600", onClick: () => { } },
-                          { icon: Target, label: "Nearby", color: "bg-blue-50 text-blue-600", onClick: () => { } },
-                          { icon: Share2, label: "Share", color: "bg-blue-50 text-blue-600", onClick: () => { } }
+                          { icon: Heart, label: "Favorite", color: favorites.includes(selectedStation._id) ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600", onClick: () => toggleFavorite(selectedStation._id) },
+                          { icon: Share2, label: "Share", color: "bg-blue-50 text-blue-600", onClick: () => handleShare(selectedStation) }
                         ].map((btn, idx) => (
                           <div key={idx} className="flex flex-col items-center gap-2 flex-1">
                             <button
                               onClick={btn.onClick}
-                              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm ${btn.color}`}
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm ${btn.color}`}
                             >
                               <btn.icon size={20} fill={idx === 0 ? "white" : "none"} />
                             </button>
@@ -938,45 +1112,72 @@ const TripPlannerPage = () => {
                         ))}
                       </div>
 
-                      {/* Charger Types & Occupancy */}
-                      <div className="space-y-6 pt-4 border-t border-gray-50">
-                        {selectedStation.chargers?.map((charger, idx) => (
-                          <div key={idx} className="flex items-center justify-between group">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-green-50 group-hover:text-green-500 transition-colors">
-                                <Zap size={20} />
-                              </div>
-                              <div>
-                                <div className="text-sm font-bold text-gray-900">
-                                  {charger.type} · {charger.power} kW
+                      {/* Chargers Section */}
+                      <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Available Chargers</h3>
+                        <div className="grid grid-cols-1 gap-3">
+                          {selectedStation.chargers?.map((charger, idx) => {
+                            const isAvailable = charger.status === "available";
+                            return (
+                              <div key={idx} className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between group hover:bg-white hover:border-emerald-200 transition-all">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isAvailable ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"}`}>
+                                    <EvCharger size={24} />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-bold text-gray-900">
+                                      {charger.type} · {charger.power} kW
+                                    </div>
+                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                                      {charger.type.includes("DC") || charger.power > 30 ? "Fast Charging" : "Regular Charging"}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                                  Level 3 Fast Charger
+                                <div className="text-right">
+                                  <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-md mb-1 inline-block ${isAvailable ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                    {isAvailable ? "Available" : "In Use"}
+                                  </div>
+                                  <div className="text-xs font-bold text-gray-700 block">
+                                    ₹{charger.pricePerUnit || 15}/kWh
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-bold text-gray-600">
-                                Total <span className="ml-2 text-gray-900">1</span>
-                              </div>
-                              <div className="text-[10px] font-bold text-green-500 mt-0.5">
-                                Available
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                            );
+                          })}
+                        </div>
                       </div>
 
+                      {/* Amenities Section */}
+                      {selectedStation.amenities?.length > 0 && (
+                        <div className="space-y-4 pt-4 border-t border-gray-100">
+                          <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Station Amenities</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            {selectedStation.amenities.map((amenity, idx) => {
+                              const Icon = getAmenityIcon(amenity);
+                              return (
+                                <div key={idx} className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500">
+                                    <Icon size={18} />
+                                  </div>
+                                  <span className="text-sm font-bold text-gray-600 capitalize">{amenity}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Location Details */}
-                      <div className="space-y-6 pt-4 border-t border-gray-50">
+                      <div className="space-y-6 pt-4 border-t border-gray-100">
                         <div className="flex items-start gap-4">
                           <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
                             <MapPin size={20} />
                           </div>
                           <div className="flex-grow pt-1">
-                            <p className="text-sm font-medium text-gray-700 leading-relaxed">
+                            <p className="text-sm font-bold text-gray-700 leading-relaxed">
                               {selectedStation.address}
                             </p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Exact Location</p>
                           </div>
                         </div>
 
@@ -985,31 +1186,17 @@ const TripPlannerPage = () => {
                             <Building2 size={20} />
                           </div>
                           <div className="flex-grow pt-2">
-                            <p className="text-sm font-medium text-gray-700">
-                              Located in: <span className="font-bold text-gray-900">Emperor Lounge</span>
+                            <p className="text-sm font-bold text-gray-700">
+                              Operator: <span className="text-emerald-600">{selectedStation.operatorName || "EVSync Network"}</span>
                             </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-green-500 shrink-0">
-                            <Clock size={20} />
-                          </div>
-                          <div className="flex-grow pt-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-bold text-green-600">
-                                Open 24 hours
-                              </p>
-                              <ChevronDown size={16} className="text-gray-400" />
-                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Booking Action */}
-                      <div className="pt-6 border-t border-gray-50">
+                      <div className="pt-6 border-t border-gray-100">
                         <button
-                          className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                          className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-xl shadow-emerald-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                           onClick={() => {
                             const stop = itineraryStops.find(s => s._id === selectedStation._id);
                             const time = stop ? stop.estimatedArrival : "12:30 PM";
@@ -1019,23 +1206,122 @@ const TripPlannerPage = () => {
                           <Calendar size={18} />
                           Book Slot for {itineraryStops.find(s => s._id === selectedStation._id)?.estimatedArrival || "12:30 PM"}
                         </button>
-                        <p className="text-[10px] text-gray-400 text-center mt-3 font-medium">
+                        <p className="text-[10px] text-gray-400 text-center mt-3 font-bold uppercase tracking-widest">
                           Free cancellation up to 30 mins before arrival
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 flex flex-col items-center justify-center text-center py-20 gap-4">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
-                        <Star size={32} />
+                    <div className="p-6 space-y-8">
+                      {/* Add Review Button */}
+                      {!showReviewForm ? (
+                        <button 
+                          onClick={() => setShowReviewForm(true)}
+                          className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare size={18} /> Write a Review
+                        </button>
+                      ) : (
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-bold text-gray-900">Your Review</h4>
+                            <button onClick={() => setShowReviewForm(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button 
+                                key={star} 
+                                onClick={() => setNewReview({...newReview, rating: star})}
+                                className="transition-transform active:scale-90"
+                              >
+                                <Star 
+                                  size={24} 
+                                  fill={star <= newReview.rating ? "#FBBF24" : "none"} 
+                                  className={star <= newReview.rating ? "text-yellow-400" : "text-gray-300"}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                          
+                          <textarea 
+                            value={newReview.comment}
+                            onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                            placeholder="Share your experience at this station..."
+                            className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500/50 min-h-[100px] font-medium"
+                          />
+                          
+                          <button 
+                            className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
+                            onClick={() => {
+                              alert("Review submitted! (Mock)");
+                              setShowReviewForm(false);
+                              setNewReview({ rating: 5, comment: "" });
+                            }}
+                          >
+                            Submit Review
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Review List */}
+                      <div className="space-y-6">
+                        {(selectedStation.reviews?.length > 0 ? selectedStation.reviews : [
+                          { user: "Rahul Sharma", rating: 5, comment: "Excellent fast charging station. The lounge was clean and comfortable.", date: "2 days ago" },
+                          { user: "Anita Desai", rating: 4, comment: "Good experience, but one charger was out of service.", date: "1 week ago" }
+                        ]).map((review, idx) => (
+                          <div key={idx} className="space-y-2 pb-6 border-b border-gray-50 last:border-0">
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  {review.userAvatar ? (
+                                    <img 
+                                      src={getImageUrl(review.userAvatar)} 
+                                      alt="" 
+                                      onError={(e) => { e.target.style.display = 'none'; }}
+                                      className="w-8 h-8 rounded-full object-cover border border-emerald-100" 
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
+                                      {(typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "U"))[0]}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h5 className="text-sm font-bold text-gray-900">
+                                      {typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "Anonymous User")}
+                                    </h5>
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      {review.date || (review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Recent")}
+                                    </p>
+                                  </div>
+                                </div>
+                              <div className="flex text-yellow-400">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    size={10}
+                                    fill={i < review.rating ? "currentColor" : "none"}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed font-medium pl-11">
+                              {review.comment}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900">No reviews yet</h4>
-                        <p className="text-sm text-gray-400 mt-1">Be the first to rate this station</p>
-                      </div>
-                      <button className="mt-2 px-6 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-bold hover:bg-green-100 transition-all">
-                        Write a review
-                      </button>
+
+                      {(!selectedStation.reviews || selectedStation.reviews.length === 0) && (
+                        <div className="flex flex-col items-center justify-center text-center py-10 gap-4 opacity-60">
+                          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                            <MessageSquare size={32} />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-900">No more reviews</h4>
+                            <p className="text-sm text-gray-400 mt-1">Be the first to rate this station</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

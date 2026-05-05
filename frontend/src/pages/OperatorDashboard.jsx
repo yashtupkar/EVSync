@@ -3,24 +3,143 @@ import { useSelector } from 'react-redux';
 import { selectUser, selectToken } from '../features/auth/authSelectors';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { 
-    Zap, MapPin, Clock, Activity, Battery, 
-    AlertCircle, RefreshCcw, QrCode, 
+import {
+    Zap, MapPin, Clock, Activity, Battery,
+    AlertCircle, RefreshCcw, QrCode,
     CheckCircle2, Timer, User as UserIcon,
     ArrowUpRight, IndianRupee, ZapOff,
     Wrench, Play, Square, AlertTriangle, HelpCircle,
     LayoutGrid, List,
-    ChevronRight
+    ChevronRight,
+    EvCharger,
+    CheckCheck,
+    CheckCheckIcon,
+    CheckCircle,
+    Check
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
 import { useNavigate } from 'react-router-dom';
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
+const ChargerCard = ({ charger, updateChargerStatus, onScan }) => {
+    const isAvailable = charger.status === 'available';
+    const isOccupied = charger.status === 'in_use';
+    const isMaintenance = charger.status === 'maintenance';
+
+    // Get dynamic price from database fields
+    const price = charger.pricePerUnit || charger.pricePerMinute || charger.price || 15;
+
+    return (
+        <div className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 ${isAvailable
+            ? "border-gray-200 bg-white hover:border-emerald-200 hover:shadow-md"
+            : isOccupied
+                ? "border-amber-100 bg-amber-50/40"
+                : "border-red-100 bg-red-50/40"
+            }`}>
+            <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isAvailable ? "bg-emerald-50 text-emerald-600" :
+                    isOccupied ? "bg-amber-50 text-amber-500" :
+                        "bg-red-50 text-red-500"
+                    }`}>
+                    <EvCharger size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-black text-gray-700 truncate">{charger.chargerId}</p>
+                    <p className="text-[9px] text-gray-400 font-medium uppercase truncate">{charger.type} • {charger.power}kW</p>
+                </div>
+                {isAvailable && (
+                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                        <Check size={10} className="text-white" strokeWidth={3} />
+                    </div>
+                )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg text-center ${isAvailable ? "bg-emerald-100 text-emerald-700" :
+                    isOccupied ? "bg-amber-100 text-amber-700" :
+                        "bg-red-100 text-red-700"
+                    }`}>
+                    {charger.status === 'in_use' ? 'Occupied' : charger.status}
+                </span>
+
+                {!isAvailable && (
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                        <div>
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                                {isMaintenance ? 'Issue' : 'Session ID'}
+                            </p>
+                            <p className={`text-[10px] font-black ${isMaintenance ? 'text-red-600' : 'text-gray-700'}`}>
+                                {isMaintenance ? 'Connector Fault' : 'S-240503'}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                                {isOccupied ? 'Energy' : 'Price'}
+                            </p>
+                            <p className="text-[10px] font-black text-gray-700">
+                                {isOccupied ? '12.4 kWh' : `₹${price}/kWh`}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {isAvailable && (
+                    <p className="text-[11px] font-bold text-gray-800">₹{price}/kWh</p>
+                )}
+            </div>
+
+            <div className="pt-2 border-t border-gray-100/50 mt-1">
+                {isAvailable && (
+                    <div className='flex gap-2'>
+                        <button
+                            onClick={() => updateChargerStatus(charger.chargerId, 'in_use')}
+                            className="w-full py-2 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:bg-emerald-700 transition-all"
+                        >
+                            Start Node
+                        </button>
+                        <button
+                            onClick={() => onScan(charger.chargerId)}
+                            className="p-2 bg-slate-100 text-gray-800 hover:text-gray-600 hover:bg-slate-200 rounded-lg transition-colors"
+                            title="Scan Booking QR"
+                        >
+                            <QrCode size={16} />
+                        </button>
+                    </div>
+                )}
+                {isOccupied && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between items-center px-1">
+                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Active 15m</p>
+                            <button
+                                onClick={() => updateChargerStatus(charger.chargerId, 'available')}
+                                className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline"
+                            >
+                                Stop
+                            </button>
+                        </div>
+                        <div className="h-1 bg-amber-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-500 w-[65%]" />
+                        </div>
+                    </div>
+                )}
+                {isMaintenance && (
+                    <button
+                        disabled
+                        className="w-full py-2 bg-gray-50 text-gray-400 text-[9px] font-black uppercase tracking-widest rounded-xl border border-gray-100 cursor-not-allowed"
+                    >
+                        In Maintenance
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const OperatorDashboard = () => {
     const user = useSelector(selectUser);
     const token = useSelector(selectToken);
-    
+
     const [station, setStation] = useState(null);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,11 +158,11 @@ const OperatorDashboard = () => {
             const stationRes = await axios.get(`${backendURL}/api/stations/operator/my-station`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             if (stationRes.data.success) {
                 const stationData = stationRes.data.station;
                 setStation(stationData);
-                
+
                 // Fetch bookings for this station
                 const bookingsRes = await axios.get(`${backendURL}/api/bookings/station/${stationData._id}`, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -63,11 +182,11 @@ const OperatorDashboard = () => {
 
     const updateChargerStatus = async (chargerId, newStatus) => {
         try {
-            const response = await axios.patch(`${backendURL}/api/stations/${station._id}/chargers/${chargerId}/status`, 
+            const response = await axios.patch(`${backendURL}/api/stations/${station._id}/chargers/${chargerId}/status`,
                 { status: newStatus },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            
+
             if (response.data.success) {
                 toast.success(`Charger ${chargerId} is now ${newStatus}`);
                 setStation(response.data.station);
@@ -103,7 +222,7 @@ const OperatorDashboard = () => {
             <p className="text-slate-400 font-medium text-lg leading-relaxed mb-8">
                 You haven't been assigned to any charging hub yet. Please contact your administrator.
             </p>
-            <button 
+            <button
                 onClick={fetchDashboardData}
                 className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all"
             >
@@ -113,23 +232,23 @@ const OperatorDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 space-y-8 font-sans">
+        <div className="min-h-screen bg-[#F8FAFC]  space-y-4 font-sans">
             {/* --- TOP STATS ROW --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'TOTAL CHARGERS', value: station.chargers.length, sub: 'All Chargers', icon: Battery, color: 'text-[#10B981]', bg: 'bg-[#ECFDF5]', iconFill: true },
-                    { label: 'AVAILABLE', value: station.chargers.filter(c => c.status === 'available').length, sub: `${((station.chargers.filter(c => c.status === 'available').length / station.chargers.length) * 100).toFixed(1)}% Available`, icon: CheckCircle2, color: 'text-[#10B981]', bg: 'bg-[#F0FDF4]', iconFill: true },
-                    { label: 'OCCUPIED', value: station.chargers.filter(c => c.status === 'in_use').length, sub: `${((station.chargers.filter(c => c.status === 'in_use').length / station.chargers.length) * 100).toFixed(1)}% Occupied`, icon: Clock, color: 'text-[#F59E0B]', bg: 'bg-[#FFFBEB]', iconFill: false },
-                    { label: 'OUT OF SERVICE', value: station.chargers.filter(c => c.status === 'maintenance').length, sub: `${((station.chargers.filter(c => c.status === 'maintenance').length / station.chargers.length) * 100).toFixed(1)}% Unavailable`, icon: Wrench, color: 'text-[#EF4444]', bg: 'bg-[#FEF2F2]', iconFill: false },
+                    { label: 'TOTAL CHARGERS', value: station.chargers.length, sub: 'All Chargers', icon: EvCharger, color: 'text-[#10B981]', bg: 'bg-[#ECFDF5]' },
+                    { label: 'AVAILABLE', value: station.chargers.filter(c => c.status === 'available').length, sub: `${((station.chargers.filter(c => c.status === 'available').length / station.chargers.length) * 100).toFixed(1)}% Available`, icon: CheckCircle, color: 'text-[#10B981]', bg: 'bg-[#F0FDF4]', },
+                    { label: 'OCCUPIED', value: station.chargers.filter(c => c.status === 'in_use').length, sub: `${((station.chargers.filter(c => c.status === 'in_use').length / station.chargers.length) * 100).toFixed(1)}% Occupied`, icon: Clock, color: 'text-[#F59E0B]', bg: 'bg-[#FFFBEB]', },
+                    { label: 'OUT OF SERVICE', value: station.chargers.filter(c => c.status === 'maintenance').length, sub: `${((station.chargers.filter(c => c.status === 'maintenance').length / station.chargers.length) * 100).toFixed(1)}% Unavailable`, icon: Wrench, color: 'text-[#EF4444]', bg: 'bg-[#FEF2F2]', },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02]">
-                        <div className={`w-14 h-14 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center`}>
-                            <stat.icon size={28} className={stat.iconFill ? 'fill-current' : ''} />
+                    <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02]">
+                        <div className={`w-14 h-14 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
+                            <stat.icon size={24} className={stat.iconFill ? 'fill-current' : ''} />
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.15em] mb-1">{stat.label}</p>
                             <div className="flex items-baseline gap-2">
-                                <p className="text-3xl font-black text-[#1E293B]">{stat.value}</p>
+                                <p className="text-2xl font-black text-[#1E293B]">{stat.value}</p>
                             </div>
                             <p className="text-[10px] font-bold text-[#94A3B8] mt-0.5">{stat.sub}</p>
                         </div>
@@ -138,22 +257,17 @@ const OperatorDashboard = () => {
             </div>
 
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* --- LEFT COLUMN: CHARGERS & SUMMARY --- */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* CHARGERS OVERVIEW */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                             <div>
-                                <h3 className="text-xl font-black text-[#1E293B]">Chargers Overview</h3>
-                                <p className="text-xs font-bold text-[#94A3B8] mt-1">{station.chargers.length} Chargers</p>
+                                <h3 className="text-xl font-black text-[#1E293B] tracking-tight">Chargers Overview</h3>
+                                <p className="text-[10px] font-bold text-[#94A3B8] mt-0.5 uppercase tracking-widest">{station.chargers.length} Active Nodes</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <select className="bg-[#F8FAFC] border-none text-[10px] font-bold text-[#64748B] rounded-xl px-4 py-2 outline-none cursor-pointer focus:ring-0">
-                                    <option>All Chargers</option>
-                                    <option>Available</option>
-                                    <option>Occupied</option>
-                                </select>
+                            <div className="flex items-center gap-2">
                                 <div className="flex gap-1 p-1 bg-[#F8FAFC] rounded-xl">
                                     <button className="p-2 bg-white text-[#10B981] rounded-lg shadow-sm">
                                         <LayoutGrid size={16} />
@@ -165,93 +279,40 @@ const OperatorDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {station.chargers.map((charger, i) => (
-                                <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm hover:border-[#ECFDF5] transition-all group relative overflow-hidden">
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                                charger.status === 'available' ? 'bg-[#F0FDF4] text-[#10B981]' :
-                                                charger.status === 'in_use' ? 'bg-[#FFFBEB] text-[#F59E0B]' :
-                                                'bg-[#FEF2F2] text-[#EF4444]'
-                                            }`}>
-                                                <Battery size={24} className={charger.status === 'available' ? 'fill-[#10B981]' : ''} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-black text-[#1E293B] uppercase tracking-tight">{charger.chargerId}</p>
-                                                    <span className={`w-2 h-2 rounded-full ${
-                                                        charger.status === 'available' ? 'bg-[#10B981]' :
-                                                        charger.status === 'in_use' ? 'bg-[#F59E0B]' :
-                                                        'bg-[#EF4444]'
-                                                    }`} />
-                                                </div>
-                                                <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-[0.1em]">{charger.type} • {charger.power} kW</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-center mb-8">
-                                        <div className={`px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-sm ${
-                                            charger.status === 'available' ? 'bg-[#F0FDF4] text-[#10B981]' :
-                                            charger.status === 'in_use' ? 'bg-[#FFFBEB] text-[#F59E0B]' :
-                                            'bg-[#FEF2F2] text-[#EF4444]'
-                                        }`}>
-                                            {charger.status === 'available' ? 'Available' : charger.status === 'in_use' ? 'Occupied' : 'Out of Service'}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 border-t border-[#F8FAFC] pt-6">
-                                        <div>
-                                            <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.15em]">Session</p>
-                                            <p className="text-xs font-black text-[#1E293B] mt-1.5">{charger.status === 'in_use' ? 'S-240503001' : '-'}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.15em]">Energy</p>
-                                            <p className="text-xs font-black text-[#1E293B] mt-1.5">{charger.status === 'in_use' ? '12.4 kWh' : '-'}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    {charger.status === 'in_use' && (
-                                        <div className="mt-6 p-4 bg-[#F8FAFC] rounded-2xl flex justify-between items-center border border-slate-50">
-                                            <div>
-                                                <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-[0.15em]">Since</p>
-                                                <p className="text-[11px] font-black text-[#1E293B] mt-0.5">15 min</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => updateChargerStatus(charger.chargerId, 'available')}
-                                                className="px-5 py-2 bg-white text-[#EF4444] text-[10px] font-black uppercase tracking-[0.15em] rounded-xl border border-[#FEE2E2] shadow-sm hover:bg-[#FEF2F2] transition-all"
-                                            >
-                                                Stop
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {charger.status === 'maintenance' && (
-                                        <div className="mt-6 p-4 bg-[#FEF2F2] rounded-2xl border border-[#FEE2E2]">
-                                            <p className="text-[9px] font-black text-[#EF4444] uppercase tracking-[0.15em]">Issue</p>
-                                            <p className="text-[11px] font-black text-[#B91C1C] mt-0.5">Connector Fault</p>
-                                        </div>
-                                    )}
-
-                                    {charger.status === 'available' && (
-                                        <div className="mt-6">
-                                            <button 
-                                                onClick={() => updateChargerStatus(charger.chargerId, 'in_use')}
-                                                className="w-full py-3 bg-[#10B981] text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl shadow-lg shadow-[#10B981]/20 hover:bg-[#059669] transition-all"
-                                            >
-                                                Manual Start
-                                            </button>
-                                        </div>
-                                    )}
+                        <div className="space-y-10">
+                            {/* DC CHARGERS ROW */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#F1F5F9]"></div>
+                                    <span className="text-[10px] font-black text-[#64748B] uppercase tracking-[0.2em] bg-[#F1F5F9] px-3 py-1 rounded-full">DC Fast Chargers</span>
+                                    <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#F1F5F9]"></div>
                                 </div>
-                            ))}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {station.chargers.filter(c => c.chargerId.startsWith('DC') || c.type.toLowerCase().includes('ccs') || c.type.toLowerCase().includes('dc')).map((charger, i) => (
+                                        <ChargerCard key={i} charger={charger} updateChargerStatus={updateChargerStatus} onScan={() => setIsScannerOpen(true)} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* AC CHARGERS ROW */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#F0F9FF]"></div>
+                                    <span className="text-[10px] font-black text-[#0EA5E9] uppercase tracking-[0.2em] bg-[#F0F9FF] px-3 py-1 rounded-full">AC Regular Chargers</span>
+                                    <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#F0F9FF]"></div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {station.chargers.filter(c => c.chargerId.startsWith('AC') || c.type.toLowerCase().includes('type 2') || c.type.toLowerCase().includes('ac')).map((charger, i) => (
+                                        <ChargerCard key={i} charger={charger} updateChargerStatus={updateChargerStatus} onScan={() => setIsScannerOpen(true)} />
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
 
                     {/* STATION SUMMARY */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+                    <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
                         <h3 className="text-xl font-black text-[#1E293B] mb-8">Station Summary</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {[
@@ -277,7 +338,7 @@ const OperatorDashboard = () => {
                 {/* --- RIGHT COLUMN: BOOKINGS & ACTIONS --- */}
                 <div className="space-y-8">
                     {/* RECENT BOOKINGS */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+                    <div className="bg-white rounded-2xl p-4 min-h-96 border border-slate-100 shadow-sm">
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-xl font-black text-[#1E293B]">Recent Bookings</h3>
                             <button className="text-[10px] font-black text-[#10B981] uppercase tracking-[0.2em] hover:underline">View All</button>
@@ -302,9 +363,8 @@ const OperatorDashboard = () => {
                                     </div>
                                     <div className="text-right flex items-center gap-4">
                                         <div>
-                                            <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.15em] mb-1 inline-block ${
-                                                booking.paymentStatus === 'paid' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#FFFBEB] text-[#F59E0B]'
-                                            }`}>
+                                            <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.15em] mb-1 inline-block ${booking.paymentStatus === 'paid' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#FFFBEB] text-[#F59E0B]'
+                                                }`}>
                                                 {booking.paymentStatus === 'paid' ? 'Completed' : 'In Progress'}
                                             </div>
                                             <p className="text-[9px] font-bold text-[#94A3B8]">{booking.time || '15 min ago'}</p>
@@ -326,7 +386,7 @@ const OperatorDashboard = () => {
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
                         <h3 className="text-xl font-black text-[#1E293B] mb-8">Quick Actions</h3>
                         <div className="grid grid-cols-2 gap-4">
-                            <button 
+                            <button
                                 onClick={() => setIsScannerOpen(true)}
                                 className="p-6 bg-[#F8FAFC] rounded-[2rem] flex flex-col items-center gap-3 hover:bg-[#ECFDF5] transition-all group"
                             >
@@ -387,8 +447,8 @@ const OperatorDashboard = () => {
             </div>
 
 
-            <QRScannerModal 
-                isOpen={isScannerOpen} 
+            <QRScannerModal
+                isOpen={isScannerOpen}
                 onClose={() => setIsScannerOpen(false)}
                 onScanSuccess={handleScanSuccess}
             />

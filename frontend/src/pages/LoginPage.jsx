@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, MapPin, Navigation, Zap, Users, Leaf, ShieldCheck, HardHat } from "lucide-react";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
@@ -304,12 +304,19 @@ const LoginPage = ({ role }) => {
 
 
               
-                <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => {
-                        toast.error("Google login failed");
-                    }}
-                />
+                <div className="w-full flex justify-center">
+                  <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => {
+                          toast.error("Google login failed. Please check if your domain is authorized in Google Console.");
+                      }}
+                      useOneTap
+                      theme="filled_blue"
+                      shape="pill"
+                      size="large"
+                      width="320"
+                  />
+                </div>
 
               <div className="text-center text-gray-400 text-sm my-4">---------- OR ----------</div>
 

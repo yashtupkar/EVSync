@@ -26,6 +26,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import { adminSidebarItems } from "./config/adminSidebar";
 import { operatorSidebarItems } from "./config/operatorSidebar";
 import { Calendar, LayoutDashboard, MapPin, Settings, Wallet, Zap } from "lucide-react";
+import QRScannerModal from "./components/QRScannerModal";
 
 
 function App() {
@@ -141,9 +142,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+       
         </Route>
-
-
       </Routes>
     </Router>
   );

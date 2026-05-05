@@ -25,7 +25,16 @@ import {
   Leaf,
   ChevronDown,
   PlugZap,
-  EvCharger
+  EvCharger,
+  Check,
+  Heart,
+  Share2,
+  MessageSquare,
+  Plus,
+  Minus,
+  Bookmark,
+  History,
+  Navigation
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getStationById } from "../api/stationApi";
@@ -35,6 +44,76 @@ import { useSelector } from "react-redux";
 import evData from "../../data/ev-data.json";
 
 // Removed mock data as it's now dynamic
+
+const ChargerCard = ({ charger, isSelected, onSelect }) => {
+  const isAvailable = charger.status === 'available';
+  const isOccupied = charger.status === 'occupied' || charger.status === 'in_use';
+  const isMaintenance = charger.status === 'maintenance';
+  const isBooked = charger.status === 'booked';
+
+  // Get dynamic price from database fields
+  const price = charger.pricePerUnit || charger.pricePerMinute || charger.price || 15;
+
+  return (
+    <div 
+      onClick={() => isAvailable && onSelect(charger.chargerId)}
+      className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 cursor-pointer ${
+        isSelected 
+          ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500 shadow-md" 
+          : isAvailable
+            ? "border-gray-200 bg-white hover:border-emerald-200 hover:shadow-md"
+            : "border-gray-100 bg-gray-50/40 opacity-75 cursor-not-allowed"
+      }`}>
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+          isSelected || isAvailable ? "bg-emerald-50 text-emerald-600" :
+          isOccupied || isBooked ? "bg-amber-50 text-amber-500" :
+          "bg-red-50 text-red-500"
+        }`}>
+          <EvCharger size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-black text-gray-700 truncate">{charger.chargerId}</p>
+          <p className="text-[9px] text-gray-400 font-medium uppercase truncate">{charger.type} • {charger.power}kW</p>
+        </div>
+        {(isAvailable || isSelected) && (
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+            isSelected ? "bg-emerald-500" : "bg-emerald-50 border border-emerald-100"
+          }`}>
+            {isSelected && <Check size={10} className="text-white" strokeWidth={3} />}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg text-center ${
+          isSelected || isAvailable ? "bg-emerald-100 text-emerald-700" :
+          isOccupied || isBooked ? "bg-amber-100 text-amber-700" :
+          "bg-red-100 text-red-700"
+        }`}>
+          {charger.status === 'in_use' || charger.status === 'occupied' ? 'Occupied' : 
+           charger.status === 'booked' ? 'Booked' : charger.status}
+        </span>
+
+        <div className="flex justify-between items-center mt-1">
+          <div>
+            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Rate</p>
+            <p className="text-[11px] font-bold text-gray-800">₹{price}/kWh</p>
+          </div>
+          {isAvailable && (
+            <button 
+              className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                isSelected ? "bg-emerald-600 text-white shadow-sm" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {isSelected ? 'Selected' : 'Select'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SlotBookingPage = () => {
   const navigate = useNavigate();
@@ -68,6 +147,12 @@ const SlotBookingPage = () => {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [favorites, setFavorites] = useState([]);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  
+  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 
   const activeVehicle = user?.vehicles?.[activeVehicleIndex];
@@ -95,7 +180,42 @@ const SlotBookingPage = () => {
       }
     };
     if (stationId) fetchStation();
+
+    const savedFavorites = localStorage.getItem("evsync_favorites");
+    if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
   }, [stationId]);
+
+  useEffect(() => {
+    localStorage.setItem("evsync_favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (stationId) => {
+    setFavorites(prev => 
+      prev.includes(stationId) 
+        ? prev.filter(id => id !== stationId) 
+        : [...prev, stationId]
+    );
+  };
+
+  const handleShare = (station) => {
+    const shareText = `Check out this charging station: ${station.name} - ${station.address}`;
+    if (navigator.share) {
+      navigator.share({
+        title: station.name,
+        text: shareText,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return "https://images.unsplash.com/photo-1593941707882-a5bba14938c7";
+    if (url.startsWith("http")) return url;
+    return `${backendURL}${url.startsWith("/") ? "" : "/"}${url}`;
+  };
 
   // Fetch Available Slots when Date or Charger changes
   useEffect(() => {
@@ -312,32 +432,50 @@ const SlotBookingPage = () => {
         
         {/* Left Sidebar - Station Card */}
         <div className="space-y-6 h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20 pt-1 px-1 -mx-1">
-          <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-            <div className="relative h-[220px] group">
+          <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm flex flex-col h-fit">
+            {/* Image Header with Slider */}
+            <div className="relative h-[240px] group">
               <img 
-                src={station.images && station.images.length > 0 ? station.images[currentImageIndex] : "/src/assets/eco_charge_station.png"} 
+                src={getImageUrl(station.images?.[currentImageIndex])} 
                 alt="Station" 
-                className="w-full h-full object-cover transition-opacity duration-300"
+                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"; }}
+                className="w-full h-full object-cover transition-all duration-500"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+              
+              {/* Navigation */}
+              <button 
+                onClick={() => navigate(-1)}
+                className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-all active:scale-90 z-10"
+              >
+                <ArrowLeft size={18} />
+              </button>
+
+              {/* Favorite */}
+              <button
+                onClick={() => toggleFavorite(station._id)}
+                className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all active:scale-90 z-10"
+              >
+                <Heart size={18} className={favorites.includes(station._id) ? "fill-red-500 text-red-500" : "text-gray-400"} />
+              </button>
               
               {/* Image Navigation Arrows */}
-              {station.images && station.images.length > 1 && (
+              {station.images?.length > 1 && (
                 <>
                   <button 
                     onClick={handlePrevImage}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md transition-all hover:bg-white hover:scale-105"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
                   >
                     <ChevronLeft size={16} />
                   </button>
                   <button 
                     onClick={handleNextImage}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md transition-all hover:bg-white hover:scale-105"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
                   >
                     <ChevronRight size={16} />
                   </button>
                   
-                  {/* Image Indicators */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                  <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
                     {station.images.map((_, idx) => (
                       <div 
                         key={idx} 
@@ -348,92 +486,235 @@ const SlotBookingPage = () => {
                 </>
               )}
 
-              <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-gray-100 shadow-sm">
-                <Star size={12} className="fill-amber-400 text-amber-400" />
-                <span className="text-[11px] font-bold text-gray-800">{station.rating || 0}</span>
-                <span className="text-[10px] text-gray-400">({station.reviewsCount || 0} reviews)</span>
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+                <span className="bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-lg uppercase">
+                  {station.operatingHours || "24 HOURS"}
+                </span>
+                <button className="bg-black/50 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2 hover:bg-black/70 transition-all">
+                  <History size={12} /> {station.images?.length || 1} Photos
+                </button>
               </div>
             </div>
             
-            <div className="p-5">
+            {/* Title & Stats */}
+            <div className="p-6 pb-0">
               <div className="flex justify-between items-start">
-                <h2 className="text-[17px] font-bold text-gray-900 tracking-tight leading-tight">{station.name}</h2>
-                <span className="text-[10px] font-bold text-emerald-500 bg-[#E8F5EE] px-2 py-0.5 rounded-md border border-[#D1EBDD] whitespace-nowrap capitalize">
-                  {station.operatingHours ? "Open" : "Open"}
-                </span>
-              </div>
-              
-              <div className="flex items-start gap-2 mt-2.5">
-                <MapPin size={14} className="text-gray-400 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-gray-500 leading-normal">{station.address}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-6">
-                {[
-                  { icon: Zap, label: "Max Power", value: `${station.chargers?.[0]?.power || 0} kW`, color: "text-emerald-500", bg: "bg-[#F1F9F4]" },
-                  { icon: CheckCircle2, label: "Connectors", value: station.chargers?.length ? `${station.chargers.length} Ports` : "N/A", color: "text-blue-500", bg: "bg-blue-50" },
-                  { icon: Battery, label: "Type", value: station.stationType || "Unknown", color: "text-emerald-500", bg: "bg-[#F1F9F4]" },
-                  { icon: Clock, label: "Available", value: station.operatingHours || "N/A", color: "text-amber-500", bg: "bg-amber-50" }
-                ].map((stat, i) => (
-                  <div key={i} className="bg-[#F9FAFB] border border-gray-100 rounded-2xl p-3 text-center">
-                    <div className={`${stat.bg} ${stat.color} w-7 h-7 rounded-lg flex items-center justify-center mx-auto mb-2`}>
-                      <stat.icon size={14} />
-                    </div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{stat.label}</p>
-                    <p className="text-xs font-bold text-gray-900 mt-0.5">{stat.value}</p>
+                <div className="flex-grow">
+                  <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                    {station.name}
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {station.stationType || "Public"} Charging Hub
+                  </p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
+                    <Star size={14} className="fill-amber-400 text-amber-400" />
+                    <span className="text-sm font-bold text-amber-700">{station.rating || "4.5"}</span>
                   </div>
-                ))}
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                    {station.reviewsCount || 0} Reviews
+                  </span>
+                </div>
               </div>
+            </div>
 
-              <div className="mt-6">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">About Station</h3>
-                <p className="text-[11px] text-gray-500 leading-relaxed mt-2 line-clamp-3">
-                  {station.description || "No description provided."}
-                </p>
-                <button className="text-[11px] font-bold text-emerald-500 mt-2 flex items-center gap-1 hover:underline">
-                  Read More <ChevronRight size={14} />
-                </button>
-              </div>
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 mt-6 sticky top-0 bg-white z-20">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === "overview" ? "text-emerald-600" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                Overview
+                {activeTab === "overview" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />}
+              </button>
+              <button
+                onClick={() => setActiveTab("reviews")}
+                className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === "reviews" ? "text-emerald-600" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                Reviews
+                {activeTab === "reviews" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />}
+              </button>
+            </div>
 
-              <div className="mt-6">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Amenities</h3>
-                <div className="grid grid-cols-2 gap-y-3 gap-x-2 mt-3">
-                  {(station.amenities?.length > 0 ? station.amenities : []).map((amenity, i) => {
-                    const Icon = getAmenityIcon(amenity);
-                    return (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100 text-gray-400">
-                          <Icon size={14} />
-                        </div>
-                        <span className="text-[11px] font-medium text-gray-600 capitalize">{amenity}</span>
+            <div className="flex-grow overflow-y-auto no-scrollbar">
+              {activeTab === "overview" ? (
+                <div className="p-6 space-y-6">
+                  {/* Action Buttons */}
+                  <div className="flex justify-between items-center gap-2">
+                    {[
+                      { icon: Navigation, label: "Route", color: "bg-[#1A73E8] text-white", onClick: () => window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.location.coordinates[1]},${station.location.coordinates[0]}`, "_blank") },
+                      { icon: Heart, label: "Save", color: favorites.includes(station._id) ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600", onClick: () => toggleFavorite(station._id) },
+                      { icon: Share2, label: "Share", color: "bg-blue-50 text-blue-600", onClick: () => handleShare(station) },
+                      { icon: Bookmark, label: "Bookmark", color: "bg-blue-50 text-blue-600", onClick: () => { } }
+                    ].map((btn, idx) => (
+                      <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                        <button
+                          onClick={btn.onClick}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm ${btn.color}`}
+                        >
+                          <btn.icon size={16} fill={idx === 0 ? "white" : "none"} />
+                        </button>
+                        <span className="text-[9px] font-bold text-center text-gray-600 leading-tight">
+                          {btn.label}
+                        </span>
                       </div>
-                    );
-                  })}
-                  {(!station.amenities || station.amenities.length === 0) && (
-                    <span className="text-[11px] text-gray-400 italic">No amenities listed</span>
+                    ))}
+                  </div>
+
+                  {/* Station Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    {[
+                      { icon: Zap, label: "Max Power", value: `${station.chargers?.[0]?.power || 0} kW`, color: "text-emerald-500", bg: "bg-[#F1F9F4]" },
+                      { icon: CheckCircle2, label: "Connectors", value: `${station.chargers?.length || 0} Ports`, color: "text-blue-500", bg: "bg-blue-50" },
+                      { icon: Battery, label: "Type", value: station.stationType || "Public", color: "text-purple-500", bg: "bg-purple-50" },
+                      { icon: Clock, label: "Available", value: "24 Hours", color: "text-amber-500", bg: "bg-amber-50" }
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center group hover:bg-white hover:border-emerald-200 transition-all">
+                        <div className={`${stat.bg} ${stat.color} w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110`}>
+                          <stat.icon size={16} />
+                        </div>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
+                        <p className="text-[11px] font-bold text-gray-900 mt-1">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Amenities */}
+                  {station.amenities?.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Amenities</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {station.amenities.map((amenity, i) => {
+                          const Icon = getAmenityIcon(amenity);
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-500 border border-gray-100">
+                                <Icon size={14} />
+                              </div>
+                              <span className="text-[11px] font-bold text-gray-600 capitalize">{amenity}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location Info */}
+                  <div className="space-y-4 pt-4 border-t border-gray-50">
+                    <div className="flex items-start gap-4">
+                      <div className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
+                        <MapPin size={18} />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-[11px] font-bold text-gray-700 leading-relaxed">
+                          {station.address}
+                        </p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Exact Location</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 space-y-6">
+                  {/* Add Review Button */}
+                  {!showReviewForm ? (
+                    <button 
+                      onClick={() => setShowReviewForm(true)}
+                      className="w-full py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-[11px] border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                    >
+                      <MessageSquare size={16} /> Write a Review
+                    </button>
+                  ) : (
+                    <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Your Review</h4>
+                        <button onClick={() => setShowReviewForm(false)} className="text-[10px] text-gray-400 hover:text-gray-600 font-bold uppercase">Cancel</button>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button 
+                            key={star} 
+                            onClick={() => setNewReview({...newReview, rating: star})}
+                            className="transition-transform active:scale-90"
+                          >
+                            <Star 
+                              size={20} 
+                              fill={star <= newReview.rating ? "#FBBF24" : "none"} 
+                              className={star <= newReview.rating ? "text-yellow-400" : "text-gray-300"}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <textarea 
+                        value={newReview.comment}
+                        onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                        placeholder="How was your experience?"
+                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-[12px] focus:outline-none focus:border-emerald-500/50 min-h-[80px] font-medium"
+                      />
+                      
+                      <button 
+                        className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
+                        onClick={() => {
+                          alert("Review submitted! (Mock)");
+                          setShowReviewForm(false);
+                          setNewReview({ rating: 5, comment: "" });
+                        }}
+                      >
+                        Submit
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Review List */}
+                  <div className="space-y-6">
+                    {(station.reviews?.length > 0 ? station.reviews : [
+                      { userName: "Rahul Sharma", rating: 5, comment: "Excellent fast charging station. Highly recommended!", date: "2 days ago" },
+                      { userName: "Anita Desai", rating: 4, comment: "Good experience, clean location.", date: "1 week ago" }
+                    ]).map((review, idx) => (
+                      <div key={idx} className="space-y-2 pb-6 border-b border-gray-50 last:border-0">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            {review.userAvatar ? (
+                              <img 
+                                src={getImageUrl(review.userAvatar)} 
+                                alt="" 
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                                className="w-8 h-8 rounded-full object-cover border border-emerald-100" 
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-[10px]">
+                                {(review.userName || review.user?.name || review.userId?.name || "U")[0]}
+                              </div>
+                            )}
+                            <div>
+                              <h5 className="text-[11px] font-bold text-gray-900">{review.userName || review.user?.name || review.userId?.name || "Anonymous User"}</h5>
+                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{review.date || (review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Recent")}</p>
+                            </div>
+                          </div>
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={8} fill={i < review.rating ? "currentColor" : "none"} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-relaxed font-medium pl-11">
+                          {review.comment}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {(!station.reviews || station.reviews.length === 0) && (
+                    <div className="flex flex-col items-center justify-center text-center py-6 opacity-60">
+                      <MessageSquare size={24} className="text-gray-300 mb-2" />
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No more reviews</p>
+                    </div>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-gray-100 space-y-3.5">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Station Details</h3>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="capitalize text-gray-400 font-medium">Operator</span>
-                  <span className="font-bold text-gray-800">{station.operatorName || station.ownerId?.name || "Not specified"}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="capitalize text-gray-400 font-medium">Contact</span>
-                  <span className="font-bold text-gray-800">{station.contactNumber || "Not available"}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="capitalize text-gray-400 font-medium">Email</span>
-                  <span className="font-bold text-gray-800">{station.email || "Not available"}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="capitalize text-gray-400 font-medium">GST No</span>
-                  <span className="font-bold text-gray-800 uppercase">{station.gstNo || "N/A"}</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -610,31 +891,14 @@ const SlotBookingPage = () => {
                   <p className="text-[13px] text-gray-400 font-medium">High speed charging for your EV</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {dcChargers.map((slot) => (
-                    <button 
+                    <ChargerCard 
                       key={slot.chargerId}
-                      disabled={slot.status !== "available"}
-                      onClick={() => setSelectedSlot(slot.chargerId)}
-                      className={`relative cursor-pointer p-3 rounded-xl border text-left transition-all flex items-start gap-4 ${getSlotStyles(slot.chargerId, slot.status)} hover:-translate-y-0.5`}
-                    >
-                      {selectedSlot === slot.chargerId && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center border-[3px] border-white shadow-sm z-10">
-                          <CheckCircle2 size={12} strokeWidth={4} />
-                        </div>
-                      )}
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${slot.status === 'available' ? 'bg-[#E8F5EE] text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                        <EvCharger size={18} />
-                      </div>
-                      <div className="space-y-1 w-full">
-                        <span className="text-[15px] font-bold text-gray-900 tracking-tight block">{slot.chargerId}</span>
-                        <p className="text-[11px] text-gray-500 font-medium tracking-tight uppercase">{slot.type} • {slot.power} kW</p>
-                        <p className={`text-[12px] font-bold capitalize pt-1 ${getStatusIconColor(slot.status)}`}>
-                          {slot.status}
-                        </p>
-                        <p className="text-[13px] font-bold text-gray-800 pt-2">₹{slot.pricePerUnit || slot.pricePerMinute}/kWh</p>
-                      </div>
-                    </button>
+                      charger={slot}
+                      isSelected={selectedSlot === slot.chargerId}
+                      onSelect={(id) => setSelectedSlot(id)}
+                    />
                   ))}
                 </div>
               </div>
@@ -653,31 +917,14 @@ const SlotBookingPage = () => {
                   <ChevronDown size={20} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
                 </div>
 
-                <div className="grid grid-cols-3  gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {acChargers.map((slot) => (
-                    <button 
+                    <ChargerCard 
                       key={slot.chargerId}
-                      disabled={slot.status !== "available"}
-                      onClick={() => setSelectedSlot(slot.chargerId)}
-                      className={`relative cursor-pointer p-3 rounded-xl border text-left transition-all flex items-start gap-4 ${getSlotStyles(slot.chargerId, slot.status)} hover:-translate-y-0.5`}
-                    >
-                      {selectedSlot === slot.chargerId && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center border-[3px] border-white shadow-sm z-10">
-                          <CheckCircle2 size={12} strokeWidth={4} />
-                        </div>
-                      )}
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${slot.status === 'available' ? 'bg-[#E8F5EE] text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                        <EvCharger size={18} />
-                      </div>
-                      <div className="space-y-1 w-full">
-                        <span className="text-[15px] font-bold text-gray-900 tracking-tight block">{slot.chargerId}</span>
-                        <p className="text-[11px] text-gray-500 font-medium tracking-tight uppercase">{slot.type} • {slot.power} kW</p>
-                        <p className={`text-[12px] font-bold capitalize pt-1 ${getStatusIconColor(slot.status)}`}>
-                          {slot.status}
-                        </p>
-                        <p className="text-[13px] font-bold text-gray-800 pt-2">₹{slot.pricePerUnit || slot.pricePerMinute}/kWh</p>
-                      </div>
-                    </button>
+                      charger={slot}
+                      isSelected={selectedSlot === slot.chargerId}
+                      onSelect={(id) => setSelectedSlot(id)}
+                    />
                   ))}
                 </div>
               </div>
