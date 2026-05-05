@@ -367,11 +367,11 @@ const OperatorDashboard = () => {
                         </div>
                         <div className="space-y-6">
                             {(bookings.length > 0 ? bookings : [
-                                { userId: { name: 'Amit Rawat' }, chargerId: 'DC-03', amount: 365, paymentStatus: 'in_progress', time: '15 min ago' },
-                                { userId: { name: 'Priya Singh' }, chargerId: 'AC-03', amount: 365, paymentStatus: 'in_progress', time: '32 min ago' },
-                                { userId: { name: 'Rohit Kumar' }, chargerId: 'DC-01', amount: 365, paymentStatus: 'paid', time: '1 hr ago' },
-                                { userId: { name: 'Neha Sharma' }, chargerId: 'AC-02', amount: 280, paymentStatus: 'paid', time: '2 hr ago' },
-                                { userId: { name: 'Vikram Gupta' }, chargerId: 'DC-02', amount: 365, paymentStatus: 'paid', time: '3 hr ago' },
+                                { userId: { name: 'Amit Rawat' }, chargerId: 'DC-03', amount: 1, paymentStatus: 'in_progress', time: '15 min ago' },
+                                { userId: { name: 'Priya Singh' }, chargerId: 'AC-03', amount: 1, paymentStatus: 'in_progress', time: '32 min ago' },
+                                { userId: { name: 'Rohit Kumar' }, chargerId: 'DC-01', amount: 1, paymentStatus: 'paid', time: '1 hr ago' },
+                                { userId: { name: 'Neha Sharma' }, chargerId: 'AC-02', amount: 1, paymentStatus: 'paid', time: '2 hr ago' },
+                                { userId: { name: 'Vikram Gupta' }, chargerId: 'DC-02', amount: 1, paymentStatus: 'paid', time: '3 hr ago' },
                             ]).slice(0, 5).map((booking, i) => (
                                 <div key={i} className="flex items-center justify-between group cursor-pointer hover:bg-slate-50 p-2 -m-2 rounded-2xl transition-all">
                                     <div className="flex items-center gap-4">

@@ -323,7 +323,7 @@ const SlotBookingPage = () => {
         chargerId: selectedSlot,
         date: dates[0].fullDate, // Today
         timeSlot: timeSlot,
-        amount: 365,
+        amount: 1, // Production booking amount set to ₹1
         vehicleDetails: selectedVehicle ? {
           name: selectedVehicle.name,
           image: selectedVehicle.image
@@ -395,7 +395,7 @@ const SlotBookingPage = () => {
         chargerId: selectedSlot,
         date: selectedDateObj.fullDate,
         timeSlot: selectedTime,
-        amount: 365, // Mock amount for now
+        amount: 1, // Production booking amount set to ₹1
         vehicleDetails: selectedVehicle ? {
           name: selectedVehicle.name,
           image: selectedVehicle.image
