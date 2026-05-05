@@ -24,6 +24,9 @@ router.get('/:bookingId', authMiddleware, bookingController.getBookingById);
 // Update booking status (Protected)
 router.patch('/:bookingId/status', authMiddleware, bookingController.updateBookingStatus);
 
+// Start charging simulation (Protected)
+router.post('/:bookingId/start-charging', authMiddleware, bookingController.startCharging);
+
 module.exports = router;
 
 

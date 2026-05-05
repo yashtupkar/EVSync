@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
 import { useNavigate } from 'react-router-dom';
+import { socket } from '../utils/socket';
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -151,6 +152,27 @@ const OperatorDashboard = () => {
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    // Socket.io for real-time updates
+    useEffect(() => {
+        const handleNewBooking = (data) => {
+            // If the booking is for the station the operator is currently viewing
+            if (station && data.stationId === station._id) {
+                toast.success('New booking confirmed!');
+                fetchDashboardData();
+            }
+        };
+
+        socket.on('booking_confirmed', handleNewBooking);
+        socket.on('booking_status_updated', fetchDashboardData);
+        socket.on('charger_status_updated', fetchDashboardData);
+
+        return () => {
+            socket.off('booking_confirmed', handleNewBooking);
+            socket.off('booking_status_updated', fetchDashboardData);
+            socket.off('charger_status_updated', fetchDashboardData);
+        };
+    }, [station]);
 
     const fetchDashboardData = async () => {
         try {

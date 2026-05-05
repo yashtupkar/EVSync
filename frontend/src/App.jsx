@@ -7,6 +7,7 @@ import ProfilePage from "./components/ProfilePage";
 import BookingSuccessPage from "./pages/BookingSuccessPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import VerifyBookingPage from "./pages/VerifyBookingPage";
+import ChargingProgressPage from "./pages/ChargingProgressPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 
@@ -27,9 +28,23 @@ import { adminSidebarItems } from "./config/adminSidebar";
 import { operatorSidebarItems } from "./config/operatorSidebar";
 import { Calendar, LayoutDashboard, MapPin, Settings, Wallet, Zap } from "lucide-react";
 import QRScannerModal from "./components/QRScannerModal";
+import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { selectUser } from "./features/auth/authSelectors";
+import { connectSocket, disconnectSocket } from "./utils/socket";
 
 
 function App() {
+  const user = useSelector(selectUser);
+
+  useEffect(() => {
+    if (user) {
+      connectSocket(user._id);
+    } else {
+      disconnectSocket();
+    }
+    return () => disconnectSocket();
+  }, [user]);
 
   const StationOwnerSidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/owner-dashboard' },
@@ -71,6 +86,7 @@ function App() {
           <Route path="/booking-success/:bookingId" element={<BookingSuccessPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
           <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
+          <Route path="/charging-progress/:bookingId" element={<ChargingProgressPage />} />
         </Route>
 
 

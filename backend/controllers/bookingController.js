@@ -101,7 +101,8 @@ exports.createBooking = async (req, res) => {
       date, 
       timeSlot, 
       amount,
-      vehicleDetails
+      vehicleDetails,
+      isInstant
     } = req.body;
 
     const userId = req.user.id; // From authMiddleware
@@ -135,6 +136,7 @@ exports.createBooking = async (req, res) => {
       amount,
       otp,
       vehicleDetails,
+      isInstant,
       paymentStatus: 'pending'
     });
 
@@ -228,6 +230,16 @@ exports.confirmBooking = async (req, res) => {
 
 
 
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('booking_confirmed', { 
+        stationId: booking.stationId._id, 
+        chargerId: booking.chargerId,
+        date: booking.date,
+        timeSlot: `${booking.startTime} - ${booking.endTime}`
+      });
+    }
+
     res.status(200).json({ 
       message: 'Booking confirmed successfully',
       booking 
@@ -300,7 +312,99 @@ exports.updateBookingStatus = async (req, res) => {
     booking.bookingStatus = status;
     await booking.save();
 
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('booking_status_updated', {
+        bookingId: booking._id,
+        status: status,
+        userId: booking.userId
+      });
+    }
+
     res.status(200).json({ success: true, message: `Booking marked as ${status}`, booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Start charging simulation (Real-time update)
+ */
+exports.startCharging = async (req, res) => {
+  const { bookingId } = req.params;
+  const io = req.app.get('socketio');
+
+  try {
+    const booking = await Booking.findById(bookingId).populate('stationId');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    if (booking.bookingStatus === 'completed') {
+      return res.status(400).json({ success: false, message: 'Charging already completed' });
+    }
+
+    booking.bookingStatus = 'charging';
+    booking.percentage = 0;
+    booking.currentKwh = 0;
+    booking.statusMessage = 'Charging started...';
+    await booking.save();
+
+    // Emit initial status
+    if (io) {
+      io.emit('charging_update', { bookingId, percentage: 0, currentKwh: 0, status: 'charging' });
+      io.emit('charger_status_updated', {
+        stationId: booking.stationId._id,
+        chargerId: booking.chargerId,
+        status: 'occupied'
+      });
+    }
+
+    // Start Simulation
+    let progress = 0;
+    const interval = setInterval(async () => {
+      progress += Math.floor(Math.random() * 10) + 5; // Increase by 5-15%
+      
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        
+        const updatedBooking = await Booking.findById(bookingId);
+        updatedBooking.percentage = 100;
+        updatedBooking.currentKwh = 15.5; // Fixed final value for simulation
+        updatedBooking.bookingStatus = 'completed';
+        updatedBooking.statusMessage = 'Charging completed successfully!';
+        await updatedBooking.save();
+
+        if (io) {
+          io.emit('charging_update', { 
+            bookingId, 
+            percentage: 100, 
+            currentKwh: 15.5, 
+            status: 'completed' 
+          });
+          io.emit('booking_status_updated', { bookingId, status: 'completed' });
+          io.emit('charger_status_updated', {
+            stationId: booking.stationId._id,
+            chargerId: booking.chargerId,
+            status: 'available'
+          });
+        }
+      } else {
+        const kwh = (progress * 0.15).toFixed(2);
+        
+        // Update DB occasionally or just rely on Socket for live view
+        // To keep it simple, we just emit via Socket for real-time
+        if (io) {
+          io.emit('charging_update', { 
+            bookingId, 
+            percentage: progress, 
+            currentKwh: kwh, 
+            status: 'charging' 
+          });
+        }
+      }
+    }, 3000); // Update every 3 seconds
+
+    res.status(200).json({ success: true, message: 'Charging session started' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

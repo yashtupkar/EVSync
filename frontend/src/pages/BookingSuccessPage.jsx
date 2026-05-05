@@ -14,8 +14,10 @@ import {
   Copy,
   Check,
   ShieldCheck,
-  Navigation
+  Navigation,
+  Activity
 } from 'lucide-react';
+import { socket } from '../utils/socket';
 
 const BookingSuccessPage = () => {
   const { bookingId } = useParams();
@@ -28,7 +30,8 @@ const BookingSuccessPage = () => {
     const fetchBooking = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/bookings/my-bookings`, {
+        const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+        const response = await axios.get(`${backendURL}/api/bookings/my-bookings`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const currentBooking = response.data.find(b => b._id === bookingId);
@@ -40,7 +43,17 @@ const BookingSuccessPage = () => {
       }
     };
     fetchBooking();
-  }, [bookingId]);
+
+    // Listen for real-time status update to redirect to progress page
+    const handleChargingStart = (data) => {
+      if (data.bookingId === bookingId && data.status === 'charging') {
+        navigate(`/charging-progress/${bookingId}`);
+      }
+    };
+
+    socket.on('charging_update', handleChargingStart);
+    return () => socket.off('charging_update', handleChargingStart);
+  }, [bookingId, navigate]);
 
   const handleCopyOTP = () => {
     navigator.clipboard.writeText(booking?.otp);
@@ -182,21 +195,33 @@ const BookingSuccessPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button 
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.stationId.location.coordinates[1]},${booking.stationId.location.coordinates[0]}`, '_blank')}
-                className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all"
-              >
-                <Navigation size={18} />
-                Get Directions
-              </button>
-              <button 
-                onClick={() => navigate('/discovery')}
-                className="flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-2xl transition-all"
-              >
-                Back to Discovery
-                <ArrowRight size={18} />
-              </button>
+            <div className="mt-10 space-y-4">
+              {booking.bookingStatus === 'charging' && (
+                <button 
+                  onClick={() => navigate(`/charging-progress/${bookingId}`)}
+                  className="w-full flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all animate-pulse"
+                >
+                  <Activity size={20} />
+                  Track Live Progress
+                </button>
+              )}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button 
+                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.stationId.location.coordinates[1]},${booking.stationId.location.coordinates[0]}`, '_blank')}
+                  className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all"
+                >
+                  <Navigation size={18} />
+                  Get Directions
+                </button>
+                <button 
+                  onClick={() => navigate('/discovery')}
+                  className="flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-2xl transition-all"
+                >
+                  Back to Discovery
+                  <ArrowRight size={18} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

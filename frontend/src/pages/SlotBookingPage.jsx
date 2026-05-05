@@ -40,6 +40,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getStationById } from "../api/stationApi";
 import { getAvailableSlots, createBooking, confirmBooking } from "../api/bookingApi";
 import { useSelector } from "react-redux";
+import { socket } from "../utils/socket";
 
 import evData from "../../data/ev-data.json";
 
@@ -238,6 +239,142 @@ const SlotBookingPage = () => {
     };
     fetchSlots();
   }, [stationId, selectedSlot, selectedDateObj]);
+
+  // Real-time slot updates via Socket.io
+  useEffect(() => {
+    const handleBookingConfirmed = (data) => {
+      // If the confirmed booking is for the same station and charger, refresh slots
+      if (data.stationId === stationId && data.chargerId === selectedSlot && data.date === selectedDateObj.fullDate) {
+        const fetchSlots = async () => {
+          setSlotsLoading(true);
+          try {
+            const response = await getAvailableSlots(stationId, selectedSlot, selectedDateObj.fullDate);
+            setAvailableSlots(response.data);
+          } catch (error) {
+            console.error("Error refreshing slots via socket:", error);
+          } finally {
+            setSlotsLoading(false);
+          }
+        };
+        fetchSlots();
+      }
+    };
+
+    socket.on('booking_confirmed', handleBookingConfirmed);
+    
+    const handleChargerStatusUpdated = (data) => {
+      if (data.stationId === stationId) {
+        // Refresh station data to get latest charger statuses
+        const fetchStation = async () => {
+          try {
+            const response = await getStationById(stationId);
+            setStation(response.data);
+          } catch (error) {
+            console.error("Error refreshing station via socket:", error);
+          }
+        };
+        fetchStation();
+      }
+    };
+
+    socket.on('charger_status_updated', handleChargerStatusUpdated);
+
+    return () => {
+      socket.off('booking_confirmed', handleBookingConfirmed);
+      socket.off('charger_status_updated', handleChargerStatusUpdated);
+    };
+  }, [stationId, selectedSlot, selectedDateObj]);
+
+  const handleInstantBooking = async () => {
+    if (!selectedSlot) {
+      alert("Please select a charger first");
+      return;
+    }
+
+    const selectedCharger = station.chargers.find(c => c.chargerId === selectedSlot);
+    if (selectedCharger?.status !== 'available') {
+      alert("This charger is currently occupied or unavailable for instant booking.");
+      return;
+    }
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // For instant booking, we use the current date and a 1-hour time slot
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      const formatHour = (h) => {
+        const hh = h % 12 || 12;
+        const ampm = h < 12 || h === 24 ? 'AM' : 'PM';
+        return `${hh}:00 ${ampm}`;
+      };
+
+      const startTime = formatHour(currentHour);
+      const endTime = formatHour(currentHour + 1);
+      const timeSlot = `${startTime} - ${endTime}`;
+      
+      const bookingData = {
+        stationId,
+        chargerId: selectedSlot,
+        date: dates[0].fullDate, // Today
+        timeSlot: timeSlot,
+        amount: 365,
+        vehicleDetails: selectedVehicle ? {
+          name: selectedVehicle.name,
+          image: selectedVehicle.image
+        } : null
+      };
+
+      const res = await createBooking(bookingData);
+      const { booking: newBooking, order } = res.data;
+
+      // Automatically confirm it for "Instant" (Simulation)
+      // In a real app, you'd still pay, but for this demo, we'll proceed to verification
+      
+      const options = {
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        name: "EVSync Payments",
+        description: `Instant Booking for ${station.name}`,
+        image: "/assets/logo.png",
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await confirmBooking({
+              bookingId: newBooking._id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            
+            setIsProcessing(false);
+            navigate(`/booking-success/${newBooking._id}`);
+          } catch (confirmErr) {
+            console.error("Confirmation error:", confirmErr);
+            alert("Payment verification failed.");
+            setIsProcessing(false);
+          }
+        },
+        prefill: { name: user.name, email: user.email, contact: user.mobile },
+        theme: { color: "#10b981" },
+        modal: { ondismiss: () => setIsProcessing(false) }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      console.error("Instant booking error:", error);
+      alert(error.response?.data?.message || "Booking failed");
+      setIsProcessing(false);
+    }
+  };
 
   const handleBooking = async () => {
     if (!selectedSlot || selectedTime === "Select Time" || selectedTime === "All Slots") {
@@ -1024,18 +1161,26 @@ const SlotBookingPage = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={handleBooking}
-                disabled={isProcessing}
-                className={`w-full cursor-pointer ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(27,172,75,0.25)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2`}
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    Processing...
-                  </>
-                ) : 'Confirm Booking'}
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleBooking}
+                  disabled={isProcessing}
+                  className={`flex-1 cursor-pointer ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px]`}
+                >
+                  {isProcessing ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : 'Confirm Booking'}
+                </button>
+
+                <button 
+                  onClick={handleInstantBooking}
+                  disabled={isProcessing}
+                  className={`px-5 cursor-pointer ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-900 hover:bg-black'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px] border border-gray-800`}
+                >
+                  <Zap size={16} className="text-amber-400 fill-amber-400" />
+                  Instant
+                </button>
+              </div>
 
 
               <div className="flex items-center justify-center gap-2 text-[10.5px] text-gray-400 font-bold tracking-tight">

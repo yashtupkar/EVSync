@@ -52,18 +52,22 @@ const VerifyBookingPage = () => {
     try {
       setVerifying(true);
       const token = localStorage.getItem('token');
-      const response = await axios.patch(`${backendURL}/api/bookings/${bookingId}/status`, {
-        status: 'completed'
-      }, {
+      const response = await axios.post(`${backendURL}/api/bookings/${bookingId}/start-charging`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
-        toast.success("Session Started Successfully!");
-        setBooking(response.data.booking);
+        toast.success("Charging Session Started!");
+        // Refresh booking details to show 'charging' status
+        const refreshRes = await axios.get(`${backendURL}/api/bookings/${bookingId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (refreshRes.data.success) {
+          setBooking(refreshRes.data.booking);
+        }
       }
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error("Error starting charging:", error);
       toast.error("Failed to start session");
     } finally {
       setVerifying(false);
@@ -104,12 +108,12 @@ const VerifyBookingPage = () => {
 
         <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
           {/* Header Status */}
-          <div className={`p-6 text-center ${booking.bookingStatus === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'} text-white`}>
+          <div className={`p-6 text-center ${booking.bookingStatus === 'completed' ? 'bg-emerald-500' : booking.bookingStatus === 'charging' ? 'bg-blue-500' : 'bg-amber-500'} text-white`}>
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-              {booking.bookingStatus === 'completed' ? <CheckCircle2 size={32} /> : <Clock size={32} />}
+              {booking.bookingStatus === 'completed' ? <CheckCircle2 size={32} /> : booking.bookingStatus === 'charging' ? <Zap size={32} className="animate-pulse" /> : <Clock size={32} />}
             </div>
             <h2 className="text-2xl font-black uppercase tracking-tight">
-              {booking.bookingStatus === 'completed' ? 'Booking Verified' : 'Awaiting Arrival'}
+              {booking.bookingStatus === 'completed' ? 'Booking Verified' : booking.bookingStatus === 'charging' ? 'Charging In Progress' : 'Awaiting Arrival'}
             </h2>
             <p className="text-xs font-bold opacity-80 mt-1 uppercase tracking-widest">
               ID: {booking._id.slice(-8).toUpperCase()}
@@ -163,7 +167,7 @@ const VerifyBookingPage = () => {
             </div>
 
             {/* Actions */}
-            {booking.bookingStatus !== 'completed' ? (
+            {booking.bookingStatus === 'upcoming' ? (
               <button 
                 onClick={handleStartCharging}
                 disabled={verifying}
@@ -178,6 +182,11 @@ const VerifyBookingPage = () => {
                   </>
                 )}
               </button>
+            ) : booking.bookingStatus === 'charging' ? (
+                <div className="w-full bg-blue-500 text-white font-black py-5 rounded-[1.5rem] text-center flex items-center justify-center gap-3 shadow-lg shadow-blue-100">
+                    <Zap size={20} className="animate-pulse" />
+                    Charging Session Active
+                </div>
             ) : (
               <div className="w-full bg-gray-100 text-gray-400 font-black py-5 rounded-[1.5rem] text-center">
                 Session Completed

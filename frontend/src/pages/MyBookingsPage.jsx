@@ -12,7 +12,8 @@ import {
   Clock3, 
   CheckCircle2, 
   XCircle,
-  ArrowLeft
+  ArrowLeft,
+  Activity
 } from 'lucide-react';
 
 const MyBookingsPage = () => {
@@ -37,6 +38,7 @@ const MyBookingsPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'upcoming': return 'text-blue-500 bg-blue-50 border-blue-100';
+      case 'charging': return 'text-amber-500 bg-amber-50 border-amber-100 animate-pulse';
       case 'completed': return 'text-emerald-500 bg-emerald-50 border-emerald-100';
       case 'cancelled': return 'text-red-500 bg-red-50 border-red-100';
       default: return 'text-gray-500 bg-gray-50 border-gray-100';
@@ -46,6 +48,7 @@ const MyBookingsPage = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'upcoming': return <Clock3 size={14} />;
+      case 'charging': return <Zap size={14} />;
       case 'completed': return <CheckCircle2 size={14} />;
       case 'cancelled': return <XCircle size={14} />;
       default: return <Clock size={14} />;
@@ -137,8 +140,21 @@ const MyBookingsPage = () => {
                   <span className="text-[10px] font-bold text-gray-400 uppercase">Verification OTP</span>
                 </div>
 
-                <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
-                  Details <ChevronRight size={16} />
+                <div className="flex items-center gap-2">
+                  {booking.bookingStatus === 'charging' && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/charging-progress/${booking._id}`);
+                      }}
+                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
+                    >
+                      <Activity size={14} /> Track Progress
+                    </button>
+                  )}
+                  <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
+                    Details <ChevronRight size={16} />
+                  </div>
                 </div>
               </div>
             </div>

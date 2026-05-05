@@ -219,6 +219,15 @@ exports.updateChargerStatus = async (req, res) => {
     charger.status = status;
     await station.save();
 
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('charger_status_updated', {
+        stationId: id,
+        chargerId: chargerId,
+        status: status
+      });
+    }
+
     res.status(200).json({ success: true, message: 'Charger status updated', station });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

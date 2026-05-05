@@ -18,9 +18,13 @@ const bookingSchema = new mongoose.Schema({
   
   bookingStatus: { 
     type: String, 
-    enum: ['upcoming', 'completed', 'cancelled'], 
+    enum: ['upcoming', 'charging', 'completed', 'cancelled'], 
     default: 'upcoming' 
   },
+
+  currentKwh: { type: Number, default: 0 },
+  percentage: { type: Number, default: 0 },
+  statusMessage: { type: String, default: 'Ready to charge' },
   
   otp: { type: String, required: true }, // 4-digit code
   
@@ -29,7 +33,9 @@ const bookingSchema = new mongoose.Schema({
   vehicleDetails: {
     name: { type: String },
     image: { type: String }
-  }
+  },
+  
+  isInstant: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Booking', bookingSchema);
