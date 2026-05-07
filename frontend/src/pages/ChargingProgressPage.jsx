@@ -100,7 +100,7 @@ const ChargingProgressPage = () => {
     fetchBooking();
 
     const handleUpdate = (data) => {
-      if (data.bookingId === bookingId) {
+      if (String(data.bookingId) === String(bookingId)) {
         if (data.percentage !== undefined) setProgress(data.percentage);
         if (data.currentKwh !== undefined) setCurrentKwh(data.currentKwh);
         setStatus(data.status);
@@ -115,7 +115,7 @@ const ChargingProgressPage = () => {
     };
 
     const handleBillGenerated = (data) => {
-      if (data.bookingId === bookingId) {
+      if (String(data.bookingId) === String(bookingId)) {
         setBill({
           unitsConsumed: data.unitsConsumed,
           totalBill: data.totalBill,

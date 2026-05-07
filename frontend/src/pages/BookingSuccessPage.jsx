@@ -47,7 +47,7 @@ const BookingSuccessPage = () => {
 
     // Listen for real-time status update to redirect to progress page
     const handleChargingStart = (data) => {
-      if (data.bookingId === bookingId && data.status === 'charging') {
+      if (String(data.bookingId) === String(bookingId) && data.status === 'charging') {
         navigate(`/charging-progress/${bookingId}`);
       }
     };

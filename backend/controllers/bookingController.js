@@ -332,6 +332,7 @@ exports.updateBookingStatus = async (req, res) => {
     if (io) {
       io.emit('booking_status_updated', {
         bookingId: booking._id,
+        stationId: booking.stationId, // This is an ObjectId from the document
         status: status,
         userId: booking.userId
       });
@@ -384,7 +385,11 @@ exports.startCharging = async (req, res) => {
         currentKwh: 0, 
         status: 'charging' 
       });
-      io.emit('booking_status_updated', { bookingId, status: 'charging' });
+      io.emit('booking_status_updated', { 
+        bookingId, 
+        stationId: booking.stationId._id,
+        status: 'charging' 
+      });
       io.emit('charger_status_updated', {
         stationId: booking.stationId._id,
         chargerId: booking.chargerId,
@@ -418,7 +423,11 @@ exports.stopCharging = async (req, res) => {
         bookingId, 
         status: 'billing_pending' 
       });
-      io.emit('booking_status_updated', { bookingId, status: 'billing_pending' });
+      io.emit('booking_status_updated', { 
+        bookingId, 
+        stationId: booking.stationId._id,
+        status: 'billing_pending' 
+      });
       // Charger becomes available once charging stops
       io.emit('charger_status_updated', {
         stationId: booking.stationId._id,
@@ -470,6 +479,7 @@ exports.generateBill = async (req, res) => {
     if (io) {
       io.emit('bill_generated', { 
         bookingId, 
+        stationId: booking.stationId._id,
         unitsConsumed, 
         totalBill: totalAmount,
         order: {
@@ -513,7 +523,7 @@ exports.confirmBillPayment = async (req, res) => {
       return res.status(400).json({ message: 'Invalid bill payment signature' });
     }
     
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId).populate('stationId');
     booking.billPaymentStatus = 'paid';
     booking.billTransactionId = razorpay_payment_id;
     booking.bookingStatus = 'completed';
@@ -522,8 +532,15 @@ exports.confirmBillPayment = async (req, res) => {
 
     const io = req.app.get('socketio');
     if (io) {
-      io.emit('booking_status_updated', { bookingId, status: 'completed' });
-      io.emit('bill_paid', { bookingId });
+      io.emit('booking_status_updated', { 
+        bookingId, 
+        stationId: booking.stationId._id,
+        status: 'completed' 
+      });
+      io.emit('bill_paid', { 
+        bookingId,
+        stationId: booking.stationId._id
+      });
     }
 
     res.status(200).json({ success: true, message: 'Bill paid successfully', booking });

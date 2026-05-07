@@ -381,7 +381,7 @@ const TripPlannerPage = () => {
   useEffect(() => {
     const handleChargerStatus = (data) => {
       setStations(prev => prev.map(station => {
-        if (station._id === data.stationId) {
+        if (String(station._id) === String(data.stationId)) {
           return {
             ...station,
             chargers: station.chargers.map(charger => {

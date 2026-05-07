@@ -420,7 +420,7 @@ const SlotBookingPage = () => {
   useEffect(() => {
     const handleBookingConfirmed = (data) => {
       // If the confirmed booking is for the same station and charger, refresh slots
-      if (data.stationId === stationId && data.chargerId === selectedSlot && data.date === selectedDateObj.fullDate) {
+      if (String(data.stationId) === String(stationId) && data.chargerId === selectedSlot && data.date === selectedDateObj.fullDate) {
         const fetchSlots = async () => {
           setSlotsLoading(true);
           try {
@@ -440,7 +440,7 @@ const SlotBookingPage = () => {
     socket.on('booking_confirmed', handleBookingConfirmed);
     
     const handleChargerStatusUpdated = (data) => {
-      if (data.stationId === stationId) {
+      if (String(data.stationId) === String(stationId)) {
         // Refresh station data to get latest charger statuses
         const fetchStation = async () => {
           try {

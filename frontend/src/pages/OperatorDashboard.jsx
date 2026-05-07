@@ -23,7 +23,7 @@ import QRScannerModal from '../components/QRScannerModal';
 import { useNavigate } from 'react-router-dom';
 import { socket } from '../utils/socket';
 
-const backendURL = import.meta.env.VITE_BACKEND_URL;
+const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, activeBooking }) => {
     const isAvailable = charger.status === 'available';
@@ -240,32 +240,7 @@ const OperatorDashboard = () => {
     const [isGeneratingBill, setIsGeneratingBill] = useState(false);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    // Socket.io for real-time updates
-    useEffect(() => {
-        const handleNewBooking = (data) => {
-            // If the booking is for the station the operator is currently viewing
-            if (station && data.stationId === station._id) {
-                toast.success('New booking confirmed!');
-                fetchDashboardData();
-            }
-        };
-
-        socket.on('booking_confirmed', handleNewBooking);
-        socket.on('booking_status_updated', fetchDashboardData);
-        socket.on('charger_status_updated', fetchDashboardData);
-
-        return () => {
-            socket.off('booking_confirmed', handleNewBooking);
-            socket.off('booking_status_updated', fetchDashboardData);
-            socket.off('charger_status_updated', fetchDashboardData);
-        };
-    }, [station]);
-
-    const fetchDashboardData = async () => {
+        const fetchDashboardData = React.useCallback(async () => {
         try {
             setRefreshing(true);
             const stationRes = await axios.get(`${backendURL}/api/stations/operator/my-station`, {
@@ -306,7 +281,47 @@ const OperatorDashboard = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [token, backendURL]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [token]); // Re-fetch if token changes
+
+    // Socket.io for real-time updates
+    useEffect(() => {
+        if (!station?._id) return;
+
+        const currentStationId = String(station._id);
+
+        const handleNewBooking = (data) => {
+            console.log("New booking event received:", data);
+            // Robust ID comparison using String()
+            if (data.stationId && String(data.stationId) === currentStationId) {
+                toast.success('New booking confirmed!');
+                fetchDashboardData();
+            }
+        };
+
+        const handleStatusUpdate = (data) => {
+            console.log("Status update event received:", data);
+            // Strictly filter by stationId to avoid unnecessary global refreshes
+            if (data.stationId && String(data.stationId) === currentStationId) {
+                fetchDashboardData();
+            }
+        };
+
+        socket.on('booking_confirmed', handleNewBooking);
+        socket.on('booking_status_updated', handleStatusUpdate);
+        socket.on('charger_status_updated', handleStatusUpdate);
+
+        return () => {
+            socket.off('booking_confirmed', handleNewBooking);
+            socket.off('booking_status_updated', handleStatusUpdate);
+            socket.off('charger_status_updated', handleStatusUpdate);
+        };
+    }, [station?._id, fetchDashboardData]); // Re-bind if station ID or fetch function changes
+
+
 
     const updateChargerStatus = async (chargerId, newStatus) => {
         try {

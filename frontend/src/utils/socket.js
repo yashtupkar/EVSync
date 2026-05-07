@@ -5,8 +5,10 @@ const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 export const socket = io(SOCKET_URL, {
   autoConnect: true,
   reconnection: true,
-  reconnectionAttempts: 5,
+  reconnectionAttempts: 10,
   reconnectionDelay: 1000,
+  transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+  withCredentials: true,
 });
 
 export const connectSocket = (userId) => {
