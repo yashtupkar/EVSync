@@ -11,51 +11,8 @@ const razorpay = new Razorpay({
 });
 
 
-// Helper to generate slots
-const generateTimeSlots = (operatingHours) => {
-  // Simple parser for "09:00 AM - 09:00 PM" or "24 Hours"
-  if (!operatingHours || operatingHours.toLowerCase().includes('24 hours')) {
-    return Array.from({ length: 24 }, (_, i) => {
-      const hour = i % 12 || 12;
-      const ampm = i < 12 ? 'AM' : 'PM';
-      const nextHour = (i + 1) % 12 || 12;
-      const nextAmpm = (i + 1) < 12 || (i + 1) === 24 ? 'AM' : 'PM';
-      return `${hour}:00 ${ampm} - ${nextHour}:00 ${nextAmpm}`;
-    });
-  }
-
-  try {
-    const [start, end] = operatingHours.split('-').map(t => t.trim());
-    // This is a simplified version. For a real app, use moment or date-fns.
-    // For now, let's assume standard format "HH:MM AM - HH:MM PM"
-    const parseTime = (t) => {
-      const [time, modifier] = t.split(' ');
-      let [hours, minutes] = time.split(':').map(Number);
-      if (modifier === 'PM' && hours !== 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-      return hours;
-    };
-
-    const startHour = parseTime(start);
-    const endHour = parseTime(end);
-    
-    const slots = [];
-    for (let h = startHour; h < endHour; h++) {
-      const hour = h % 12 || 12;
-      const ampm = h < 12 ? 'AM' : 'PM';
-      const nextH = h + 1;
-      const nextHour = nextH % 12 || 12;
-      const nextAmpm = nextH < 12 || nextH === 24 ? 'AM' : 'PM';
-      slots.push(`${hour}:00 ${ampm} - ${nextHour}:00 ${nextAmpm}`);
-    }
-    return slots;
-  } catch (e) {
-    return ["09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM"]; // Fallback
-  }
-};
-
 /**
- * Get available slots for a charger on a specific date
+ * Get available slots and booked ranges for a charger on a specific date
  */
 exports.getAvailableSlots = async (req, res) => {
   try {
@@ -67,27 +24,47 @@ exports.getAvailableSlots = async (req, res) => {
     const charger = station.chargers.find(c => c.chargerId === chargerId);
     if (!charger) return res.status(404).json({ message: 'Charger not found' });
 
-    const allSlots = generateTimeSlots(station.operatingHours);
-    
-    // Find existing bookings for this charger on this date
+    // Find existing active or upcoming bookings for this charger on this date
+    // Ignore cancelled, completed, and stale pending_payment bookings (> 10 mins)
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
     const existingBookings = await Booking.find({
       stationId,
       chargerId,
       date,
-      bookingStatus: { $ne: 'cancelled' }
+      $or: [
+        { bookingStatus: { $in: ['upcoming', 'charging', 'billing_pending'] } },
+        { bookingStatus: 'pending_payment', createdAt: { $gt: tenMinsAgo } }
+      ]
     });
 
-    const bookedTimes = existingBookings.map(b => `${b.startTime} - ${b.endTime}`);
-
-    const availability = allSlots.map(slot => ({
-      time: slot,
-      status: bookedTimes.includes(slot) ? 'booked' : 'available'
+    const bookedRanges = existingBookings.map(b => ({
+      start: b.startTime,
+      end: b.endTime
     }));
 
-    res.status(200).json(availability);
+    res.status(200).json({
+      operatingHours: station.operatingHours,
+      bookedRanges
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+const timeToMinutes = (timeStr) => {
+  const [time, modifier] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  if (modifier === 'PM' && hours !== 12) hours += 12;
+  if (modifier === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
+const isOverlapping = (start1, end1, start2, end2) => {
+  const s1 = timeToMinutes(start1);
+  const e1 = timeToMinutes(end1);
+  const s2 = timeToMinutes(start2);
+  const e2 = timeToMinutes(end2);
+  return s1 < e2 && s2 < e1;
 };
 
 /**
@@ -99,7 +76,8 @@ exports.createBooking = async (req, res) => {
       stationId, 
       chargerId, 
       date, 
-      timeSlot, 
+      startTime,
+      endTime,
       amount,
       vehicleDetails,
       isInstant
@@ -107,20 +85,30 @@ exports.createBooking = async (req, res) => {
 
     const userId = req.user.id; // From authMiddleware
     
-    // Split "10:00 AM - 11:00 AM"
-    const [startTime, endTime] = timeSlot.split('-').map(t => t.trim());
-
-    // Check for double booking (Race condition protection)
-    const existing = await Booking.findOne({
+    // Check for overlaps with existing active or upcoming bookings
+    // Ignore cancelled, completed, and stale pending_payment bookings (> 10 mins)
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const existingBookings = await Booking.find({
       stationId,
       chargerId,
       date,
-      startTime,
-      bookingStatus: { $ne: 'cancelled' }
+      $or: [
+        { bookingStatus: { $in: ['upcoming', 'charging', 'billing_pending'] } },
+        { bookingStatus: 'pending_payment', createdAt: { $gt: tenMinsAgo } }
+      ]
     });
 
-    if (existing) {
-      return res.status(400).json({ message: 'This slot was just booked by someone else.' });
+    for (const booking of existingBookings) {
+      if (isOverlapping(startTime, endTime, booking.startTime, booking.endTime)) {
+        return res.status(400).json({ 
+          message: `This time range overlaps with an existing booking (${booking.startTime} - ${booking.endTime}).`,
+          overlap: {
+            start: booking.startTime,
+            end: booking.endTime,
+            status: booking.bookingStatus
+          }
+        });
+      }
     }
 
     // Generate 4-digit OTP
@@ -144,7 +132,7 @@ exports.createBooking = async (req, res) => {
 
     // Create Razorpay Order
     const options = {
-      amount: amount * 100, // amount in the smallest currency unit (paise)
+      amount: Math.round(amount * 100), // amount in the smallest currency unit (paise)
       currency: "INR",
       receipt: `receipt_${newBooking._id}`,
     };
@@ -208,6 +196,26 @@ exports.confirmBooking = async (req, res) => {
     
     await booking.save();
 
+    const io = req.app.get('socketio');
+
+    // Only update charger status to 'occupied' immediately for INSTANT bookings
+    // Future bookings will remain 'available' until the scheduled time or manual start
+    if (booking.isInstant) {
+      const newStatus = 'occupied';
+      await Station.findOneAndUpdate(
+        { _id: booking.stationId._id, "chargers.chargerId": booking.chargerId },
+        { $set: { "chargers.$.status": newStatus } }
+      );
+
+      if (io) {
+        io.emit('charger_status_updated', { 
+          stationId: booking.stationId._id, 
+          chargerId: booking.chargerId, 
+          status: newStatus 
+        });
+      }
+    }
+
 
     // Send SMS via Twilio
     if (booking.userId && booking.userId.mobile && booking.stationId) {
@@ -228,9 +236,6 @@ exports.confirmBooking = async (req, res) => {
       });
     }
 
-
-
-    const io = req.app.get('socketio');
     if (io) {
       io.emit('booking_confirmed', { 
         stationId: booking.stationId._id, 
@@ -292,7 +297,18 @@ exports.getBookingById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    res.status(200).json({ success: true, booking });
+    // If bill is pending, include order info
+    let billOrder = null;
+    if (booking.bookingStatus === 'billing_pending' && booking.billPaymentStatus === 'unpaid' && booking.billOrderId) {
+      billOrder = {
+        id: booking.billOrderId,
+        amount: Math.round(booking.totalBill * 100),
+        currency: "INR",
+        key: process.env.RAZORPAY_KEY_ID
+      };
+    }
+
+    res.status(200).json({ success: true, booking, billOrder });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -328,9 +344,64 @@ exports.updateBookingStatus = async (req, res) => {
 };
 
 /**
- * Start charging simulation (Real-time update)
+ * Start charging session (Manual)
  */
 exports.startCharging = async (req, res) => {
+  const { bookingId } = req.params;
+  const { otp } = req.body;
+  const io = req.app.get('socketio');
+
+  try {
+    const booking = await Booking.findById(bookingId).populate('stationId');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    if (['completed', 'billing_pending'].includes(booking.bookingStatus)) {
+      return res.status(400).json({ success: false, message: 'Charging already handled' });
+    }
+
+    // Verify OTP
+    if (!otp || booking.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP provided' });
+    }
+
+    booking.bookingStatus = 'charging';
+    booking.percentage = 0;
+    booking.currentKwh = 0;
+    booking.statusMessage = 'Charging in progress...';
+    await booking.save();
+
+    // Update station charger status to in_use
+    await Station.findOneAndUpdate(
+      { _id: booking.stationId._id, "chargers.chargerId": booking.chargerId },
+      { $set: { "chargers.$.status": 'in_use' } }
+    );
+
+    // Emit initial status
+    if (io) {
+      io.emit('charging_update', { 
+        bookingId, 
+        percentage: 0, 
+        currentKwh: 0, 
+        status: 'charging' 
+      });
+      io.emit('booking_status_updated', { bookingId, status: 'charging' });
+      io.emit('charger_status_updated', {
+        stationId: booking.stationId._id,
+        chargerId: booking.chargerId,
+        status: 'in_use'
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Charging session started' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Stop charging session (By Operator)
+ */
+exports.stopCharging = async (req, res) => {
   const { bookingId } = req.params;
   const io = req.app.get('socketio');
 
@@ -338,74 +409,125 @@ exports.startCharging = async (req, res) => {
     const booking = await Booking.findById(bookingId).populate('stationId');
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-    if (booking.bookingStatus === 'completed') {
-      return res.status(400).json({ success: false, message: 'Charging already completed' });
-    }
-
-    booking.bookingStatus = 'charging';
-    booking.percentage = 0;
-    booking.currentKwh = 0;
-    booking.statusMessage = 'Charging started...';
+    booking.bookingStatus = 'billing_pending';
+    booking.statusMessage = 'Charging stopped. Waiting for billing...';
     await booking.save();
 
-    // Emit initial status
     if (io) {
-      io.emit('charging_update', { bookingId, percentage: 0, currentKwh: 0, status: 'charging' });
+      io.emit('charging_update', { 
+        bookingId, 
+        status: 'billing_pending' 
+      });
+      io.emit('booking_status_updated', { bookingId, status: 'billing_pending' });
+      // Charger becomes available once charging stops
       io.emit('charger_status_updated', {
         stationId: booking.stationId._id,
         chargerId: booking.chargerId,
-        status: 'occupied'
+        status: 'available'
       });
     }
 
-    // Start Simulation
-    let progress = 0;
-    const interval = setInterval(async () => {
-      progress += Math.floor(Math.random() * 10) + 5; // Increase by 5-15%
-      
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        
-        const updatedBooking = await Booking.findById(bookingId);
-        updatedBooking.percentage = 100;
-        updatedBooking.currentKwh = 15.5; // Fixed final value for simulation
-        updatedBooking.bookingStatus = 'completed';
-        updatedBooking.statusMessage = 'Charging completed successfully!';
-        await updatedBooking.save();
-
-        if (io) {
-          io.emit('charging_update', { 
-            bookingId, 
-            percentage: 100, 
-            currentKwh: 15.5, 
-            status: 'completed' 
-          });
-          io.emit('booking_status_updated', { bookingId, status: 'completed' });
-          io.emit('charger_status_updated', {
-            stationId: booking.stationId._id,
-            chargerId: booking.chargerId,
-            status: 'available'
-          });
-        }
-      } else {
-        const kwh = (progress * 0.15).toFixed(2);
-        
-        // Update DB occasionally or just rely on Socket for live view
-        // To keep it simple, we just emit via Socket for real-time
-        if (io) {
-          io.emit('charging_update', { 
-            bookingId, 
-            percentage: progress, 
-            currentKwh: kwh, 
-            status: 'charging' 
-          });
-        }
-      }
-    }, 3000); // Update every 3 seconds
-
-    res.status(200).json({ success: true, message: 'Charging session started' });
+    res.status(200).json({ success: true, message: 'Charging session stopped' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Generate bill after charging stops
+ */
+exports.generateBill = async (req, res) => {
+  const { bookingId } = req.params;
+  const { unitsConsumed } = req.body;
+  const io = req.app.get('socketio');
+
+  try {
+    const booking = await Booking.findById(bookingId).populate('stationId');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    // Find the charger to get price
+    const charger = booking.stationId.chargers.find(c => c.chargerId === booking.chargerId);
+    const rate = charger?.pricePerUnit || charger?.price || 15;
+    
+    const totalAmount = (unitsConsumed * rate).toFixed(2);
+    
+    booking.unitsConsumed = unitsConsumed;
+    booking.totalBill = totalAmount;
+    await booking.save();
+
+    // Create Razorpay Order for the bill
+    const options = {
+      amount: Math.round(totalAmount * 100), // paise
+      currency: "INR",
+      receipt: `bill_${booking._id}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+    
+    booking.billOrderId = order.id;
+    await booking.save();
+
+    if (io) {
+      io.emit('bill_generated', { 
+        bookingId, 
+        unitsConsumed, 
+        totalBill: totalAmount,
+        order: {
+          id: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          key: process.env.RAZORPAY_KEY_ID
+        }
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Bill generated', 
+      bill: { unitsConsumed, totalBill: totalAmount, order } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Confirm bill payment
+ */
+exports.confirmBillPayment = async (req, res) => {
+  try {
+    const { 
+      bookingId, 
+      razorpay_payment_id, 
+      razorpay_order_id, 
+      razorpay_signature 
+    } = req.body;
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ message: 'Invalid bill payment signature' });
+    }
+    
+    const booking = await Booking.findById(bookingId);
+    booking.billPaymentStatus = 'paid';
+    booking.billTransactionId = razorpay_payment_id;
+    booking.bookingStatus = 'completed';
+    booking.statusMessage = 'Charging and payment completed!';
+    await booking.save();
+
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('booking_status_updated', { bookingId, status: 'completed' });
+      io.emit('bill_paid', { bookingId });
+    }
+
+    res.status(200).json({ success: true, message: 'Bill paid successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

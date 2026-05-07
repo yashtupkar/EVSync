@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Map, ShieldCheck, Zap, User, Route, Heart, Clock } from "lucide-react";
+import { Map, ShieldCheck, Zap, User, Route, Heart, Clock, MapPin, Calendar } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import {
@@ -46,7 +46,7 @@ const Navbar = () => {
      gap-6 shadow-sm bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 animate-in slide-in-from-top-4 duration-700"
     >
       <Link to="/" className="flex items-center gap-3 group">
-        <div className="bg-emerald-500 p-2 rounded-xl text-white group-hover:rotate-12 transition-all shadow-md shadow-green-100">
+        <div className="bg-emerald-500 p-2 rounded-lg text-white group-hover:rotate-12 transition-all shadow-md shadow-green-100">
           <Zap size={20} fill="currentColor" />
         </div>
         <div className="flex flex-col leading-none">
@@ -59,37 +59,28 @@ const Navbar = () => {
         </div>
       </Link>
 
-      <div className="flex-1 flex justify-center items-center">
-        <div className="flex items-center gap-8 bg-gray-50 px-6 py-2 rounded-full border border-gray-100">
-          <Link
-            to="/"
-            className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${location.pathname === "/" ? "text-emerald-500" : "text-gray-500 hover:text-gray-800"}`}
-          >
-            <Map size={16} /> Discovery
-          </Link>
-          <div className="w-[4px] h-[4px] rounded-full bg-gray-300"></div>
-          <Link
-            to="/trip-planner"
-            className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${location.pathname === "/trip-planner" ? "text-emerald-500" : "text-gray-500 hover:text-gray-800"}`}
-          >
-            <Route size={16} /> Trip Planner
-          </Link>
-      
-      
-        <Link
-          to="/favorites"
-          className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:scale-105 active:scale-95 text-gray-400 hover:text-gray-600`}
-        >
-          <Heart size={18} /> Favorites
-        </Link>
-          <Link
-            to="/my-bookings"
-            className={`flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:scale-105 active:scale-95 ${location.pathname === "/my-bookings" ? "text-emerald-500" : "text-gray-400 hover:text-gray-600"}`}
-          >
-            <Clock size={18} /> My Bookings
-          </Link>
-        </div>
-      </div>
+      <nav className="hidden md:flex items-center bg-gray-50 px-2 py-1.5 rounded-2xl border border-gray-100">
+            {[
+              { label: 'Discovery', path: '/', icon: MapPin },
+              { label: 'Trip Planner', path: '/trip-planner', icon: Route },
+              { label: 'Favorites', path: '/favorites', icon: Heart },
+              { label: 'My Bookings', path: '/my-bookings', icon: Calendar,  },
+            ].map((item, i) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link 
+                  key={i} 
+                  to={item.path}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                    isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <item.icon size={14} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
 
       <div className="flex items-center gap-4">

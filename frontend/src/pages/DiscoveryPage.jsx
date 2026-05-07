@@ -6,6 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import MapComponent from "../components/MapComponent";
 import Navbar from "../components/Navbar";
+import { socket } from "../utils/socket";
 import {
   Info,
   Zap,
@@ -230,6 +231,29 @@ const DiscoveryPage = () => {
       }
     };
     fetchStations();
+  }, []);
+
+  // Real-time charger updates
+  useEffect(() => {
+    const handleChargerStatus = (data) => {
+      setStations(prev => prev.map(station => {
+        if (station._id === data.stationId) {
+          return {
+            ...station,
+            chargers: station.chargers.map(charger => {
+              if (charger.chargerId === data.chargerId) {
+                return { ...charger, status: data.status };
+              }
+              return charger;
+            })
+          };
+        }
+        return station;
+      }));
+    };
+
+    socket.on('charger_status_updated', handleChargerStatus);
+    return () => socket.off('charger_status_updated', handleChargerStatus);
   }, []);
 
   const handleStartDriving = () => {

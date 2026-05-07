@@ -24,8 +24,17 @@ router.get('/:bookingId', authMiddleware, bookingController.getBookingById);
 // Update booking status (Protected)
 router.patch('/:bookingId/status', authMiddleware, bookingController.updateBookingStatus);
 
-// Start charging simulation (Protected)
+// Start charging session (Protected)
 router.post('/:bookingId/start-charging', authMiddleware, bookingController.startCharging);
+
+// Stop charging session (Protected)
+router.post('/:bookingId/stop-charging', authMiddleware, bookingController.stopCharging);
+
+// Generate bill (Protected)
+router.post('/:bookingId/generate-bill', authMiddleware, bookingController.generateBill);
+
+// Confirm bill payment (Protected)
+router.post('/confirm-bill', authMiddleware, bookingController.confirmBillPayment);
 
 module.exports = router;
 

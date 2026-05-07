@@ -85,9 +85,10 @@ function App() {
           <Route path="/book-slot/:stationId" element={<SlotBookingPage />} />
           <Route path="/booking-success/:bookingId" element={<BookingSuccessPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
-          <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
           <Route path="/charging-progress/:bookingId" element={<ChargingProgressPage />} />
         </Route>
+                  <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
+
 
 
 

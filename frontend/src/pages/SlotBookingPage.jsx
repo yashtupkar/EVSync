@@ -17,6 +17,7 @@ import {
   Car,
   Circle,
   AlertCircle,
+  AlertTriangle,
   ParkingCircle,
   Soup,
   Headphones,
@@ -46,7 +47,7 @@ import evData from "../../data/ev-data.json";
 
 // Removed mock data as it's now dynamic
 
-const ChargerCard = ({ charger, isSelected, onSelect }) => {
+const ChargerCard = ({ charger, isSelected, onSelect, isInstantAvailable }) => {
   const isAvailable = charger.status === 'available';
   const isOccupied = charger.status === 'occupied' || charger.status === 'in_use';
   const isMaintenance = charger.status === 'maintenance';
@@ -58,7 +59,7 @@ const ChargerCard = ({ charger, isSelected, onSelect }) => {
   return (
     <div 
       onClick={() => isAvailable && onSelect(charger.chargerId)}
-      className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 cursor-pointer ${
+      className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 cursor-pointer relative overflow-hidden ${
         isSelected 
           ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500 shadow-md" 
           : isAvailable
@@ -101,14 +102,12 @@ const ChargerCard = ({ charger, isSelected, onSelect }) => {
             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Rate</p>
             <p className="text-[11px] font-bold text-gray-800">₹{price}/kWh</p>
           </div>
-          {isAvailable && (
-            <button 
-              className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                isSelected ? "bg-emerald-600 text-white shadow-sm" : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {isSelected ? 'Selected' : 'Select'}
-            </button>
+           {isAvailable && isInstantAvailable && (
+            <div 
+              className={`px-2 py-1 flex gap-1 rounded-sm text-[9px]   transition-all  bg-black text-white`}
+            ><Zap size={10} className="text-amber-400 fill-amber-400" /> 
+           Instant
+            </div>
           )}
         </div>
       </div>
@@ -140,11 +139,13 @@ const SlotBookingPage = () => {
 
   const [dates] = useState(generateDates());
   const [selectedDateObj, setSelectedDateObj] = useState(dates[0]);
-  const [selectedTime, setSelectedTime] = useState("All Slots");
+  const [selectedStartTime, setSelectedStartTime] = useState("");
+  const [selectedDuration, setSelectedDuration] = useState(1); // Hours
   const [selectedSlot, setSelectedSlot] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [chargerFilter, setChargerFilter] = useState('All');
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [operatingHours, setOperatingHours] = useState("");
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -153,21 +154,154 @@ const SlotBookingPage = () => {
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [showReviewForm, setShowReviewForm] = useState(false);
   
+  // Estimation state
+  const [currentBattery, setCurrentBattery] = useState(20);
+  const [targetBattery, setTargetBattery] = useState(80);
+  const [estimatedDuration, setEstimatedDuration] = useState(null);
+  
+  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
+  const userVehicles = user?.vehicles?.map(v => {
+    const details = evData.data.find(d => d.id === v.vehicleId);
+    return {
+      id: v._id,
+      name: `${details?.brand} ${details?.model}`,
+      battery: "78%", // Mock for now
+      range: `${details?.range_km} km`,
+      image: details?.vehicle_type === 'car' ? "/assets/ev-images/car2.png" : "/assets/ev-images/scooter3.png",
+      vehicleId: v.vehicleId,
+      acPorts: details?.ac_charger?.ports || [],
+      dcPorts: details?.dc_charger?.ports || []
+    };
+  }) || [];
 
-  const activeVehicle = user?.vehicles?.[activeVehicleIndex];
-  const vehicleDetails = activeVehicle 
-    ? evData.data.find(v => v.id === activeVehicle.vehicleId)
-    : null;
+  const selectedVehicle = userVehicles.find(v => v.id === selectedVehicleId) || userVehicles[activeVehicleIndex] || userVehicles[0];
 
-  const selectedVehicle = activeVehicle ? {
-    id: activeVehicle._id,
-    name: `${vehicleDetails?.brand} ${vehicleDetails?.model}`,
-    battery: "78%", // Mock battery for now
-    range: `${vehicleDetails?.range_km} km`,
-    image: vehicleDetails?.vehicle_type === 'car' ? "/assets/ev-images/car2.png" : "/assets/ev-images/scooter3.png"
-  } : null;
+  useEffect(() => {
+    if (selectedVehicle && !selectedVehicleId) {
+      setSelectedVehicleId(selectedVehicle.id);
+    }
+  }, [selectedVehicle, selectedVehicleId]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isTimeDropdownOpen && !event.target.closest('.time-dropdown-container')) {
+        setIsTimeDropdownOpen(false);
+      }
+      if (showVehicleDropdown && !event.target.closest('.vehicle-dropdown-container')) {
+        setShowVehicleDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTimeDropdownOpen, showVehicleDropdown]);
+
+  // Helper to convert time string to minutes
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours !== 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + (minutes || 0);
+  };
+
+  // Helper to convert minutes to time string
+  const minutesToTime = (totalMinutes) => {
+    let hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${minutesStr} ${ampm}`;
+  };
+
+  const calculateEstimation = () => {
+    if (!selectedSlot || !station) return;
+    const charger = station.chargers.find(c => c.chargerId === selectedSlot);
+    if (!charger) return;
+
+    // Simplified calculation: (Battery Capacity * (Target - Current) / 100) / Power
+    // Assume average battery capacity of 60kWh if not available
+    const batteryCapacity = 60; 
+    const energyNeeded = (batteryCapacity * (targetBattery - currentBattery)) / 100;
+    const hours = energyNeeded / charger.power;
+    
+    // Round to nearest 0.5 hours
+    const roundedHours = Math.ceil(hours * 2) / 2;
+    setEstimatedDuration(roundedHours);
+    setSelectedDuration(roundedHours);
+  };
+
+  const generateAvailableStartTimes = () => {
+    const times = [];
+    const now = new Date();
+    const isToday = selectedDateObj.fullDate === now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    let startMin = 0;
+    let endMin = 1439; // 11:59 PM
+
+    if (operatingHours && !operatingHours.toLowerCase().includes('24 hours')) {
+      try {
+        const [start, end] = operatingHours.split('-').map(t => t.trim());
+        startMin = timeToMinutes(start);
+        endMin = timeToMinutes(end);
+      } catch (e) {
+        console.error("Error parsing operating hours:", e);
+      }
+    }
+
+    for (let m = startMin; m <= endMin; m += 30) {
+      if (isToday && m < currentMinutes + 15) continue; // Only future times for today (with 15min buffer)
+      
+      const timeStr = minutesToTime(m);
+      
+      // Check if this start time is within any booked range
+      const isBooked = bookedRanges.some(range => {
+        const bStart = timeToMinutes(range.start);
+        const bEnd = timeToMinutes(range.end);
+        return m >= bStart && m < bEnd;
+      });
+
+      if (!isBooked) {
+        times.push(timeStr);
+      }
+    }
+    return times;
+  };
+
+  const isRangeAvailable = (startTime, durationHours, customBookedRanges = null) => {
+    const startM = timeToMinutes(startTime);
+    const endM = startM + (durationHours * 60);
+    const rangesToCheck = customBookedRanges || bookedRanges;
+
+    return !rangesToCheck.some(range => {
+      const bStart = timeToMinutes(range.start);
+      const bEnd = timeToMinutes(range.end);
+      return (startM < bEnd && endM > bStart);
+    });
+  };
+
+  const checkInstantAvailability = (chargerId) => {
+    // If we're on the booking page, we might have bookedRanges for the selected charger
+    // But we need to know if OTHER chargers are available too.
+    // For now, let's assume this is only called for the selected charger's data
+    // Or we'd need a way to fetch availability for all chargers.
+    
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startTime = minutesToTime(currentMinutes);
+    
+    // Check if available for next 1 hour
+    return isRangeAvailable(startTime, 1);
+  };
 
   useEffect(() => {
     const fetchStation = async () => {
@@ -218,6 +352,8 @@ const SlotBookingPage = () => {
     return `${backendURL}${url.startsWith("/") ? "" : "/"}${url}`;
   };
 
+  const [allChargersAvailability, setAllChargersAvailability] = useState({});
+
   // Fetch Available Slots when Date or Charger changes
   useEffect(() => {
     const fetchSlots = async () => {
@@ -226,10 +362,15 @@ const SlotBookingPage = () => {
       setSlotsLoading(true);
       try {
         const response = await getAvailableSlots(stationId, selectedSlot, selectedDateObj.fullDate);
-        setAvailableSlots(response.data);
+        setBookedRanges(response.data.bookedRanges || []);
+        setOperatingHours(response.data.operatingHours || "");
+        
         // Reset selected time if it's not available in new list
-        if (selectedTime !== "All Slots" && !response.data.find(s => s.time === selectedTime && s.status === 'available')) {
-          setSelectedTime("Select Time");
+        if (selectedStartTime) {
+          const availableTimes = generateAvailableStartTimes();
+          if (!availableTimes.includes(selectedStartTime) || !isRangeAvailable(selectedStartTime, selectedDuration)) {
+            setSelectedStartTime("");
+          }
         }
       } catch (error) {
         console.error("Error fetching slots:", error);
@@ -240,6 +381,41 @@ const SlotBookingPage = () => {
     fetchSlots();
   }, [stationId, selectedSlot, selectedDateObj]);
 
+  // Fetch availability for ALL chargers to show instant badges
+  useEffect(() => {
+    const fetchAllAvailability = async () => {
+      if (!stationId || !station || !selectedDateObj) return;
+      
+      const availability = {};
+      const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
+      // Only check instant availability for today
+      if (selectedDateObj.fullDate !== today) {
+        setAllChargersAvailability({});
+        return;
+      }
+
+      for (const charger of station.chargers) {
+        try {
+          const response = await getAvailableSlots(stationId, charger.chargerId, today);
+          const ranges = response.data.bookedRanges || [];
+          
+          const now = new Date();
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+          const startTime = minutesToTime(currentMinutes);
+          
+          // Check if available for next 1 hour
+          availability[charger.chargerId] = isRangeAvailable(startTime, 1, ranges);
+        } catch (e) {
+          console.error(`Error fetching availability for ${charger.chargerId}:`, e);
+        }
+      }
+      setAllChargersAvailability(availability);
+    };
+
+    fetchAllAvailability();
+  }, [stationId, station?._id, selectedDateObj]);
+
   // Real-time slot updates via Socket.io
   useEffect(() => {
     const handleBookingConfirmed = (data) => {
@@ -249,7 +425,8 @@ const SlotBookingPage = () => {
           setSlotsLoading(true);
           try {
             const response = await getAvailableSlots(stationId, selectedSlot, selectedDateObj.fullDate);
-            setAvailableSlots(response.data);
+            setBookedRanges(response.data.bookedRanges || []);
+            setOperatingHours(response.data.operatingHours || "");
           } catch (error) {
             console.error("Error refreshing slots via socket:", error);
           } finally {
@@ -285,6 +462,20 @@ const SlotBookingPage = () => {
     };
   }, [stationId, selectedSlot, selectedDateObj]);
 
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleInstantBooking = async () => {
     if (!selectedSlot) {
       alert("Please select a charger first");
@@ -302,40 +493,37 @@ const SlotBookingPage = () => {
       return;
     }
 
+    const resLoad = await loadRazorpay();
+    if (!resLoad) {
+      alert("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      // For instant booking, we use the current date and a 1-hour time slot
+      // For instant booking, we use the current time and selected duration
       const now = new Date();
-      const currentHour = now.getHours();
-      
-      const formatHour = (h) => {
-        const hh = h % 12 || 12;
-        const ampm = h < 12 || h === 24 ? 'AM' : 'PM';
-        return `${hh}:00 ${ampm}`;
-      };
-
-      const startTime = formatHour(currentHour);
-      const endTime = formatHour(currentHour + 1);
-      const timeSlot = `${startTime} - ${endTime}`;
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const startTime = minutesToTime(currentMinutes);
+      const endTime = minutesToTime(currentMinutes + (selectedDuration * 60));
       
       const bookingData = {
         stationId,
         chargerId: selectedSlot,
         date: dates[0].fullDate, // Today
-        timeSlot: timeSlot,
+        startTime,
+        endTime,
         amount: 1, // Production booking amount set to ₹1
         vehicleDetails: selectedVehicle ? {
           name: selectedVehicle.name,
           image: selectedVehicle.image
-        } : null
+        } : null,
+        isInstant: true
       };
 
       const res = await createBooking(bookingData);
       const { booking: newBooking, order } = res.data;
 
-      // Automatically confirm it for "Instant" (Simulation)
-      // In a real app, you'd still pay, but for this demo, we'll proceed to verification
-      
       const options = {
         key: order.key,
         amount: order.amount,
@@ -377,8 +565,13 @@ const SlotBookingPage = () => {
   };
 
   const handleBooking = async () => {
-    if (!selectedSlot || selectedTime === "Select Time" || selectedTime === "All Slots") {
-      alert("Please select a charger and a specific time slot");
+    if (!selectedSlot || !selectedStartTime) {
+      alert("Please select a charger and a start time");
+      return;
+    }
+
+    if (!isRangeAvailable(selectedStartTime, selectedDuration)) {
+      alert("The selected time range is not available. Please choose another duration or start time.");
       return;
     }
 
@@ -387,14 +580,25 @@ const SlotBookingPage = () => {
       return;
     }
 
+    const resLoad = await loadRazorpay();
+    if (!resLoad) {
+      alert("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
     setIsProcessing(true);
     try {
+      const startTimeM = timeToMinutes(selectedStartTime);
+      const endTimeM = startTimeM + (selectedDuration * 60);
+      const endTime = minutesToTime(endTimeM);
+
       // 1. Create Pending Booking
       const bookingData = {
         stationId,
         chargerId: selectedSlot,
         date: selectedDateObj.fullDate,
-        timeSlot: selectedTime,
+        startTime: selectedStartTime,
+        endTime,
         amount: 1, // Production booking amount set to ₹1
         vehicleDetails: selectedVehicle ? {
           name: selectedVehicle.name,
@@ -455,13 +659,30 @@ const SlotBookingPage = () => {
 
 
 
-  const dcChargers = station?.chargers?.filter(c => 
-    ['CCS2', 'CHADEMO', 'DC'].includes(c.type?.toUpperCase())
-  ) || [];
+  const dcChargers = station?.chargers?.filter(c => {
+    const isDCCategory = ['CCS2', 'CHADEMO', 'DC'].includes(c.type?.toUpperCase());
+    if (!isDCCategory) return false;
+    if (selectedVehicle?.dcPorts?.length > 0) {
+      return selectedVehicle.dcPorts.some(port => 
+        c.type?.toUpperCase().includes(port.toUpperCase())
+      );
+    }
+    return true;
+  }) || [];
 
-  const acChargers = station?.chargers?.filter(c => 
-    ['TYPE 2', 'AC', 'TYPE-2'].includes(c.type?.toUpperCase())
-  ) || [];
+  const acChargers = station?.chargers?.filter(c => {
+    const isACCategory = ['TYPE 2', 'AC', 'TYPE-2'].includes(c.type?.toUpperCase());
+    if (!isACCategory) return false;
+    if (selectedVehicle?.acPorts?.length > 0) {
+      return selectedVehicle.acPorts.some(port => {
+        const p = port.toUpperCase();
+        return c.type?.toUpperCase().includes(p) || 
+               c.type?.toUpperCase().includes(p.replace('TYPE', 'TYPE ')) ||
+               c.type?.toUpperCase().includes(p.replace('TYPE', 'TYPE-'));
+      });
+    }
+    return true;
+  }) || [];
 
   if (loading) {
     return (
@@ -866,58 +1087,225 @@ const SlotBookingPage = () => {
               <h2 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest">Select Your Vehicle</h2>
             </div>
             
-            {selectedVehicle ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:border-gray-300 transition-all group shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center gap-5">
-                  <div className="w-20 h-12 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100">
-                    <img src={selectedVehicle.image} alt="Vehicle" className="w-full h-full object-contain px-1" />
+            <div className="relative vehicle-dropdown-container">
+              {selectedVehicle ? (
+                <div 
+                  onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
+                  className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className="w-20 h-12 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100">
+                      <img src={selectedVehicle.image} alt="Vehicle" className="w-full h-full object-contain px-1" />
+                    </div>
+                    <div>
+                      <h3 className="text-[14px] font-bold text-gray-900">{selectedVehicle.name}</h3>
+                      <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+                        {selectedVehicle.battery} Battery • {selectedVehicle.range} Range
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-[14px] font-bold text-gray-900">{selectedVehicle.name}</h3>
-                    <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-                      {selectedVehicle.battery} Battery • {selectedVehicle.range} Range
+                  <ChevronDown size={20} className={`text-gray-300 group-hover:text-emerald-500 transition-all ${showVehicleDropdown ? 'rotate-180' : ''}`} />
+                </div>
+              ) : (
+                <div 
+                  onClick={() => navigate("/vehicle-selection")}
+                  className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-emerald-500 hover:bg-green-50 transition-all cursor-pointer"
+                >
+                  <Car className="mx-auto text-gray-300 mb-2" size={32} />
+                  <p className="text-sm font-bold text-gray-500">Add a vehicle to continue</p>
+                </div>
+              )}
+
+              {showVehicleDropdown && userVehicles.length > 1 && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {userVehicles.map((v) => (
+                      <div 
+                        key={v.id}
+                        onClick={() => {
+                          setSelectedVehicleId(v.id);
+                          setShowVehicleDropdown(false);
+                        }}
+                        className={`p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b border-gray-50 last:border-0 ${selectedVehicleId === v.id ? 'bg-emerald-50' : ''}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-8 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">
+                            <img src={v.image} alt="" className="w-full h-full object-contain px-1" />
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-bold text-gray-800">{v.name}</p>
+                            <p className="text-[10px] text-gray-400 font-medium">{v.range}</p>
+                          </div>
+                        </div>
+                        {selectedVehicleId === v.id && <Check size={16} className="text-emerald-500" />}
+                      </div>
+                    ))}
+                  </div>
+                  <div 
+                    onClick={() => navigate("/vehicle-selection")}
+                    className="p-4 bg-gray-50 text-center border-t border-gray-100 hover:bg-gray-100 transition-all cursor-pointer"
+                  >
+                    <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center justify-center gap-2">
+                      <Plus size={14} /> Manage Vehicles
                     </p>
                   </div>
                 </div>
-                <ChevronRight size={20} className="text-gray-300 group-hover:text-gray-400 transition-colors rotate-90" />
+              )}
+            </div>
+          </section>
+
+          {/* Step 2: Charger & Slot Selection */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">2</div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">
+                  {selectedSlot ? 'Selected Charger' : 'Select Charger & Slot'}
+                </h2>
+              </div>
+              {selectedSlot ? (
+                <button 
+                  onClick={() => {
+                    setSelectedSlot("");
+                    setSelectedStartTime("");
+                  }}
+                  className="flex items-center gap-2 text-[11px] font-black text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all uppercase tracking-widest"
+                >
+                  Change Charger
+                </button>
+              ) : (
+                <button className="flex items-center gap-2 text-[13px] font-bold text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm hover:bg-gray-50 transition-all">
+                  <Filter size={16} /> Filter
+                </button>
+              )}
+            </div>
+
+            {selectedSlot ? (
+              <div className="animate-in zoom-in-95 duration-300">
+                <div className="max-w-sm">
+                  <ChargerCard 
+                    charger={station.chargers.find(c => c.chargerId === selectedSlot)}
+                    isSelected={true}
+                    onSelect={() => {}}
+                  />
+                </div>
               </div>
             ) : (
-              <div 
-                onClick={() => navigate("/vehicle-selection")}
-                className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-emerald-500 hover:bg-green-50 transition-all cursor-pointer"
-              >
-                <Car className="mx-auto text-gray-300 mb-2" size={32} />
-                <p className="text-sm font-bold text-gray-500">Add a vehicle to continue</p>
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Filter Tabs & Legend */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setChargerFilter('All')} 
+                      className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'All' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
+                    >
+                      All ({dcChargers.length + acChargers.length})
+                    </button>
+                    <button 
+                      onClick={() => setChargerFilter('DC')} 
+                      className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'DC' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
+                    >
+                      DC Fast ({dcChargers.length})
+                    </button>
+                    <button 
+                      onClick={() => setChargerFilter('AC')} 
+                      className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'AC' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
+                    >
+                      AC ({acChargers.length})
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-5">
+                    {[
+                      { label: "Available", color: "bg-emerald-500" },
+                      { label: "Booked", color: "bg-amber-500" },
+                      { label: "Occupied", color: "bg-red-500" },
+                      { label: "Maintenance", color: "bg-gray-400" }
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>
+                        <span className="text-[12px] font-bold text-gray-500">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DC Group */}
+                {(chargerFilter === 'All' || chargerFilter === 'DC') && dcChargers.length > 0 && (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
+                        DC Fast Chargers <span className="text-emerald-500">({dcChargers.filter(c => c.status === 'available').length} Available)</span>
+                      </h3>
+                      <p className="text-[13px] text-gray-400 font-medium">High speed charging for your EV</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {dcChargers.map((slot) => (
+                        <ChargerCard 
+                      key={slot.chargerId}
+                      charger={slot}
+                      isSelected={selectedSlot === slot.chargerId}
+                      onSelect={(id) => setSelectedSlot(id)}
+                      isInstantAvailable={allChargersAvailability[slot.chargerId]}
+                    />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AC Group */}
+                {(chargerFilter === 'All' || chargerFilter === 'AC') && acChargers.length > 0 && (
+                  <div className="space-y-4 pt-6 border-t border-gray-100">
+                    <div className="flex justify-between items-center cursor-pointer group">
+                      <div>
+                        <h3 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
+                          AC Chargers <span className="text-emerald-500">({acChargers.filter(c => c.status === 'available').length} Available)</span>
+                        </h3>
+                        <p className="text-[13px] text-gray-400 font-medium">Normal speed charging</p>
+                      </div>
+                      <ChevronDown size={20} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {acChargers.map((slot) => (
+                        <ChargerCard 
+                          key={slot.chargerId}
+                          charger={slot}
+                          isSelected={selectedSlot === slot.chargerId}
+                          onSelect={(id) => setSelectedSlot(id)}
+                          isInstantAvailable={allChargersAvailability[slot.chargerId]}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
 
-          {/* Step 2: Date & Time */}
-          <section className="space-y-5">
+          {/* Step 3: Date & Time */}
+          <section className={`space-y-5 transition-all duration-500 ${!selectedSlot ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">2</div>
-              <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Select Date & Time</h2>
+              <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">3</div>
+              <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Select Date & Time {!selectedSlot && <span className="text-[10px] text-amber-500 ml-2">(Select charger first)</span>}</h2>
             </div>
             
-            <div className="flex gap-8">
-              {/* Left: Date Picker */}
-              <div className="flex-1 space-y-3">
+            <div className="flex flex-col gap-6">
+              {/* Date Picker */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-bold text-gray-800">May 2024</span>
-                  <div className="flex items-center gap-2">
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors"><ChevronLeft size={16} /></button>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors"><ChevronRight size={16} /></button>
-                  </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {dates.map((d, i) => {
                     const isSelected = selectedDateObj.fullDate === d.fullDate;
                     return (
                       <button 
                         key={i}
                         onClick={() => setSelectedDateObj(d)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${
+                        className={`min-w-[70px] flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${
                           isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm scale-105' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                         }`}
                       >
@@ -929,154 +1317,237 @@ const SlotBookingPage = () => {
                 </div>
               </div>
 
-              {/* Right: Time Slot */}
-              <div className="w-[220px] space-y-3 flex flex-col justify-end">
-                <label className="text-[13px] font-bold text-gray-800 px-1">Select Time Slot</label>
-                <div className="relative group">
-                  <div className={`h-[60px] bg-white border ${slotsLoading ? 'opacity-50' : ''} border-gray-200 rounded-xl px-4 flex items-center justify-between cursor-pointer hover:border-gray-300 transition-all`}>
-                    <div className="flex items-center gap-3 text-gray-800">
-                      <Clock size={18} className="text-gray-400" />
-                      <span className="text-[14px] font-bold tracking-tight">{selectedTime}</span>
-                    </div>
-                    <ChevronDown size={18} className="text-gray-400" />
-                  </div>
-                  
-                  {/* Custom Dropdown for Slots */}
-                  <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 max-h-[300px] overflow-y-auto hidden group-hover:block">
-                    {slotsLoading ? (
-                      <div className="p-4 text-center text-xs text-gray-400 font-bold">Loading slots...</div>
-                    ) : availableSlots.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-gray-400 font-bold">Select a charger first</div>
-                    ) : (
-                      availableSlots.map((slot, i) => (
-                        <div 
-                          key={i}
-                          onClick={() => slot.status === 'available' && setSelectedTime(slot.time)}
-                          className={`p-4 flex justify-between items-center cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50 ${slot.status !== 'available' ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}`}
-                        >
-                          <span className="text-[13px] font-bold text-gray-800">{slot.time}</span>
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${slot.status === 'available' ? 'text-emerald-500 bg-emerald-50' : 'text-red-400 bg-red-50'}`}>
-                            {slot.status}
-                          </span>
+              {/* Visual Schedule Timeline */}
+              {selectedSlot && (
+                <div className="space-y-3 mt-2 animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Charger Schedule ({selectedSlot})</label>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">Free</span>
                         </div>
-                      ))
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">Booked</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4">
+                      <div className="flex gap-1 h-8 items-end">
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const hour = i;
+                          const timeStr = minutesToTime(hour * 60);
+                          const isBooked = bookedRanges.some(range => {
+                            const bStart = timeToMinutes(range.start);
+                            const bEnd = timeToMinutes(range.end);
+                            const currentM = hour * 60;
+                            return currentM >= bStart && currentM < bEnd;
+                          });
+                          
+                          const now = new Date();
+                          const isToday = selectedDateObj.fullDate === now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          const isPast = isToday && hour < now.getHours();
+
+                          return (
+                            <div 
+                              key={i} 
+                              className={`flex-1 rounded-sm relative group transition-all duration-300 ${
+                                isBooked ? 'bg-amber-400 h-full shadow-sm shadow-amber-100' : 
+                                isPast ? 'bg-gray-200 h-1/2' : 'bg-emerald-400 h-1/2'
+                              }`}
+                            >
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 text-white text-[9px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                {timeStr} {isBooked ? '(Booked)' : isPast ? '(Past)' : '(Available)'}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    <div className="flex justify-between mt-2 px-0.5">
+                      <span className="text-[9px] font-black text-gray-400">12 AM</span>
+                      <span className="text-[9px] font-black text-gray-400">6 AM</span>
+                      <span className="text-[9px] font-black text-gray-400">12 PM</span>
+                      <span className="text-[9px] font-black text-gray-400">6 PM</span>
+                      <span className="text-[9px] font-black text-gray-400">11 PM</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Start Time Selection */}
+                <div className="space-y-3">
+                  <label className="text-[13px] font-bold text-gray-800 px-1">Select Start Time</label>
+                  <div className="relative time-dropdown-container">
+                    <div 
+                      onClick={() => !slotsLoading && selectedSlot && setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+                      className={`h-[60px] bg-white border ${slotsLoading ? 'opacity-50' : ''} border-gray-200 rounded-xl px-4 flex items-center justify-between cursor-pointer hover:border-gray-300 transition-all ${isTimeDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500/10' : ''}`}
+                    >
+                      <div className="flex items-center gap-3 text-gray-800">
+                        <Clock size={18} className="text-gray-400" />
+                        <span className="text-[14px] font-bold tracking-tight">{selectedStartTime || "Select Start Time"}</span>
+                      </div>
+                      <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${isTimeDropdownOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    
+                    {isTimeDropdownOpen && (
+                      <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 max-h-[250px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                        {slotsLoading ? (
+                          <div className="p-4 text-center text-xs text-gray-400 font-bold">Loading...</div>
+                        ) : !selectedSlot ? (
+                          <div className="p-4 text-center text-xs text-gray-400 font-bold">Select a charger first</div>
+                        ) : (
+                          (() => {
+                            const allTimes = [];
+                            let startMin = 0;
+                            let endMin = 1439;
+                            if (operatingHours && !operatingHours.toLowerCase().includes('24 hours')) {
+                              const [start, end] = operatingHours.split('-').map(t => t.trim());
+                              startMin = timeToMinutes(start);
+                              endMin = timeToMinutes(end);
+                            }
+                            for (let m = startMin; m <= endMin; m += 30) {
+                              allTimes.push(minutesToTime(m));
+                            }
+                            
+                            const now = new Date();
+                            const isToday = selectedDateObj.fullDate === now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+                            return allTimes
+                              .filter(time => {
+                                const m = timeToMinutes(time);
+                                const isPast = isToday && m < currentMinutes + 15;
+                                return !isPast; // Hide past times entirely
+                              })
+                              .map((time, i) => {
+                                const m = timeToMinutes(time);
+                                const isBooked = bookedRanges.some(range => {
+                                  const bStart = timeToMinutes(range.start);
+                                  const bEnd = timeToMinutes(range.end);
+                                  return m >= bStart && m < bEnd;
+                                });
+                                
+                                // Check if the entire range for the selected duration is available
+                                const isRangeFree = isRangeAvailable(time, selectedDuration);
+                                const isDisabled = isBooked || !isRangeFree;
+
+                                return (
+                                  <div 
+                                    key={i}
+                                    onClick={() => {
+                                      if (!isDisabled) {
+                                        setSelectedStartTime(time);
+                                        setIsTimeDropdownOpen(false);
+                                      }
+                                    }}
+                                    className={`p-4 flex justify-between items-center border-b border-gray-50 last:border-0 ${
+                                      isDisabled 
+                                        ? 'bg-gray-50 opacity-50 cursor-not-allowed' 
+                                        : 'cursor-pointer hover:bg-gray-50'
+                                    } ${selectedStartTime === time ? 'bg-emerald-50' : ''}`}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className={`text-[13px] font-bold ${isDisabled ? 'text-gray-400' : 'text-gray-800'}`}>{time}</span>
+                                      {isBooked ? (
+                                        <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">Already Booked</span>
+                                      ) : !isRangeFree ? (
+                                        <div className="flex items-center gap-1">
+                                          <AlertTriangle size={10} className="text-red-400" />
+                                          <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter">Duration Overlap</span>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                    {selectedStartTime === time && <Check size={14} className="text-emerald-500" />}
+                                    {isDisabled && <Lock size={12} className={isBooked ? "text-amber-400" : "text-red-300"} />}
+                                  </div>
+                                );
+                              });
+                          })()
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
 
+                {/* Duration Selection */}
+                <div className="space-y-3">
+                  <label className="text-[13px] font-bold text-gray-800 px-1">Select Duration</label>
+                  <div className="flex gap-2">
+                    {[1, 1.5, 2, 2.5, 3].map((dur) => (
+                      <button
+                        key={dur}
+                        onClick={() => setSelectedDuration(dur)}
+                        className={`flex-1 py-3 rounded-xl border font-bold text-[13px] transition-all ${
+                          selectedDuration === dur 
+                            ? 'bg-emerald-500 border-emerald-500 text-white' 
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {dur}h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* Step 3: Charger & Slot Selection */}
-          <section className="space-y-6">
+          {/* Step 4: Duration Estimation */}
+          <section className={`space-y-4 bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 transition-all duration-500 ${!selectedSlot ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">3</div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Select Charger & Slot</h2>
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-emerald-600 text-white text-[11px] font-bold">4</div>
+                <h2 className="text-[13px] font-bold text-gray-900 uppercase tracking-widest">Duration Estimator</h2>
               </div>
-              <button className="flex items-center gap-2 text-[13px] font-bold text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm hover:bg-gray-50 transition-all">
-                <Filter size={16} /> Filter
-              </button>
+              <Leaf size={16} className="text-emerald-600" />
             </div>
 
-            {/* Filter Tabs & Legend */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setChargerFilter('All')} 
-                  className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'All' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
-                >
-                  All ({station.chargers?.length || 0})
-                </button>
-                <button 
-                  onClick={() => setChargerFilter('DC')} 
-                  className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'DC' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
-                >
-                  DC Fast ({dcChargers.length})
-                </button>
-                <button 
-                  onClick={() => setChargerFilter('AC')} 
-                  className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'AC' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
-                >
-                  AC ({acChargers.length})
-                </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-gray-500 uppercase">Current Battery</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={currentBattery}
+                    onChange={(e) => setCurrentBattery(Math.min(100, Math.max(0, e.target.value)))}
+                    className="w-full p-3 bg-white border border-emerald-200 rounded-xl font-bold text-[14px] focus:outline-none focus:ring-2 ring-emerald-500/20"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400">%</span>
+                </div>
               </div>
-
-              <div className="flex items-center gap-5">
-                {[
-                  { label: "Available", color: "bg-emerald-500" },
-                  { label: "Booked", color: "bg-amber-500" },
-                  { label: "Occupied", color: "bg-red-500" },
-                  { label: "Maintenance", color: "bg-gray-400" }
-                ].map(item => (
-                  <div key={item.label} className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>
-                    <span className="text-[12px] font-bold text-gray-500">{item.label}</span>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-gray-500 uppercase">Target Battery</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={targetBattery}
+                    onChange={(e) => setTargetBattery(Math.min(100, Math.max(0, e.target.value)))}
+                    className="w-full p-3 bg-white border border-emerald-200 rounded-xl font-bold text-[14px] focus:outline-none focus:ring-2 ring-emerald-500/20"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-gray-400">%</span>
+                </div>
               </div>
             </div>
 
-            {/* DC Group */}
-            {(chargerFilter === 'All' || chargerFilter === 'DC') && dcChargers.length > 0 && (
-              <div className="space-y-4 mt-6">
-                <div>
-                  <h3 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-                    DC Fast Chargers <span className="text-emerald-500">({dcChargers.filter(c => c.status === 'available').length} Available)</span>
-                  </h3>
-                  <p className="text-[13px] text-gray-400 font-medium">High speed charging for your EV</p>
-                </div>
+            <button 
+              onClick={calculateEstimation}
+              disabled={!selectedSlot}
+              className={`w-full py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all ${
+                selectedSlot ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Calculate Estimated Duration
+            </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {dcChargers.map((slot) => (
-                    <ChargerCard 
-                      key={slot.chargerId}
-                      charger={slot}
-                      isSelected={selectedSlot === slot.chargerId}
-                      onSelect={(id) => setSelectedSlot(id)}
-                    />
-                  ))}
-                </div>
+            {estimatedDuration && (
+              <div className="flex items-center justify-center gap-2 text-emerald-700 bg-white/60 py-2 rounded-lg">
+                <Clock size={14} />
+                <span className="text-[12px] font-black uppercase tracking-tight">Estimated Time: {estimatedDuration} Hours</span>
               </div>
             )}
-
-            {/* AC Group */}
-            {(chargerFilter === 'All' || chargerFilter === 'AC') && acChargers.length > 0 && (
-              <div className="space-y-4 pt-6 mt-6 border-t border-gray-100">
-                <div className="flex justify-between items-center cursor-pointer group">
-                  <div>
-                    <h3 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
-                      AC Chargers <span className="text-emerald-500">({acChargers.filter(c => c.status === 'available').length} Available)</span>
-                    </h3>
-                    <p className="text-[13px] text-gray-400 font-medium">Normal speed charging</p>
-                  </div>
-                  <ChevronDown size={20} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {acChargers.map((slot) => (
-                    <ChargerCard 
-                      key={slot.chargerId}
-                      charger={slot}
-                      isSelected={selectedSlot === slot.chargerId}
-                      onSelect={(id) => setSelectedSlot(id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Bottom info section can remain unchanged below... */}
-
-            <div className="bg-[#EEF6FF] border border-[#D8E9FF] rounded-2xl p-4 flex items-start gap-4">
-              <div className="w-6 h-6 rounded-full bg-white border border-[#D8E9FF] flex items-center justify-center shrink-0">
-                <Info size={14} className="text-blue-500" />
-              </div>
-              <p className="text-[11px] font-bold text-blue-600/80 leading-relaxed">
-                You can cancel your booking up to 15 minutes before the start time.
-              </p>
-            </div>
           </section>
         </div>
 
@@ -1121,8 +1592,8 @@ const SlotBookingPage = () => {
                   { label: "Charger Type", value: station?.chargers?.find(c => c.chargerId === selectedSlot)?.type || "---" },
                   { label: "Power", value: `${station?.chargers?.find(c => c.chargerId === selectedSlot)?.power || "---"} kW` },
                   { label: "Date", value: selectedDateObj?.fullDate || "---", spacing: true },
-                  { label: "Time", value: selectedTime },
-                  { label: "Duration", value: "1 hr" },
+                  { label: "Start Time", value: selectedStartTime || "---" },
+                  { label: "Duration", value: `${selectedDuration} hr` },
                   { label: "Price", value: `₹${station?.chargers?.find(c => c.chargerId === selectedSlot)?.pricePerUnit || 0} / kWh`, spacing: true },
                   { label: "Session Fee", value: "₹5" }
                 ].map((item, i) => (
@@ -1137,11 +1608,11 @@ const SlotBookingPage = () => {
               <div className="pt-7 border-t border-gray-50 space-y-3">
                 <div className="flex justify-between items-center text-[11.5px]">
                   <span className="text-gray-400 font-medium">Estimated Energy</span>
-                  <span className="font-bold text-gray-900 tracking-tight">~20 kWh</span>
+                  <span className="font-bold text-gray-900 tracking-tight">~{(selectedDuration * (station?.chargers?.find(c => c.chargerId === selectedSlot)?.power || 0) * 0.8).toFixed(1)} kWh</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[14px] font-bold text-emerald-500">Est. Amount</span>
-                  <span className="text-[22px] font-extrabold text-gray-900 tracking-tighter">₹365</span>
+                  <span className="text-[14px] font-bold text-emerald-500">Booking Amount</span>
+                  <span className="text-[22px] font-extrabold text-gray-900 tracking-tighter">₹1</span>
                 </div>
               </div>
 
@@ -1153,7 +1624,7 @@ const SlotBookingPage = () => {
                 <div className="z-10">
                   <h4 className="text-[11.5px] font-extrabold text-emerald-500 tracking-tight">Green Energy</h4>
                   <p className="text-[10px] text-green-700/70 font-bold mt-1 leading-snug">
-                    This charging session will save <br /> ~4.2 kg CO₂ emissions
+                    This charging session will save <br /> ~{(selectedDuration * 4.2).toFixed(1)} kg CO₂ emissions
                   </p>
                 </div>
                 <div className="absolute -right-2 -bottom-2 opacity-10 text-emerald-500 group-hover:scale-110 transition-transform">
@@ -1161,25 +1632,33 @@ const SlotBookingPage = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3">
                 <button 
                   onClick={handleBooking}
-                  disabled={isProcessing}
-                  className={`flex-1 cursor-pointer ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(16,185,129,0.2)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px]`}
+                  disabled={isProcessing || !selectedSlot || !selectedStartTime}
+                  className={`w-full cursor-pointer ${isProcessing || !selectedSlot || !selectedStartTime ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_8px_30px_rgba(16,185,129,0.2)]'} text-white font-extrabold py-4 rounded-2xl transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px]`}
                 >
                   {isProcessing ? (
                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   ) : 'Confirm Booking'}
                 </button>
 
-                <button 
-                  onClick={handleInstantBooking}
-                  disabled={isProcessing}
-                  className={`px-5 cursor-pointer ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-900 hover:bg-black'} text-white font-extrabold py-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px] border border-gray-800`}
-                >
-                  <Zap size={16} className="text-amber-400 fill-amber-400" />
-                  Instant
-                </button>
+                {allChargersAvailability[selectedSlot] && (
+                  <button 
+                    onClick={handleInstantBooking}
+                    disabled={isProcessing || !selectedSlot}
+                    className={`w-full cursor-pointer ${isProcessing || !selectedSlot ? 'bg-gray-700 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 shadow-[0_8px_30px_rgba(251,191,36,0.2)]'} text-white font-extrabold py-4 rounded-2xl transition-all active:scale-[0.98] tracking-tight flex items-center justify-center gap-2 text-[13px] border border-amber-300`}
+                  >
+                    {isProcessing ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Zap size={16} className="text-white fill-white" />
+                        Instant Charge Now
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
 

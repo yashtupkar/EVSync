@@ -25,6 +25,7 @@ const BookingSuccessPage = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -114,19 +115,46 @@ const BookingSuccessPage = () => {
               />
             </div>
 
-            <div className="text-center md:text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-80 mb-2">Verification Code</p>
-              <div className="flex items-center justify-center md:justify-start gap-4">
-                <span className="text-5xl font-black tracking-[0.3em] ml-[0.3em]">{booking.otp}</span>
-                <button 
-                  onClick={handleCopyOTP}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  {copied ? <Check size={20} /> : <Copy size={20} />}
-                </button>
+            <div className="text-center md:text-left flex flex-col items-center md:items-start gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-80 mb-2">QR VERIFICATION</p>
+                <div className="flex items-center justify-center md:justify-start gap-4">
+                  <span className="text-2xl font-black tracking-tight uppercase">Ready to Charge</span>
+                </div>
               </div>
-              <p className="text-[11px] mt-4 font-bold bg-white/20 inline-block px-3 py-1 rounded-full backdrop-blur-sm">
-                Scan QR or show code to the operator
+
+              {/* Hidden OTP Section */}
+              <div className="flex flex-col items-center md:items-start gap-3">
+                {showOTP ? (
+                  <div className="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-2xl backdrop-blur-md border border-white/20 animate-in fade-in zoom-in duration-300">
+                    <span className="text-4xl font-black tracking-[0.3em] text-white">{booking.otp}</span>
+                    <button 
+                      onClick={handleCopyOTP}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+                      title="Copy OTP"
+                    >
+                      {copied ? <Check size={20} /> : <Copy size={20} />}
+                    </button>
+                    <button 
+                      onClick={() => setShowOTP(false)}
+                      className="text-[10px] font-black uppercase tracking-widest text-emerald-100 hover:text-white transition-colors"
+                    >
+                      Hide
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setShowOTP(true)}
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl border border-white/10 transition-all text-xs font-black uppercase tracking-widest text-white group"
+                  >
+                    <ShieldCheck size={14} className="group-hover:scale-110 transition-transform" />
+                    Show OTP Code
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[11px] font-bold bg-white/20 inline-block px-4 py-1.5 rounded-full backdrop-blur-sm">
+                Scan this QR at the station to start
               </p>
             </div>
           </div>

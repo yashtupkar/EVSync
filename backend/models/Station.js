@@ -4,7 +4,7 @@ const chargerSchema = new mongoose.Schema({
   chargerId: { type: String, required: true }, // e.g., DC-01, AC-01
   type: { type: String, required: true }, // e.g., CCS2, Type 2, AC, DC
   power: { type: Number, required: true }, // in kW
-  status: { type: String, enum: ['available', 'reserved', 'in_use', 'maintenance'], default: 'available' },
+  status: { type: String, enum: ['available', 'reserved', 'in_use', 'maintenance', 'occupied'], default: 'available' },
   pricePerUnit: { type: Number, default: 0 }, // ₹/kWh
   pricePerMinute: { type: Number, default: 0 }, // ₹/min
   totalSlots: { type: Number, default: 1 }

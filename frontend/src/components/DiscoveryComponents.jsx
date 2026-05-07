@@ -336,10 +336,16 @@ export const StationListItem = ({ station, onClick, distance }) => {
   const isFullyOccupied = totalSlots > 0 && availableSlots === 0;
   const navigate = useNavigate();
 
+  // Logic for Instant Badge
+  const hasInstantCharger = station.chargers?.some(charger => {
+    if (charger.status !== 'available') return false;
+    return ['CCS2', 'TYPE 2', 'DC'].includes(charger.type?.toUpperCase());
+  });
+
   return (
     <div 
       onClick={onClick}
-      className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all cursor-pointer group"
+      className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all cursor-pointer group relative overflow-hidden"
     >
       <div className="flex gap-3 items-center mb-3">
         <div className={`w-10 h-10 ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center shrink-0 transition-colors`}>
@@ -376,9 +382,18 @@ export const StationListItem = ({ station, onClick, distance }) => {
             {station.chargers?.[0]?.type || "CCS2"}
           </span>
         </div>
+        
         <span className={`text-[8px] font-bold ${isFullyOccupied ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-1 rounded-lg uppercase`}>
           {isFullyOccupied ? 'Occupied' : 'Available'} ({availableSlots}/{totalSlots})
         </span>
+          {hasInstantCharger && (
+                <div className="flex">
+                  <div className="px-2 py-1 flex gap-1 rounded-sm text-[8px] transition-all bg-black text-white w-fit items-center">
+                    <Zap size={10} className="text-amber-400 fill-amber-400" /> 
+                    Instant
+                  </div>
+                </div>
+              )}
       </div>
 
       {/* Book Button */}
@@ -459,6 +474,11 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
       chargerScrollRef.current.scrollBy({ left: dir * 180, behavior: "smooth" });
     }
   };
+    // Logic for Instant Badge
+  const hasInstantCharger = station.chargers?.some(charger => {
+    if (charger.status !== 'available') return false;
+    return ['CCS2', 'TYPE 2', 'DC'].includes(charger.type?.toUpperCase());
+  });
 
   const handleReviewSubmit = async () => {
     if (!user) return alert("Please login to write a review");
@@ -648,9 +668,17 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
                   <p className="text-[9px] text-gray-400 font-medium uppercase">{c.type} · {c.power} kW</p>
                 </div>
                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg text-center ${c.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                  {c.status}
+                  {c.status === 'in_use' || c.status === 'occupied' ? 'Occupied' : c.status}
                 </span>
                 <p className="text-[11px] font-bold text-gray-800">₹{c.pricePerUnit || c.pricePerMinute}/kWh</p>
+                  {hasInstantCharger && (
+                <div className="flex">
+                  <div className="px-2 py-1 flex gap-1 rounded-sm text-[8px] transition-all bg-black text-white w-fit items-center">
+                    <Zap size={10} className="text-amber-400 fill-amber-400" /> 
+                    Instant
+                  </div>
+                </div>
+              )}
               </div>
             ))}
           </div>

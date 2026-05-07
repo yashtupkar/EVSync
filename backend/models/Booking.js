@@ -18,10 +18,20 @@ const bookingSchema = new mongoose.Schema({
   
   bookingStatus: { 
     type: String, 
-    enum: ['upcoming', 'charging', 'completed', 'cancelled'], 
-    default: 'upcoming' 
+    enum: ['pending_payment', 'upcoming', 'charging', 'billing_pending', 'completed', 'cancelled'], 
+    default: 'pending_payment' 
   },
 
+  unitsConsumed: { type: Number, default: 0 },
+  totalBill: { type: Number, default: 0 },
+  billPaymentStatus: { 
+    type: String, 
+    enum: ['unpaid', 'paid'], 
+    default: 'unpaid' 
+  },
+  billOrderId: { type: String },
+  billTransactionId: { type: String },
+  
   currentKwh: { type: Number, default: 0 },
   percentage: { type: Number, default: 0 },
   statusMessage: { type: String, default: 'Ready to charge' },

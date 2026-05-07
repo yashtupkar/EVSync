@@ -15,7 +15,9 @@ import {
     CheckCheck,
     CheckCheckIcon,
     CheckCircle,
-    Check
+    Check,
+    Phone,
+    Car
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
 import { useNavigate } from 'react-router-dom';
@@ -23,25 +25,71 @@ import { socket } from '../utils/socket';
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
-const ChargerCard = ({ charger, updateChargerStatus, onScan }) => {
+const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, activeBooking }) => {
     const isAvailable = charger.status === 'available';
-    const isOccupied = charger.status === 'in_use';
+    const isBooked = charger.status === 'occupied';
+    const isCharging = charger.status === 'in_use';
     const isMaintenance = charger.status === 'maintenance';
 
     // Get dynamic price from database fields
     const price = charger.pricePerUnit || charger.pricePerMinute || charger.price || 15;
 
+    // Calculate progress and time remaining if activeBooking exists
+    const [timeLeft, setTimeLeft] = useState(null);
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        let interval;
+        if (isCharging && activeBooking) {
+            const calculateProgress = () => {
+                // Use socket progress if available, otherwise estimate based on time
+                if (activeBooking.percentage !== undefined) {
+                    setProgress(activeBooking.percentage);
+                }
+
+                // Calculate time left from startTime/endTime if it's currently charging
+                if (activeBooking.startTime && activeBooking.endTime) {
+                    const now = new Date();
+                    const [endH, endM] = activeBooking.endTime.split(':');
+                    const [endHour, endPeriod] = endH.split(' ');
+                    let hours = parseInt(endHour);
+                    if (endPeriod === 'PM' && hours !== 12) hours += 12;
+                    if (endPeriod === 'AM' && hours === 12) hours = 0;
+                    
+                    const end = new Date();
+                    end.setHours(hours, parseInt(endM), 0);
+
+                    const diff = end - now;
+                    if (diff > 0) {
+                        const mins = Math.floor(diff / 60000);
+                        const secs = Math.floor((diff % 60000) / 1000);
+                        setTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+                    } else {
+                        setTimeLeft('Ending...');
+                    }
+                }
+            };
+
+            calculateProgress();
+            interval = setInterval(calculateProgress, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isCharging, activeBooking]);
+
     return (
         <div className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 ${isAvailable
             ? "border-gray-200 bg-white hover:border-emerald-200 hover:shadow-md"
-            : isOccupied
-                ? "border-amber-100 bg-amber-50/40"
-                : "border-red-100 bg-red-50/40"
+            : isCharging
+                ? "border-blue-100 bg-blue-50/40"
+                : isBooked
+                    ? "border-amber-100 bg-amber-50/40"
+                    : "border-red-100 bg-red-50/40"
             }`}>
             <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isAvailable ? "bg-emerald-50 text-emerald-600" :
-                    isOccupied ? "bg-amber-50 text-amber-500" :
-                        "bg-red-50 text-red-500"
+                    isCharging ? "bg-blue-50 text-blue-500" :
+                        isBooked ? "bg-amber-50 text-amber-500" :
+                            "bg-red-50 text-red-500"
                     }`}>
                     <EvCharger size={18} />
                 </div>
@@ -58,28 +106,54 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan }) => {
 
             <div className="flex flex-col gap-1.5">
                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg text-center ${isAvailable ? "bg-emerald-100 text-emerald-700" :
-                    isOccupied ? "bg-amber-100 text-amber-700" :
-                        "bg-red-100 text-red-700"
+                    isCharging ? "bg-blue-100 text-blue-700" :
+                        isBooked ? "bg-amber-100 text-amber-700" :
+                            "bg-red-100 text-red-700"
                     }`}>
-                    {charger.status === 'in_use' ? 'Occupied' : charger.status}
+                    {isCharging ? 'In Use' : isBooked ? 'Occupied' : charger.status}
                 </span>
 
-                {!isAvailable && (
+                {isCharging && activeBooking && (
+                    <div className="space-y-2 mt-1">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-1.5">
+                                <Timer size={10} className="text-blue-600" />
+                                <span className="text-[10px] font-black text-blue-600">{timeLeft || 'Calculating...'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Battery size={10} className="text-emerald-600" />
+                                <span className="text-[10px] font-black text-emerald-600">{progress}%</span>
+                            </div>
+                        </div>
+                        <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-blue-500 transition-all duration-500" 
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between items-center text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                            <span>{activeBooking.userId?.name || 'User'}</span>
+                            <span>{activeBooking.startTime} - {activeBooking.endTime}</span>
+                        </div>
+                    </div>
+                )}
+
+                {!isAvailable && !isCharging && (
                     <div className="grid grid-cols-2 gap-2 mt-1">
                         <div>
                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                                {isMaintenance ? 'Issue' : 'Session ID'}
+                                {isMaintenance ? 'Issue' : 'Status'}
                             </p>
                             <p className={`text-[10px] font-black ${isMaintenance ? 'text-red-600' : 'text-gray-700'}`}>
-                                {isMaintenance ? 'Connector Fault' : 'S-240503'}
+                                {isMaintenance ? 'Connector Fault' : isBooked ? 'Reserved' : 'Ready'}
                             </p>
                         </div>
                         <div className="text-right">
                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                                {isOccupied ? 'Energy' : 'Price'}
+                                Price
                             </p>
                             <p className="text-[10px] font-black text-gray-700">
-                                {isOccupied ? '12.4 kWh' : `₹${price}/kWh`}
+                                ₹{price}/kWh
                             </p>
                         </div>
                     </div>
@@ -108,20 +182,34 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan }) => {
                         </button>
                     </div>
                 )}
-                {isOccupied && (
+                {isBooked && (
+                    <div className="flex flex-col gap-2">
+                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest text-center px-1">Slot Reserved</p>
+                        <button
+                            onClick={() => updateChargerStatus(charger.chargerId, 'available')}
+                            className="w-full py-2 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:bg-slate-800 transition-all"
+                        >
+                            Release Slot
+                        </button>
+                    </div>
+                )}
+                {isCharging && (
                     <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-center px-1">
-                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Active 15m</p>
+                            <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Active Session</p>
                             <button
                                 onClick={() => updateChargerStatus(charger.chargerId, 'available')}
                                 className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline"
                             >
-                                Stop
+                                Force Stop
                             </button>
                         </div>
-                        <div className="h-1 bg-amber-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-500 w-[65%]" />
-                        </div>
+                        <button
+                            onClick={() => onStopCharging(charger.chargerId)}
+                            className="w-full py-2 mt-1 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:bg-red-700 transition-all"
+                        >
+                            Stop Charging
+                        </button>
                     </div>
                 )}
                 {isMaintenance && (
@@ -147,6 +235,9 @@ const OperatorDashboard = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState('live');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [billingBooking, setBillingBooking] = useState(null);
+    const [unitsConsumed, setUnitsConsumed] = useState('');
+    const [isGeneratingBill, setIsGeneratingBill] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -190,7 +281,22 @@ const OperatorDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (bookingsRes.data.success) {
-                    setBookings(bookingsRes.data.bookings);
+                    // Sort bookings: Instant bookings first, then by date/time (most recent first)
+                    const sortedBookings = [...bookingsRes.data.bookings].sort((a, b) => {
+                        // First priority: Instant bookings
+                        if (a.isInstant && !b.isInstant) return -1;
+                        if (!a.isInstant && b.isInstant) return 1;
+                        
+                        // Second priority: Active/Charging status
+                        const statusPriority = { 'charging': 0, 'upcoming': 1, 'billing_pending': 2, 'completed': 3, 'cancelled': 4 };
+                        const priorityA = statusPriority[a.bookingStatus] ?? 5;
+                        const priorityB = statusPriority[b.bookingStatus] ?? 5;
+                        if (priorityA !== priorityB) return priorityA - priorityB;
+
+                        // Third priority: Most recent creation
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    });
+                    setBookings(sortedBookings);
                 }
             }
         } catch (error) {
@@ -225,6 +331,64 @@ const OperatorDashboard = () => {
             navigate(`/verify-booking/${bookingId}`);
         } else {
             toast.error("Invalid QR Code format");
+        }
+    };
+
+    const handleStopCharging = async (chargerId) => {
+        try {
+            // Find active booking for this charger
+            const activeBooking = bookings.find(b => b.chargerId === chargerId && b.bookingStatus === 'charging');
+            if (!activeBooking) {
+                // If no DB booking found, just free the charger
+                updateChargerStatus(chargerId, 'available');
+                return;
+            }
+
+            const response = await axios.post(`${backendURL}/api/bookings/${activeBooking._id}/stop-charging`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.success) {
+                toast.success("Charging stopped");
+                setBillingBooking(activeBooking);
+                fetchDashboardData();
+            }
+        } catch (error) {
+            console.error("Error stopping charging:", error);
+            toast.error("Failed to stop charging");
+        }
+    };
+
+    const handleGenerateBill = async () => {
+        if (!unitsConsumed || isNaN(unitsConsumed)) {
+            toast.error("Please enter valid units");
+            return;
+        }
+
+        try {
+            setIsGeneratingBill(true);
+            const response = await axios.post(`${backendURL}/api/bookings/${billingBooking._id}/generate-bill`, 
+                { unitsConsumed: parseFloat(unitsConsumed) },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                toast.success("Bill generated and sent to user");
+                
+                // Immediately update charger status to available after bill generation
+                if (billingBooking && billingBooking.chargerId) {
+                    await updateChargerStatus(billingBooking.chargerId, 'available');
+                }
+
+                setBillingBooking(null);
+                setUnitsConsumed('');
+                fetchDashboardData();
+            }
+        } catch (error) {
+            console.error("Error generating bill:", error);
+            toast.error("Failed to generate bill");
+        } finally {
+            setIsGeneratingBill(false);
         }
     };
 
@@ -311,7 +475,14 @@ const OperatorDashboard = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {station.chargers.filter(c => c.chargerId.startsWith('DC') || c.type.toLowerCase().includes('ccs') || c.type.toLowerCase().includes('dc')).map((charger, i) => (
-                                        <ChargerCard key={i} charger={charger} updateChargerStatus={updateChargerStatus} onScan={() => setIsScannerOpen(true)} />
+                                        <ChargerCard 
+                                            key={i} 
+                                            charger={charger} 
+                                            updateChargerStatus={updateChargerStatus} 
+                                            onScan={() => setIsScannerOpen(true)} 
+                                            onStopCharging={handleStopCharging}
+                                            activeBooking={bookings.find(b => b.chargerId === charger.chargerId && (b.bookingStatus === 'charging' || b.bookingStatus === 'billing_pending'))}
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -325,7 +496,14 @@ const OperatorDashboard = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {station.chargers.filter(c => c.chargerId.startsWith('AC') || c.type.toLowerCase().includes('type 2') || c.type.toLowerCase().includes('ac')).map((charger, i) => (
-                                        <ChargerCard key={i} charger={charger} updateChargerStatus={updateChargerStatus} onScan={() => setIsScannerOpen(true)} />
+                                        <ChargerCard 
+                                            key={i} 
+                                            charger={charger} 
+                                            updateChargerStatus={updateChargerStatus} 
+                                            onScan={() => setIsScannerOpen(true)} 
+                                            onStopCharging={handleStopCharging}
+                                            activeBooking={bookings.find(b => b.chargerId === charger.chargerId && (b.bookingStatus === 'charging' || b.bookingStatus === 'billing_pending'))}
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -359,47 +537,112 @@ const OperatorDashboard = () => {
 
                 {/* --- RIGHT COLUMN: BOOKINGS & ACTIONS --- */}
                 <div className="space-y-8">
-                    {/* RECENT BOOKINGS */}
-                    <div className="bg-white rounded-2xl p-4 min-h-96 border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-xl font-black text-[#1E293B]">Recent Bookings</h3>
-                            <button className="text-[10px] font-black text-[#10B981] uppercase tracking-[0.2em] hover:underline">View All</button>
-                        </div>
-                        <div className="space-y-6">
-                            {(bookings.length > 0 ? bookings : [
-                                { userId: { name: 'Amit Rawat' }, chargerId: 'DC-03', amount: 1, paymentStatus: 'in_progress', time: '15 min ago' },
-                                { userId: { name: 'Priya Singh' }, chargerId: 'AC-03', amount: 1, paymentStatus: 'in_progress', time: '32 min ago' },
-                                { userId: { name: 'Rohit Kumar' }, chargerId: 'DC-01', amount: 1, paymentStatus: 'paid', time: '1 hr ago' },
-                                { userId: { name: 'Neha Sharma' }, chargerId: 'AC-02', amount: 1, paymentStatus: 'paid', time: '2 hr ago' },
-                                { userId: { name: 'Vikram Gupta' }, chargerId: 'DC-02', amount: 1, paymentStatus: 'paid', time: '3 hr ago' },
-                            ]).slice(0, 5).map((booking, i) => (
-                                <div key={i} className="flex items-center justify-between group cursor-pointer hover:bg-slate-50 p-2 -m-2 rounded-2xl transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-11 h-11 bg-[#F1F5F9] rounded-full flex items-center justify-center text-[#64748B] font-black text-xs">
-                                            {booking.userId?.name?.[0] || 'U'}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-black text-[#1E293B]">{booking.userId?.name || 'Unknown'}</p>
-                                            <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest mt-0.5">{booking.chargerId} • CCS2 • 50 kW</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex items-center gap-4">
-                                        <div>
-                                            <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.15em] mb-1 inline-block ${booking.paymentStatus === 'paid' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#FFFBEB] text-[#F59E0B]'
-                                                }`}>
-                                                {booking.paymentStatus === 'paid' ? 'Completed' : 'In Progress'}
-                                            </div>
-                                            <p className="text-[9px] font-bold text-[#94A3B8]">{booking.time || '15 min ago'}</p>
-                                        </div>
-                                        {booking.paymentStatus === 'paid' && (
-                                            <p className="text-xs font-black text-[#1E293B] w-12">₹{booking.amount}</p>
-                                        )}
-                                        {booking.paymentStatus === 'in_progress' && (
-                                            <ChevronRight size={16} className="text-[#CBD5E1] group-hover:text-[#64748B] transition-colors" />
-                                        )}
-                                    </div>
+                    {/* BOOKINGS MANAGEMENT */}
+                    <div className="bg-white rounded-2xl p-4 min-h-96 border border-slate-100 shadow-sm flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-xl font-black text-[#1E293B]">Bookings Management</h3>
+                                <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mt-0.5">{bookings.length} Total Bookings</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <div className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                                    <Zap size={10} fill="currentColor" /> Instant
                                 </div>
-                            ))}
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                            {bookings.length > 0 ? (
+                                bookings.map((booking, i) => (
+                                    <div key={i} className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
+                                        booking.isInstant ? 'border-amber-100 bg-amber-50/20' : 'border-slate-50 bg-white'
+                                    }`}>
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${
+                                                    booking.isInstant ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {booking.userId?.name?.[0] || 'U'}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-black text-[#1E293B]">{booking.userId?.name || 'Unknown'}</p>
+                                                        {booking.isInstant && (
+                                                            <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">INSTANT</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[9px] font-bold text-[#94A3B8]">
+                                                        <Phone size={10} />
+                                                        <span>{booking.userId?.mobile || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
+                                                    booking.bookingStatus === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                    booking.bookingStatus === 'charging' ? 'bg-blue-100 text-blue-700' :
+                                                    booking.bookingStatus === 'billing_pending' ? 'bg-purple-100 text-purple-700' :
+                                                    booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                    booking.bookingStatus === 'pending_payment' ? 'bg-slate-100 text-slate-500 border border-slate-200' :
+                                                    'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                    {booking.bookingStatus === 'pending_payment' ? 'Paying...' : (booking.bookingStatus || 'Upcoming')}
+                                                </div>
+                                                <p className="text-[9px] font-bold text-[#94A3B8] mt-1">{booking.date}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100/50">
+                                            <div className="flex items-center gap-2">
+                                                <EvCharger size={14} className="text-slate-400" />
+                                                <div>
+                                                    <p className="text-[8px] font-black text-[#94A3B8] uppercase tracking-widest">Charger</p>
+                                                    <p className="text-[10px] font-black text-[#1E293B]">{booking.chargerId}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={14} className="text-slate-400" />
+                                                <div>
+                                                    <p className="text-[8px] font-black text-[#94A3B8] uppercase tracking-widest">Time Slot</p>
+                                                    <p className="text-[10px] font-black text-[#1E293B]">{booking.startTime} - {booking.endTime}</p>
+                                                </div>
+                                            </div>
+                                            {booking.vehicleDetails && (
+                                                <div className="flex items-center gap-2">
+                                                    <Car size={14} className="text-slate-400" />
+                                                    <div>
+                                                        <p className="text-[8px] font-black text-[#94A3B8] uppercase tracking-widest">Vehicle</p>
+                                                        <p className="text-[10px] font-black text-[#1E293B] truncate max-w-[80px]">{booking.vehicleDetails.name}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <IndianRupee size={14} className="text-slate-400" />
+                                                <div>
+                                                    <p className="text-[8px] font-black text-[#94A3B8] uppercase tracking-widest">Amount</p>
+                                                    <p className="text-[10px] font-black text-[#1E293B]">₹{booking.amount || 0}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {booking.bookingStatus === 'upcoming' && (
+                                            <button 
+                                                onClick={() => setIsScannerOpen(true)}
+                                                className="w-full mt-3 py-2 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <QrCode size={12} /> Verify & Start
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-10 text-center">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200">
+                                        <Clock size={32} />
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-400">No bookings found</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -474,6 +717,77 @@ const OperatorDashboard = () => {
                 onClose={() => setIsScannerOpen(false)}
                 onScanSuccess={handleScanSuccess}
             />
+
+            {/* Billing Modal */}
+            {billingBooking && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                        <div className="bg-emerald-600 p-8 text-white">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-black tracking-tight">Generate Bill</h3>
+                                    <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mt-1">Session ID: {billingBooking._id.slice(-8)}</p>
+                                </div>
+                                <button onClick={() => setBillingBooking(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                    <ZapOff size={24} />
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md">
+                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <UserIcon size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-black text-sm">{billingBooking.userId?.name || 'Customer'}</p>
+                                    <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest">{billingBooking.chargerId} • {billingBooking.date}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-8 space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Units Consumed (kWh)</label>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        value={unitsConsumed}
+                                        onChange={(e) => setUnitsConsumed(e.target.value)}
+                                        placeholder="e.g. 15.5"
+                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-6 py-4 text-xl font-black text-gray-800 focus:border-emerald-500 focus:bg-white transition-all outline-none"
+                                    />
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm uppercase">kWh</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Estimated Total</p>
+                                    <p className="text-2xl font-black text-emerald-600">
+                                        ₹{unitsConsumed ? (parseFloat(unitsConsumed) * (billingBooking.stationId?.chargers?.find(c => c.chargerId === billingBooking.chargerId)?.price || 15)).toFixed(2) : '0.00'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleGenerateBill}
+                                disabled={isGeneratingBill || !unitsConsumed}
+                                className="w-full py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3"
+                            >
+                                {isGeneratingBill ? (
+                                    <>
+                                        <RefreshCcw size={20} className="animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCheck size={20} />
+                                        Generate & Send Bill
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -203,6 +203,49 @@ exports.getOperatorStation = async (req, res) => {
 };
 
 /**
+ * Add a review to a station
+ */
+exports.addReview = async (req, res) => {
+  const { id } = req.params;
+  const { rating, comment, userName, userAvatar, userId } = req.body;
+
+  try {
+    const station = await Station.findById(id);
+    if (!station) {
+      return res.status(404).json({ success: false, message: 'Station not found' });
+    }
+
+    const newReview = {
+      userId,
+      userName,
+      userAvatar,
+      rating: Number(rating),
+      comment,
+      createdAt: new Date()
+    };
+
+    station.reviews.unshift(newReview);
+    station.reviewsCount = station.reviews.length;
+    
+    // Calculate new average rating
+    const totalRating = station.reviews.reduce((sum, rev) => sum + rev.rating, 0);
+    station.rating = (totalRating / station.reviews.length).toFixed(1);
+
+    await station.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Review added successfully',
+      rating: station.rating,
+      reviewsCount: station.reviewsCount
+    });
+  } catch (error) {
+    console.error("Error adding review:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * Update the status of a specific charger in a station
  */
 exports.updateChargerStatus = async (req, res) => {
@@ -210,14 +253,15 @@ exports.updateChargerStatus = async (req, res) => {
   const { status } = req.body;
 
   try {
-    const station = await Station.findById(id);
-    if (!station) return res.status(404).json({ success: false, message: 'Station not found' });
+    const station = await Station.findOneAndUpdate(
+      { _id: id, "chargers.chargerId": chargerId },
+      { $set: { "chargers.$.status": status } },
+      { new: true }
+    );
 
-    const charger = station.chargers.find(c => c.chargerId === chargerId);
-    if (!charger) return res.status(404).json({ success: false, message: 'Charger not found' });
-
-    charger.status = status;
-    await station.save();
+    if (!station) {
+      return res.status(404).json({ success: false, message: 'Station or Charger not found' });
+    }
 
     const io = req.app.get('socketio');
     if (io) {
@@ -230,6 +274,7 @@ exports.updateChargerStatus = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Charger status updated', station });
   } catch (error) {
+    console.error("Error updating charger status:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

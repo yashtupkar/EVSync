@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import TripPlannerMap from "../components/TripPlannerMap";
 import { VehicleCard } from "../components/DiscoveryComponents";
+import { socket } from "../utils/socket";
 
 // Haversine formula to calculate distance between two coordinates
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -374,6 +375,29 @@ const TripPlannerPage = () => {
       }
     };
     fetchStations();
+  }, []);
+
+  // Real-time charger updates
+  useEffect(() => {
+    const handleChargerStatus = (data) => {
+      setStations(prev => prev.map(station => {
+        if (station._id === data.stationId) {
+          return {
+            ...station,
+            chargers: station.chargers.map(charger => {
+              if (charger.chargerId === data.chargerId) {
+                return { ...charger, status: data.status };
+              }
+              return charger;
+            })
+          };
+        }
+        return station;
+      }));
+    };
+
+    socket.on('charger_status_updated', handleChargerStatus);
+    return () => socket.off('charger_status_updated', handleChargerStatus);
   }, []);
 
   return (
