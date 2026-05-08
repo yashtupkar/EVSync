@@ -1,4 +1,4 @@
-import React, { Activity } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import DiscoveryPage from "./pages/DiscoveryPage";
 import TripPlannerPage from "./pages/TripPlannerPage";
@@ -8,6 +8,7 @@ import BookingSuccessPage from "./pages/BookingSuccessPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import VerifyBookingPage from "./pages/VerifyBookingPage";
 import ChargingProgressPage from "./pages/ChargingProgressPage";
+import EmergencyPage from "./pages/EmergencyPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 
@@ -86,8 +87,9 @@ function App() {
           <Route path="/booking-success/:bookingId" element={<BookingSuccessPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
           <Route path="/charging-progress/:bookingId" element={<ChargingProgressPage />} />
+          <Route path="/emergency" element={<EmergencyPage />} />
         </Route>
-                  <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
+        <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
 
 
 

@@ -233,6 +233,20 @@ const BookingSuccessPage = () => {
                   Track Live Progress
                 </button>
               )}
+
+              {localStorage.getItem("evsync_trip_in_progress") === "true" && (
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem("evsync_trip_in_progress");
+                    navigate(`/trip-planner?nextStopId=${booking.stationId._id}`);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all"
+                >
+                  <Navigation size={20} />
+                  Continue Trip Planner
+                </button>
+              )}
+
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button 

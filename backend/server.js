@@ -16,6 +16,7 @@ const userRoutes = require('./routes/user.routes');
 const adminRoutes = require('./routes/admin.routes');
 const stationOwnerRoutes = require('./routes/stationOwner.routes');
 const bookingRoutes = require('./routes/booking.routes');
+const emergencyRoutes = require('./routes/emergencyRoutes');
 
 
 const app = express();
@@ -38,10 +39,10 @@ connectDB(); // Enabled as requested
 
 // Socket.io
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+
 
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+   
   });
 });
 
@@ -62,6 +63,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/station-owner', stationOwnerRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/emergency', emergencyRoutes);
 
 
 const PORT = process.env.PORT || 5000;

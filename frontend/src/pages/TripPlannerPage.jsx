@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import axios from "axios";
+import { QRCodeCanvas } from "qrcode.react";
+import { useSelector } from "react-redux";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import evData from "../../data/ev-data.json";
+
 import {
   MapPin,
   Navigation,
@@ -35,8 +41,11 @@ import {
   ChevronRight,
   Heart,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  ArrowRight,
+  Check
 } from "lucide-react";
+
 import TripPlannerMap from "../components/TripPlannerMap";
 import { VehicleCard } from "../components/DiscoveryComponents";
 import { socket } from "../utils/socket";
@@ -58,7 +67,12 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 const TripPlannerPage = () => {
+  const { user, activeVehicleIndex } = useSelector((state) => state.auth);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [stations, setStations] = useState([]);
+
   const [departureTime, setDepartureTime] = useState("9:00 AM");
   const [departureDate, setDepartureDate] = useState("May 21, 2024");
 
@@ -78,9 +92,9 @@ const TripPlannerPage = () => {
   const [routeTrigger, setRouteTrigger] = useState(0);
   const [routeData, setRouteData] = useState(null);
   const [selectedStationId, setSelectedStationId] = useState(null);
-  const selectedStation = useMemo(() => 
+  const selectedStation = useMemo(() =>
     selectedStationId ? stations.find(s => String(s._id) === String(selectedStationId)) : null
-  , [selectedStationId, stations]);
+    , [selectedStationId, stations]);
   const [activeTab, setActiveTab] = useState("overview");
   const [waypoints, setWaypoints] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -90,14 +104,98 @@ const TripPlannerPage = () => {
 
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
+  // State for the next stop (booked station)
+  const [nextStopId, setNextStopId] = useState(null);
+  const [bookingInfo, setBookingInfo] = useState(null);
+
+  useEffect(() => {
+    const paramId = searchParams.get("nextStopId");
+    const storedId = localStorage.getItem("evsync_next_stop");
+
+    if (paramId) {
+      setNextStopId(paramId);
+      localStorage.setItem("evsync_next_stop", paramId);
+    } else if (storedId) {
+      setNextStopId(storedId);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchBookingDetails = async () => {
+      if (nextStopId) {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`${backendURL}/api/bookings/my-bookings`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const currentBooking = response.data.find(b => String(b.stationId._id) === String(nextStopId));
+          setBookingInfo(currentBooking);
+
+          // Auto-add to waypoints if not already there
+          if (currentBooking && !waypoints.some(wp => String(wp._id) === String(nextStopId))) {
+            setWaypoints(prev => [...prev, currentBooking.stationId]);
+          }
+        } catch (error) {
+          console.error("Error fetching booking for trip planner:", error);
+        }
+      }
+    };
+    fetchBookingDetails();
+  }, [nextStopId, backendURL]);
+
+  // Filter stations based on user vehicle compatibility
+
+  const filteredStations = useMemo(() => {
+    if (!user || !user.vehicles || user.vehicles.length === 0) return stations;
+
+    const activeVehicle = user.vehicles[activeVehicleIndex];
+    if (!activeVehicle) return stations;
+
+    const vehicleDetails = evData.data.find(d => d.id === activeVehicle.vehicleId);
+    if (!vehicleDetails) return stations;
+
+    const userACPorts = (vehicleDetails.ac_charger?.ports || []).map(p => p.toLowerCase());
+    const userDCPorts = (vehicleDetails.dc_charger?.ports || []).map(p => p.toLowerCase());
+
+    return stations.filter(station => {
+      // If station has no chargers listed, show it just in case
+      if (!station.chargers || station.chargers.length === 0) return true;
+
+      return station.chargers.some(charger => {
+        const type = charger.type?.toLowerCase() || "";
+
+        // Define port categories
+        const isAC = ["type 2", "ac", "type-2"].some(t => type.includes(t));
+        const isDC = ["ccs2", "chademo", "dc"].some(t => type.includes(t));
+
+        // Check compatibility based on category
+        if (isDC) {
+          return userDCPorts.some(port => type.includes(port.replace(/\s+/g, "")));
+        }
+        if (isAC) {
+          return userACPorts.some(port => {
+            const p = port.replace(/\s+/g, "");
+            return type.includes(p) ||
+              type.includes(p.replace('type', 'type ')) ||
+              type.includes(p.replace('type', 'type-'));
+          });
+        }
+
+        // Default to showing if it doesn't clearly fall into AC/DC categories we filter
+        return true;
+      });
+    });
+  }, [stations, user, activeVehicleIndex]);
+
   // Filtered stations near the route for the map display
   const nearbyStations = useMemo(() => {
     if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
-      return stations;
+      return filteredStations;
     }
 
     // Return stations that are within 15km of any point on the route
-    return stations.filter(station => {
+    return filteredStations.filter(station => {
+
       const stationLat = station.location.coordinates[1];
       const stationLng = station.location.coordinates[0];
 
@@ -107,7 +205,7 @@ const TripPlannerPage = () => {
         return dist <= 15; // 15km radius for map markers
       });
     });
-  }, [stations, isRouteCalculated, routeData]);
+  }, [filteredStations, isRouteCalculated, routeData]);
 
   // Intermediate stations for the itinerary (strictly on route or very close)
   const itineraryStops = useMemo(() => {
@@ -115,7 +213,8 @@ const TripPlannerPage = () => {
       return [];
     }
 
-    const stops = stations.map(station => {
+    const stops = filteredStations.map(station => {
+
       const stationLat = station.location.coordinates[1];
       const stationLng = station.location.coordinates[0];
 
@@ -165,10 +264,12 @@ const TripPlannerPage = () => {
       return {
         ...stop,
         estimatedArrival: arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isWaypoint: waypoints.some(wp => wp._id === stop._id)
+        isWaypoint: waypoints.some(wp => wp._id === stop._id),
+        isNextStop: String(stop._id) === String(nextStopId)
       };
     });
-  }, [stations, isRouteCalculated, routeData, waypoints]);
+  }, [filteredStations, isRouteCalculated, routeData, waypoints, nextStopId]);
+
 
   const debounceTimer = useRef(null);
 
@@ -206,7 +307,7 @@ const TripPlannerPage = () => {
         console.error("Error parsing saved trip:", e);
       }
     }
-    
+
     const savedFavorites = localStorage.getItem("evsync_favorites");
     if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
   }, []);
@@ -239,12 +340,15 @@ const TripPlannerPage = () => {
     setIsRouteCalculated(false);
     setRouteData(null);
     localStorage.removeItem("evsync_trip_data");
+    localStorage.removeItem("evsync_next_stop");
+    setNextStopId(null);
   };
 
+
   const toggleFavorite = (stationId) => {
-    setFavorites(prev => 
-      prev.includes(stationId) 
-        ? prev.filter(id => id !== stationId) 
+    setFavorites(prev =>
+      prev.includes(stationId)
+        ? prev.filter(id => id !== stationId)
         : [...prev, stationId]
     );
   };
@@ -307,7 +411,7 @@ const TripPlannerPage = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setFromLocation({ lat: latitude, lng: longitude });
-          
+
           if (!hasSetInitialLocation.current) {
             setFrom("Your Location");
             hasSetInitialLocation.current = true;
@@ -427,7 +531,7 @@ const TripPlannerPage = () => {
                     Plan Your Trip
                   </h2>
                   {(from || to || isRouteCalculated) && (
-                    <button 
+                    <button
                       onClick={clearTrip}
                       className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg transition-all"
                     >
@@ -768,7 +872,7 @@ const TripPlannerPage = () => {
                   </div>
                 </div>
               </div> */}
-              <VehicleCard/>
+              <VehicleCard />
 
               {/* <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
@@ -1005,7 +1109,7 @@ const TripPlannerPage = () => {
                     className="w-full h-full object-cover transition-all duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  
+
                   {/* Back Button */}
                   <button
                     onClick={() => {
@@ -1028,24 +1132,24 @@ const TripPlannerPage = () => {
                   {/* Image Navigation Arrows */}
                   {selectedStation.images?.length > 1 && (
                     <>
-                      <button 
+                      <button
                         onClick={handlePrevImage}
                         className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
                       >
                         <ChevronLeft size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={handleNextImage}
                         className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-sm text-gray-800 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10"
                       >
                         <ChevronRight size={16} />
                       </button>
-                      
+
                       <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
                         {selectedStation.images.map((_, idx) => (
-                          <div 
-                            key={idx} 
-                            className={`h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`} 
+                          <div
+                            key={idx}
+                            className={`h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`}
                           />
                         ))}
                       </div>
@@ -1225,14 +1329,14 @@ const TripPlannerPage = () => {
                         <button
                           className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-xl shadow-emerald-100 hover:bg-[#189641] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                           onClick={() => {
-                            const stop = itineraryStops.find(s => s._id === selectedStation._id);
-                            const time = stop ? stop.estimatedArrival : "12:30 PM";
-                            alert(`Slot booked successfully for ${time}!`);
+                            localStorage.setItem("evsync_trip_in_progress", "true");
+                            navigate(`/book-slot/${selectedStation._id}`);
                           }}
                         >
                           <Calendar size={18} />
                           Book Slot for {itineraryStops.find(s => s._id === selectedStation._id)?.estimatedArrival || "12:30 PM"}
                         </button>
+
                         <p className="text-[10px] text-gray-400 text-center mt-3 font-bold uppercase tracking-widest">
                           Free cancellation up to 30 mins before arrival
                         </p>
@@ -1242,7 +1346,7 @@ const TripPlannerPage = () => {
                     <div className="p-6 space-y-8">
                       {/* Add Review Button */}
                       {!showReviewForm ? (
-                        <button 
+                        <button
                           onClick={() => setShowReviewForm(true)}
                           className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
                         >
@@ -1254,31 +1358,31 @@ const TripPlannerPage = () => {
                             <h4 className="text-sm font-bold text-gray-900">Your Review</h4>
                             <button onClick={() => setShowReviewForm(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
                           </div>
-                          
+
                           <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <button 
-                                key={star} 
-                                onClick={() => setNewReview({...newReview, rating: star})}
+                              <button
+                                key={star}
+                                onClick={() => setNewReview({ ...newReview, rating: star })}
                                 className="transition-transform active:scale-90"
                               >
-                                <Star 
-                                  size={24} 
-                                  fill={star <= newReview.rating ? "#FBBF24" : "none"} 
+                                <Star
+                                  size={24}
+                                  fill={star <= newReview.rating ? "#FBBF24" : "none"}
                                   className={star <= newReview.rating ? "text-yellow-400" : "text-gray-300"}
                                 />
                               </button>
                             ))}
                           </div>
-                          
-                          <textarea 
+
+                          <textarea
                             value={newReview.comment}
-                            onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                            onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                             placeholder="Share your experience at this station..."
                             className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500/50 min-h-[100px] font-medium"
                           />
-                          
-                          <button 
+
+                          <button
                             className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
                             onClick={() => {
                               alert("Review submitted! (Mock)");
@@ -1299,28 +1403,28 @@ const TripPlannerPage = () => {
                         ]).map((review, idx) => (
                           <div key={idx} className="space-y-2 pb-6 border-b border-gray-50 last:border-0">
                             <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                  {review.userAvatar ? (
-                                    <img 
-                                      src={getImageUrl(review.userAvatar)} 
-                                      alt="" 
-                                      onError={(e) => { e.target.style.display = 'none'; }}
-                                      className="w-8 h-8 rounded-full object-cover border border-emerald-100" 
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
-                                      {(typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "U"))[0]}
-                                    </div>
-                                  )}
-                                  <div>
-                                    <h5 className="text-sm font-bold text-gray-900">
-                                      {typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "Anonymous User")}
-                                    </h5>
-                                    <p className="text-[10px] text-gray-400 font-medium">
-                                      {review.date || (review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Recent")}
-                                    </p>
+                              <div className="flex items-center gap-3">
+                                {review.userAvatar ? (
+                                  <img
+                                    src={getImageUrl(review.userAvatar)}
+                                    alt=""
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    className="w-8 h-8 rounded-full object-cover border border-emerald-100"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">
+                                    {(typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "U"))[0]}
                                   </div>
+                                )}
+                                <div>
+                                  <h5 className="text-sm font-bold text-gray-900">
+                                    {typeof review.user === 'string' ? review.user : (review.user?.name || review.userId?.name || review.userName || "Anonymous User")}
+                                  </h5>
+                                  <p className="text-[10px] text-gray-400 font-medium">
+                                    {review.date || (review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Recent")}
+                                  </p>
                                 </div>
+                              </div>
                               <div className="flex text-yellow-400">
                                 {[...Array(5)].map((_, i) => (
                                   <Star
@@ -1443,8 +1547,14 @@ const TripPlannerPage = () => {
                           {index + 1}
                         </div>
 
-                        <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all duration-300 group-hover:-translate-y-1">
+                        <div className={`bg-white border ${stop.isNextStop ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-gray-100'} p-3 rounded-xl shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all duration-300 group-hover:-translate-y-1 relative`}>
+                          {stop.isNextStop && (
+                            <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-1 rounded-md shadow-lg z-20 ">
+                              Next Stop
+                            </div>
+                          )}
                           <div className="flex items-start justify-between mb-4">
+
                             <div className="flex gap-3">
                               <div className={`w-10 h-10 ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center transition-colors`}>
                                 <EvCharger size={22} className={`${isFullyOccupied ? 'text-white' : 'text-white'} `} />
@@ -1511,35 +1621,81 @@ const TripPlannerPage = () => {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex gap-2 mt-4  border-t border-gray-50">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (stop.isWaypoint) {
-                                  setWaypoints(waypoints.filter(wp => wp._id !== stop._id));
-                                } else {
-                                  setWaypoints([...waypoints, stop]);
-                                }
-                              }}
-                              className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${stop.isWaypoint
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : "bg-green-100 text-green-600 hover:bg-green-50"
-                                }`}
-                            >
-                              {stop.isWaypoint ? <Minus size={14} /> : <Plus size={14} />}
-                              {stop.isWaypoint ? "Remove" : "Add to Trip"}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`Slot booked successfully for ${stop.estimatedArrival}!`);
-                              }}
-                              className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-[#189641] shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
-                            >
-                              <Calendar size={14} />
-                              Book Slot
-                            </button>
-                          </div>
+                          {stop.isNextStop && bookingInfo ? (
+                            <div className="mt-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col gap-4 relative overflow-hidden">
+                              <div className="absolute top-0 right-0 p-1 bg-emerald-500 text-white rounded-bl-lg">
+                                <Check size={10} strokeWidth={4} />
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Confirmed Booking</span>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Clock size={12} className="text-emerald-500" />
+                                    <span className="text-xs font-bold text-gray-900">{bookingInfo.startTime}</span>
+                                  </div>
+                                </div>
+                                <div className="bg-white p-1 rounded-lg shadow-sm border border-emerald-100">
+                                  <QRCodeCanvas
+                                    value={`${window.location.origin}/verify-booking/${bookingInfo._id}`}
+                                    size={45}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/60 p-2 rounded-xl border border-emerald-100">
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase block">OTP Code</span>
+                                  <span className="text-sm font-black text-emerald-600 tracking-widest">{bookingInfo.otp}</span>
+                                </div>
+                                <div className="bg-white/60 p-2 rounded-xl border border-emerald-100">
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase block">Charger</span>
+                                  <span className="text-[10px] font-bold text-gray-900 truncate">{bookingInfo.chargerId}</span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/booking-success/${bookingInfo._id}`);
+                                }}
+                                className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
+                              >
+                                View Digital Ticket <ArrowRight size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2 mt-4  border-t border-gray-50">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (stop.isWaypoint) {
+                                    setWaypoints(waypoints.filter(wp => wp._id !== stop._id));
+                                  } else {
+                                    setWaypoints([...waypoints, stop]);
+                                  }
+                                }}
+                                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${stop.isWaypoint
+                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                  : "bg-green-100 text-green-600 hover:bg-green-50"
+                                  }`}
+                              >
+                                {stop.isWaypoint ? <Minus size={14} /> : <Plus size={14} />}
+                                {stop.isWaypoint ? "Remove" : "Add to Trip"}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  localStorage.setItem("evsync_trip_in_progress", "true");
+                                  navigate(`/book-slot/${stop._id}`);
+                                }}
+                                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-[#189641] shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
+                              >
+                                <Calendar size={14} />
+                                Book Slot
+                              </button>
+                            </div>
+                          )}
+
                         </div>
                       </div>
                     );

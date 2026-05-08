@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Map, ShieldCheck, Zap, User, Route, Heart, Clock, MapPin, Calendar } from "lucide-react";
+import { Map, ShieldCheck, Zap, User, Route, Heart, Clock, MapPin, Calendar, ShieldAlert } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import {
@@ -65,6 +65,7 @@ const Navbar = () => {
               { label: 'Trip Planner', path: '/trip-planner', icon: Route },
               { label: 'Favorites', path: '/favorites', icon: Heart },
               { label: 'My Bookings', path: '/my-bookings', icon: Calendar,  },
+              { label: 'Emergency', path: '/emergency', icon: ShieldAlert,  },
             ].map((item, i) => {
               const isActive = location.pathname === item.path;
               return (
@@ -111,6 +112,9 @@ const Navbar = () => {
                 </Link>
                 <Link to="/my-bookings" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
                   <Clock size={16} /> My Bookings
+                </Link>
+                <Link to="/emergency" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                  <ShieldAlert size={16} /> Emergency & SOS
                 </Link>
 
                 {currentUser?.role === "admin" && (

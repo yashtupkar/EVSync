@@ -12,6 +12,7 @@ import {
     DollarSign, Monitor, Wallet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import EmergencyAlertListener from '../components/EmergencyAlertListener';
 
 const DashboardLayout = ({ 
     children, 
@@ -78,6 +79,7 @@ const DashboardLayout = ({
 
     return (
         <div className="min-h-screen bg-[#F9FAFB] flex font-sans text-slate-900">
+            <EmergencyAlertListener />
             {/* --- SIDEBAR --- */}
             <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-slate-100 flex flex-col transition-all duration-300 fixed h-full z-[100]`}>
                 {/* Logo Section */}
