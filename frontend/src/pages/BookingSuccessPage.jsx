@@ -15,7 +15,8 @@ import {
   Check,
   ShieldCheck,
   Navigation,
-  Activity
+  Activity,
+  AlertTriangle
 } from 'lucide-react';
 import { socket } from '../utils/socket';
 
@@ -219,6 +220,19 @@ const BookingSuccessPage = () => {
                     <span className="font-mono text-[10px] text-gray-400">{booking.transactionId}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Warning Message */}
+            <div className="mt-8 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+              <div className="mt-0.5 text-amber-500">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h4 className="text-[13px] font-bold text-amber-800">Start Charging on Time!</h4>
+                <p className="text-[12px] text-amber-700 mt-1 font-medium leading-relaxed">
+                  Please ensure your charging session begins within <strong className="font-black">10 minutes</strong> of your scheduled start time. Otherwise, your slot will be automatically released and the booking will be cancelled.
+                </p>
               </div>
             </div>
 

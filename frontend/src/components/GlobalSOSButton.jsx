@@ -131,7 +131,7 @@ const GlobalSOSButton = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleSOSClick}
-          className={`fixed bottom-6 right-6 rounded-full flex flex-col items-center justify-center z-[90] group ${buttonClasses}`}
+          className={`fixed bottom-6 right-6 rounded-full flex flex-col items-center justify-center z-[90] group notranslate ${buttonClasses}`}
         >
           <div className={`absolute inset-0 rounded-full ${pingClasses}`}></div>
           <span className={`font-black tracking-tighter ${textClasses}`}>SOS</span>
@@ -141,7 +141,7 @@ const GlobalSOSButton = ({
 
       <AnimatePresence>
         {showTypeModal && (
-          <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-4 pb-8 md:p-4">
+          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-4 pb-8 md:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -158,12 +158,12 @@ const GlobalSOSButton = ({
               <div className="p-6 md:p-8">
                 <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 bg-red-50 relative">
+                    <div className="w-12 h-12 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 bg-red-50 relative notranslate">
                       <div className="absolute inset-0 rounded-full border border-red-200 animate-ping opacity-20"></div>
                       <span className="text-xs font-black">SOS</span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-gray-900">What is your emergency?</h3>
+                      <h3 className="text-xl font-black text-gray-900 ">What is your emergency?</h3>
                       <p className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-widest">Select an option to alert your contacts instantly</p>
                     </div>
                   </div>

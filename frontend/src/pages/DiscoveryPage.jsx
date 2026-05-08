@@ -213,25 +213,66 @@ const DiscoveryPage = () => {
       return station.distance !== null && station.distance <= maxRange;
     })
     .sort((a, b) => {
+      // Prioritize local stations if they are within a similar distance range
+      if (a.distance === null && b.distance === null) return 0;
       if (a.distance === null) return 1;
       if (b.distance === null) return -1;
+      
+      // If distances are very close (within 100m), prefer local
+      if (Math.abs(a.distance - b.distance) < 0.1) {
+        if (!a.external && b.external) return -1;
+        if (a.external && !b.external) return 1;
+      }
+      
       return a.distance - b.distance;
     });
+
+  // Split into Map vs List
+  const listStations = useMemo(() => {
+    return filteredStations.filter(station => {
+      // If user specified a maxRange, use it. Otherwise, default list to 200km for "nearby"
+      const limit = maxRange || 200;
+      return station.distance !== null && station.distance <= limit;
+    });
+  }, [filteredStations, maxRange]);
 
   const mapRef = useRef(null);
 
   useEffect(() => {
-    const fetchStations = async () => {
+    const fetchGlobalStations = async () => {
       try {
         const response = await fetch(`${backendURL}/api/stations`);
         const data = await response.json();
-        setStations(data);
+        setStations(prev => {
+          const existingIds = new Set(prev.map(s => String(s._id)));
+          const uniqueNew = data.filter(s => !existingIds.has(String(s._id)));
+          return [...prev, ...uniqueNew];
+        });
       } catch (error) {
-        console.error("Error fetching stations:", error);
+        console.error("Error fetching global stations:", error);
       }
     };
-    fetchStations();
+    fetchGlobalStations();
   }, []);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    const fetchNearbyStations = async () => {
+      try {
+        const url = `${backendURL}/api/stations/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&distance=200`;
+        const response = await fetch(url);
+        const data = await response.json();
+        setStations(prev => {
+          const nearbyIds = new Set(data.map(s => String(s._id)));
+          const others = prev.filter(s => !nearbyIds.has(String(s._id)));
+          return [...data, ...others];
+        });
+      } catch (error) {
+        console.error("Error fetching nearby stations:", error);
+      }
+    };
+    fetchNearbyStations();
+  }, [userLocation?.lat, userLocation?.lng]);
 
   // Real-time charger updates
   useEffect(() => {
@@ -326,7 +367,7 @@ const DiscoveryPage = () => {
             <VehicleCard onChange={() => console.log("Change vehicle")} />
             <ReachableStationsCard
               total={stations.length}
-              withinRange={filteredStations.length}
+              withinRange={listStations.length}
               onRangeFilter={setMaxRange}
             />
             <FilterSection onShowStations={(filter, available) => {
@@ -414,12 +455,12 @@ const DiscoveryPage = () => {
                 Nearby Stations 
               </h2>
               <span className="bg-green-50 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                {filteredStations.length} Results
+                {listStations.length} Results
               </span>
             </div>
             <div className="flex-grow overflow-y-auto px-2 custom-scrollbar space-y-4">
-              {filteredStations.length > 0 ? (
-                filteredStations.map((station) => (
+              {listStations.length > 0 ? (
+                listStations.map((station) => (
                   <StationListItem
                     key={station._id}
                     station={station}

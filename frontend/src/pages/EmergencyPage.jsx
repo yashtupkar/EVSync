@@ -276,7 +276,7 @@ const emergencyTypes = [
                 className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.4)] relative group"
               >
                 <div className="absolute inset-0 bg-white/20 rounded-full animate-ping group-hover:animate-none"></div>
-                <span className="text-red-600 text-5xl font-black tracking-tighter">SOS</span>
+                <span className="text-red-600 text-5xl font-black tracking-tighter notranslate">SOS</span>
               </motion.button>
 
               <div className="space-y-2">

@@ -474,7 +474,11 @@ const TripPlannerPage = () => {
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await fetch(`${backendURL}/api/stations`);
+        let url = `${backendURL}/api/stations`;
+        if (fromLocation) {
+          url = `${backendURL}/api/stations/nearby?lat=${fromLocation.lat}&lng=${fromLocation.lng}&distance=200`;
+        }
+        const response = await fetch(url);
         const data = await response.json();
         setStations(data);
       } catch (error) {
@@ -482,7 +486,44 @@ const TripPlannerPage = () => {
       }
     };
     fetchStations();
-  }, []);
+  }, [fromLocation?.lat, fromLocation?.lng]);
+
+  // Dynamic station fetching along the route
+  useEffect(() => {
+    if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) return;
+
+    const fetchAlongRoute = async () => {
+      const coords = routeData.coordinates;
+      // Pick several points along the route for better coverage
+      const indices = [
+        0, 
+        Math.floor(coords.length / 4),
+        Math.floor(coords.length / 2),
+        Math.floor((coords.length * 3) / 4),
+        coords.length - 1
+      ];
+
+      for (const idx of indices) {
+        const point = coords[idx];
+        if (!point) continue;
+        
+        try {
+          const res = await fetch(`${backendURL}/api/stations/nearby?lat=${point[0]}&lng=${point[1]}&distance=50`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          setStations(prev => {
+            const existingIds = new Set(prev.map(s => String(s._id)));
+            const uniqueNew = data.filter(s => !existingIds.has(String(s._id)));
+            return [...prev, ...uniqueNew];
+          });
+        } catch (e) {
+          console.error("Error fetching along route point:", point, e);
+        }
+      }
+    };
+
+    fetchAlongRoute();
+  }, [routeData, isRouteCalculated, backendURL]);
 
   // Real-time charger updates
   useEffect(() => {
@@ -1569,6 +1610,11 @@ const TripPlannerPage = () => {
                                       Planned
                                     </span>
                                   )}
+                                  {stop.external && (
+                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase rounded-md tracking-tighter">
+                                      External
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <div className="flex items-center gap-0.5 text-yellow-500">
@@ -1665,35 +1711,50 @@ const TripPlannerPage = () => {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex gap-2 mt-4  border-t border-gray-50">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (stop.isWaypoint) {
-                                    setWaypoints(waypoints.filter(wp => wp._id !== stop._id));
-                                  } else {
-                                    setWaypoints([...waypoints, stop]);
-                                  }
-                                }}
-                                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${stop.isWaypoint
-                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                  : "bg-green-100 text-green-600 hover:bg-green-50"
-                                  }`}
-                              >
-                                {stop.isWaypoint ? <Minus size={14} /> : <Plus size={14} />}
-                                {stop.isWaypoint ? "Remove" : "Add to Trip"}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  localStorage.setItem("evsync_trip_in_progress", "true");
-                                  navigate(`/book-slot/${stop._id}`);
-                                }}
-                                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-[#189641] shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
-                              >
-                                <Calendar size={14} />
-                                Book Slot
-                              </button>
-                            </div>
+                               <div className="flex gap-2 mt-4  border-t border-gray-50">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (stop.isWaypoint) {
+                                      setWaypoints(waypoints.filter(wp => wp._id !== stop._id));
+                                    } else {
+                                      setWaypoints([...waypoints, stop]);
+                                    }
+                                  }}
+                                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${stop.isWaypoint
+                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                    : "bg-green-100 text-green-600 hover:bg-green-50"
+                                    }`}
+                                >
+                                  {stop.isWaypoint ? <Minus size={14} /> : <Plus size={14} />}
+                                  {stop.isWaypoint ? "Remove" : "Add to Trip"}
+                                </button>
+                                {stop.external ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const lat = stop.location?.coordinates[1];
+                                      const lng = stop.location?.coordinates[0];
+                                      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+                                    }}
+                                    className="flex-1 py-2.5 bg-blue-500 text-white rounded-xl text-[10px] font-bold hover:bg-blue-600 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2"
+                                  >
+                                    <Navigation size={14} />
+                                    Open Maps
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      localStorage.setItem("evsync_trip_in_progress", "true");
+                                      navigate(`/book-slot/${stop._id}`);
+                                    }}
+                                    className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-bold hover:bg-[#189641] shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
+                                  >
+                                    <Calendar size={14} />
+                                    Book Slot
+                                  </button>
+                                )}
+                              </div>
                           )}
 
                         </div>

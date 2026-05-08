@@ -49,7 +49,11 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const createStationIcon = (station, mapRotation = 0) => {
   const isAvailable =
     station?.status === "available" || station?.isAvailable !== false;
-  const color = isAvailable ? "#1BAC4B" : "#f1be25ff";
+  
+  let color = isAvailable ? "#1BAC4B" : "#f1be25ff";
+  if (station?.external) {
+    color = "#3B82F6"; // Blue for external stations
+  }
 
   return L.divIcon({
     className: "custom-station-icon",

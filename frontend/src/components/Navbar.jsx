@@ -7,6 +7,7 @@ import {
   selectUser,
 } from "../features/auth/authSelectors";
 import toast from "react-hot-toast";
+import GoogleTranslator from "./GoogleTranslator";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -45,7 +46,7 @@ const Navbar = () => {
       className="w-full px-6 py-3 h-[60px] flex items-center justify-between
      gap-6 shadow-sm bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 animate-in slide-in-from-top-4 duration-700"
     >
-      <Link to="/" className="flex items-center gap-3 group">
+      <Link to="/" className="flex items-center gap-3 group notranslate">
         <div className="bg-emerald-500 p-2 rounded-lg text-white group-hover:rotate-12 transition-all shadow-md shadow-green-100">
           <Zap size={20} fill="currentColor" />
         </div>
@@ -85,6 +86,7 @@ const Navbar = () => {
 
 
       <div className="flex items-center gap-4">
+        <GoogleTranslator />
         {isAuthenticated ? (
           <div className="relative group">
             {/* Avatar Profile */}

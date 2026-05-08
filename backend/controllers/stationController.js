@@ -1,71 +1,72 @@
 const mongoose = require('mongoose');
 const Station = require('../models/Station');
 const User = require('../models/User');
+const ocmService = require('../services/ocmService');
 
-// --- HACKATHON MOCK DATA (BHOPAL LOCATIONS) ---
-let mockStations = [
-  {
-    _id: "bh1",
-    name: "New Market EcoCharge",
-    address: "GTB Complex, New Market, Bhopal",
-    location: { type: "Point", coordinates: [77.3986, 23.2323] },
-    images: ["https://images.unsplash.com/photo-1593941707882-a5bba14938c7"],
-    chargers: [{ type: "CCS2", power: 60, status: "available", pricePerHour: 18 }],
-    rating: 4.6
-  },
-  {
-    _id: "sh1",
-    name: "Sehore Highway Hub",
-    address: "SH 18, Sehore, MP",
-    location: { type: "Point", coordinates: [77.0850, 23.1970] },
-    images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
-    chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 22 }],
-    rating: 4.5
-  },
-  {
-    _id: "as1",
-    name: "Ashta Midpoint Chargers",
-    address: "Indore-Bhopal Rd, Ashta, MP",
-    location: { type: "Point", coordinates: [76.7180, 23.0180] },
-    images: ["https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b"],
-    chargers: [{ type: "Type 2", power: 22, status: "available", pricePerHour: 12 }],
-    rating: 4.2
-  },
-  {
-    _id: "dw1",
-    name: "Dewas Industrial Power",
-    address: "Industrial Area, Dewas, MP",
-    location: { type: "Point", coordinates: [76.0640, 22.9660] },
-    images: ["https://images.unsplash.com/photo-1601584115197-04ecc0da31d7"],
-    chargers: [{ type: "CCS2", power: 150, status: "available", pricePerHour: 30 }],
-    rating: 4.7
-  },
-  {
-    _id: "ib1",
-    name: "Indore Bypass QuickCharge",
-    address: "Indore Bypass, MP",
-    location: { type: "Point", coordinates: [75.9300, 22.7600] },
-    images: ["https://images.unsplash.com/photo-1593941707882-a5bba14938c7"],
-    chargers: [{ type: "CCS2", power: 60, status: "available", pricePerHour: 20 }],
-    rating: 4.4
-  },
-  {
-    _id: "in1",
-    name: "Vijay Nagar Indore Station",
-    address: "Vijay Nagar, Indore, MP",
-    location: { type: "Point", coordinates: [75.8950, 22.7533] },
-    images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
-    chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 25 }],
-    rating: 4.9
-  }
-];
+// // --- HACKATHON MOCK DATA (BHOPAL LOCATIONS) ---
+// let mockStations = [
+//   {
+//     _id: "bh1",
+//     name: "New Market EcoCharge",
+//     address: "GTB Complex, New Market, Bhopal",
+//     location: { type: "Point", coordinates: [77.3986, 23.2323] },
+//     images: ["https://images.unsplash.com/photo-1593941707882-a5bba14938c7"],
+//     chargers: [{ type: "CCS2", power: 60, status: "available", pricePerHour: 18 }],
+//     rating: 4.6
+//   },
+//   {
+//     _id: "sh1",
+//     name: "Sehore Highway Hub",
+//     address: "SH 18, Sehore, MP",
+//     location: { type: "Point", coordinates: [77.0850, 23.1970] },
+//     images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
+//     chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 22 }],
+//     rating: 4.5
+//   },
+//   {
+//     _id: "as1",
+//     name: "Ashta Midpoint Chargers",
+//     address: "Indore-Bhopal Rd, Ashta, MP",
+//     location: { type: "Point", coordinates: [76.7180, 23.0180] },
+//     images: ["https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b"],
+//     chargers: [{ type: "Type 2", power: 22, status: "available", pricePerHour: 12 }],
+//     rating: 4.2
+//   },
+//   {
+//     _id: "dw1",
+//     name: "Dewas Industrial Power",
+//     address: "Industrial Area, Dewas, MP",
+//     location: { type: "Point", coordinates: [76.0640, 22.9660] },
+//     images: ["https://images.unsplash.com/photo-1601584115197-04ecc0da31d7"],
+//     chargers: [{ type: "CCS2", power: 150, status: "available", pricePerHour: 30 }],
+//     rating: 4.7
+//   },
+//   {
+//     _id: "ib1",
+//     name: "Indore Bypass QuickCharge",
+//     address: "Indore Bypass, MP",
+//     location: { type: "Point", coordinates: [75.9300, 22.7600] },
+//     images: ["https://images.unsplash.com/photo-1593941707882-a5bba14938c7"],
+//     chargers: [{ type: "CCS2", power: 60, status: "available", pricePerHour: 20 }],
+//     rating: 4.4
+//   },
+//   {
+//     _id: "in1",
+//     name: "Vijay Nagar Indore Station",
+//     address: "Vijay Nagar, Indore, MP",
+//     location: { type: "Point", coordinates: [75.8950, 22.7533] },
+//     images: ["https://images.unsplash.com/photo-1563986768609-322da13575f3"],
+//     chargers: [{ type: "CCS2", power: 120, status: "available", pricePerHour: 25 }],
+//     rating: 4.9
+//   }
+// ];
 
-// Update BH3 to be "Full" for UI test
-mockStations[2].chargers[0].status = 'in_use'; 
+// // Update BH3 to be "Full" for UI test
+// mockStations[2].chargers[0].status = 'in_use'; 
 
-let mockUsers = [
-  { _id: "u1", name: "Yash Tupkar", mobile: "9999999999", role: "admin" }
-];
+// let mockUsers = [
+//   { _id: "u1", name: "Yash Tupkar", mobile: "9999999999", role: "admin" }
+// ];
 // ---------------------------
 
 const useMock = false; 
@@ -73,8 +74,14 @@ const useMock = false;
 exports.getAllStations = async (req, res) => {
   try {
     if (useMock) return res.json(mockStations);
-    const stations = await Station.find();
-    res.json(stations);
+    
+    // Fetch local stations (including pending/rejected for hackathon visibility)
+    const localStations = await Station.find();
+    
+    // Fetch external stations (only 20 for global view to avoid cluttering far away)
+    const externalStations = await ocmService.fetchExternalStations({ maxResults: 20 });
+    
+    res.json([...localStations, ...externalStations]);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -93,27 +100,45 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 exports.getNearbyStations = async (req, res) => {
-  const { lng, lat } = req.query;
+  const { lng, lat, distance = 20 } = req.query;
   try {
+    let localStations = [];
+    
     if (useMock && lat && lng) {
-        const filtered = mockStations.filter(s => {
+        localStations = mockStations.filter(s => {
             const dist = calculateDistance(parseFloat(lat), parseFloat(lng), s.location.coordinates[1], s.location.coordinates[0]);
-            return dist <= 20; // 20 km radius
+            return dist <= distance; 
         });
-        return res.json(filtered);
+    } else if (lat && lng) {
+        localStations = await Station.find({
+          location: {
+            $near: {
+              $geometry: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+              $maxDistance: distance * 1000 
+            }
+          }
+        });
+    } else {
+        localStations = await Station.find();
     }
-    if (useMock) return res.json(mockStations);
 
-    const stations = await Station.find({
-      location: {
-        $near: {
-          $geometry: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
-          $maxDistance: 20000 
-        }
-      }
-    });
-    res.json(stations);
+    // Fetch external stations from OCM
+    let externalStations = [];
+    if (lat && lng) {
+        externalStations = await ocmService.fetchExternalStations({
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            distance: parseFloat(distance),
+            maxResults: 50
+        });
+    } else {
+        // If no lat/lng, maybe fetch a few but prioritize local
+        externalStations = await ocmService.fetchExternalStations({ maxResults: 10 });
+    }
+
+    res.json([...localStations, ...externalStations]);
   } catch (error) {
+    console.error("Error in getNearbyStations:", error);
     res.json(mockStations);
   }
 };

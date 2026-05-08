@@ -37,6 +37,10 @@ app.use(express.json());
 
 connectDB(); // Enabled as requested
 
+// Initialize Cron Jobs
+const startCronJobs = require('./services/cronService');
+startCronJobs(io);
+
 // Socket.io
 io.on('connection', (socket) => {
 

@@ -353,7 +353,12 @@ export const StationListItem = ({ station, onClick, distance }) => {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex justify-between items-start">
-            <h3 className="font-bold text-sm text-gray-800 group-hover:text-emerald-500 transition-colors truncate">{station.name}</h3>
+            <div className="flex items-center gap-2 truncate">
+              <h3 className="font-bold text-sm text-gray-800 group-hover:text-emerald-500 transition-colors truncate">{station.name}</h3>
+              {station.external && (
+                <span className="bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0">External</span>
+              )}
+            </div>
             <div className="flex items-center gap-0.5 text-yellow-500 font-bold text-[10px] shrink-0 ml-2">
               <Star size={10} fill="currentColor" />
               <span>{station.rating || "4.6"}</span>
@@ -396,17 +401,32 @@ export const StationListItem = ({ station, onClick, distance }) => {
               )}
       </div>
 
-      {/* Book Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/book-slot/${station._id}`);
-        }}
-        className="w-full mt-3 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
-      >
-        <Calendar size={12} />
-        Book Now
-      </button>
+      {/* Action Button */}
+      {station.external ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const lat = station.location?.coordinates[1];
+            const lng = station.location?.coordinates[0];
+            window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+          }}
+          className="w-full mt-3 py-2 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2"
+        >
+          <Navigation size={12} />
+          Navigate Now
+        </button>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/book-slot/${station._id}`);
+          }}
+          className="w-full mt-3 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
+        >
+          <Calendar size={12} />
+          Book Now
+        </button>
+      )}
     </div>
   );
 };
@@ -587,13 +607,27 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 shrink-0">
-          <button
-            onClick={() => navigate(`/book-slot/${station._id}`)}
-            className="flex items-center gap-2 bg-emerald-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all whitespace-nowrap"
-          >
-            <Calendar size={14} />
-            Book Now
-          </button>
+          {!station.external ? (
+            <button
+              onClick={() => navigate(`/book-slot/${station._id}`)}
+              className="flex items-center gap-2 bg-emerald-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all whitespace-nowrap"
+            >
+              <Calendar size={14} />
+              Book Now
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                const lat = station.location?.coordinates[1];
+                const lng = station.location?.coordinates[0];
+                window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+              }}
+              className="flex items-center gap-2 bg-blue-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-600 transition-all whitespace-nowrap"
+            >
+              <Navigation size={14} />
+              Open in Maps
+            </button>
+          )}
           <button
             onClick={() => onNavigate(station)}
             className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-[11px] font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all whitespace-nowrap"
@@ -692,9 +726,13 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
         </div>
 
         {/* Info Note */}
-        <div className="flex items-center gap-3 mt-5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-          <Info size={14} className="text-blue-400 shrink-0" />
-          <p className="text-[10px] font-bold text-blue-500">You can cancel or modify your booking up to 15 minutes before the start time.</p>
+        <div className={`flex items-center gap-3 mt-5 rounded-xl px-4 py-3 ${station.external ? 'bg-amber-50 border border-amber-100' : 'bg-blue-50 border border-blue-100'}`}>
+          <Info size={14} className={station.external ? 'text-amber-400' : 'text-blue-400'} />
+          <p className={`text-[10px] font-bold ${station.external ? 'text-amber-600' : 'text-blue-500'}`}>
+            {station.external 
+              ? "This station is provided by an external network. Booking via EVSync is not available for this location." 
+              : "You can cancel or modify your booking up to 15 minutes before the start time."}
+          </p>
         </div>
 
           {/* Station Image Slider */}

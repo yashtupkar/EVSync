@@ -95,3 +95,70 @@ body {
   margin-bottom: 5px;
 }
 .hide-station-labels .station-label { opacity: 0; pointer-events: none; }
+
+/* Google Translate "Headless" Styling - Aggressive Hiding */
+.goog-te-banner-frame.skiptranslate, 
+.goog-te-banner-frame,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-te-gadget-icon,
+.goog-te-gadget-simple img,
+.goog-te-menu-value span:nth-child(2),
+.goog-te-menu-value span:nth-child(3),
+.goog-te-menu-value span:nth-child(5) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+iframe.VIpgJd-ZVi9od-ORHb-OEVmcd,
+iframe.VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+iframe.skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Prevent Google from pushing the page down */
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-te-gadget-simple {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+  cursor: pointer;
+}
+
+.goog-tooltip {
+  display: none !important;
+}
+
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+#google_translate_element {
+  display: none !important;
+}
+
+/* Hide the "Original Text" popup on hover */
+.goog-te-menu-frame {
+    display: none !important;
+}
