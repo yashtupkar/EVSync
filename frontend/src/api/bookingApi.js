@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/bookings';
+const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API_URL = `${backendURL}/api/bookings`;
 
 // Helper to get token
 const getAuthConfig = () => {
