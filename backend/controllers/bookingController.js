@@ -238,7 +238,9 @@ exports.confirmBooking = async (req, res) => {
 
     if (io) {
       io.emit('booking_confirmed', { 
-        stationId: booking.stationId._id, 
+        stationId: booking.stationId._id.toString(), 
+        bookingId: booking._id.toString(),
+        userId: booking.userId._id.toString(),
         chargerId: booking.chargerId,
         date: booking.date,
         timeSlot: `${booking.startTime} - ${booking.endTime}`
@@ -331,10 +333,10 @@ exports.updateBookingStatus = async (req, res) => {
     const io = req.app.get('socketio');
     if (io) {
       io.emit('booking_status_updated', {
-        bookingId: booking._id,
-        stationId: booking.stationId, // This is an ObjectId from the document
+        bookingId: booking._id.toString(),
+        stationId: booking.stationId.toString(),
         status: status,
-        userId: booking.userId
+        userId: booking.userId.toString()
       });
     }
 
@@ -378,20 +380,21 @@ exports.startCharging = async (req, res) => {
     );
 
     // Emit initial status
+    // Emit initial status
     if (io) {
       io.emit('charging_update', { 
-        bookingId, 
+        bookingId: bookingId.toString(), 
         percentage: 0, 
         currentKwh: 0, 
         status: 'charging' 
       });
       io.emit('booking_status_updated', { 
-        bookingId, 
-        stationId: booking.stationId._id,
+        bookingId: bookingId.toString(), 
+        stationId: booking.stationId._id.toString(),
         status: 'charging' 
       });
       io.emit('charger_status_updated', {
-        stationId: booking.stationId._id,
+        stationId: booking.stationId._id.toString(),
         chargerId: booking.chargerId,
         status: 'in_use'
       });
@@ -420,17 +423,17 @@ exports.stopCharging = async (req, res) => {
 
     if (io) {
       io.emit('charging_update', { 
-        bookingId, 
+        bookingId: bookingId.toString(), 
         status: 'billing_pending' 
       });
       io.emit('booking_status_updated', { 
-        bookingId, 
-        stationId: booking.stationId._id,
+        bookingId: bookingId.toString(), 
+        stationId: booking.stationId._id.toString(),
         status: 'billing_pending' 
       });
       // Charger becomes available once charging stops
       io.emit('charger_status_updated', {
-        stationId: booking.stationId._id,
+        stationId: booking.stationId._id.toString(),
         chargerId: booking.chargerId,
         status: 'available'
       });
@@ -478,8 +481,8 @@ exports.generateBill = async (req, res) => {
 
     if (io) {
       io.emit('bill_generated', { 
-        bookingId, 
-        stationId: booking.stationId._id,
+        bookingId: bookingId.toString(), 
+        stationId: booking.stationId._id.toString(),
         unitsConsumed, 
         totalBill: totalAmount,
         order: {
@@ -533,13 +536,13 @@ exports.confirmBillPayment = async (req, res) => {
     const io = req.app.get('socketio');
     if (io) {
       io.emit('booking_status_updated', { 
-        bookingId, 
-        stationId: booking.stationId._id,
+        bookingId: bookingId.toString(), 
+        stationId: booking.stationId._id.toString(),
         status: 'completed' 
       });
       io.emit('bill_paid', { 
-        bookingId,
-        stationId: booking.stationId._id
+        bookingId: bookingId.toString(),
+        stationId: booking.stationId._id.toString()
       });
     }
 

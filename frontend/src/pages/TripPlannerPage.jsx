@@ -77,7 +77,10 @@ const TripPlannerPage = () => {
   const [isRouteCalculated, setIsRouteCalculated] = useState(false);
   const [routeTrigger, setRouteTrigger] = useState(0);
   const [routeData, setRouteData] = useState(null);
-  const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedStationId, setSelectedStationId] = useState(null);
+  const selectedStation = useMemo(() => 
+    selectedStationId ? stations.find(s => String(s._id) === String(selectedStationId)) : null
+  , [selectedStationId, stations]);
   const [activeTab, setActiveTab] = useState("overview");
   const [waypoints, setWaypoints] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -921,7 +924,7 @@ const TripPlannerPage = () => {
                   });
                 }, [waypoints, fromLocation])}
                 onRouteUpdate={(data) => setRouteData(data)}
-                onStationSelect={(station) => setSelectedStation(station)}
+                onStationSelect={(station) => setSelectedStationId(station._id)}
               />
             </div>
 
@@ -1006,7 +1009,7 @@ const TripPlannerPage = () => {
                   {/* Back Button */}
                   <button
                     onClick={() => {
-                      setSelectedStation(null);
+                      setSelectedStationId(null);
                       setCurrentImageIndex(0);
                     }}
                     className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-all active:scale-90 z-10"
@@ -1433,7 +1436,7 @@ const TripPlannerPage = () => {
                       <div
                         key={stop._id || index}
                         className="relative pl-6 pb-10 cursor-pointer group"
-                        onClick={() => setSelectedStation(stop)}
+                        onClick={() => setSelectedStationId(stop._id)}
                       >
                         {/* Timeline Connector Dot */}
                         <div className={`absolute -left-1.5 top-1.5 w-6 h-6 rounded-full border-4 border-white ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} flex items-center justify-center text-[10px] text-white font-black z-10 shadow-md group-hover:scale-110 transition-all duration-300 ring-4 ring-gray-50`}>

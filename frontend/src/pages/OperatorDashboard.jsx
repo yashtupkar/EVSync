@@ -303,10 +303,13 @@ const OperatorDashboard = () => {
         };
 
         const handleStatusUpdate = (data) => {
-            console.log("Status update event received:", data);
+            console.log("[SOCKET_DEBUG] Status update event received:", data);
             // Strictly filter by stationId to avoid unnecessary global refreshes
             if (data.stationId && String(data.stationId) === currentStationId) {
+                console.log("[SOCKET_DEBUG] Station match found. Refreshing dashboard...");
                 fetchDashboardData();
+            } else {
+                console.log("[SOCKET_DEBUG] Station mismatch. Event ignored.", data.stationId, "vs", currentStationId);
             }
         };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
@@ -58,7 +58,7 @@ const createStationIcon = (station) => {
 const DiscoveryPage = () => {
   const navigate = useNavigate();
   const { user, activeVehicleIndex } = useSelector((state) => state.auth);
-  const [selectedStation, setSelectedStation] = useState(null);
+
   const [isNavigating, setIsNavigating] = useState(false);
   const [simulatedLocation, setSimulatedLocation] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -236,20 +236,25 @@ const DiscoveryPage = () => {
   // Real-time charger updates
   useEffect(() => {
     const handleChargerStatus = (data) => {
-      setStations(prev => prev.map(station => {
-        if (String(station._id) === String(data.stationId)) {
-          return {
-            ...station,
-            chargers: station.chargers.map(charger => {
-              if (charger.chargerId === data.chargerId) {
-                return { ...charger, status: data.status };
-              }
-              return charger;
-            })
-          };
-        }
-        return station;
-      }));
+      console.log("[SOCKET_DEBUG] Charger status updated:", data);
+      setStations(prev => {
+        const updated = prev.map(station => {
+          if (String(station._id) === String(data.stationId)) {
+            console.log("[SOCKET_DEBUG] Station match in DiscoveryPage. Updating chargers...");
+            return {
+              ...station,
+              chargers: station.chargers.map(charger => {
+                if (charger.chargerId === data.chargerId) {
+                  return { ...charger, status: data.status };
+                }
+                return charger;
+              })
+            };
+          }
+          return station;
+        });
+        return updated;
+      });
     };
 
     socket.on('charger_status_updated', handleChargerStatus);
@@ -265,7 +270,7 @@ const DiscoveryPage = () => {
   const handleStopDriving = () => {
     setIsNavigating(false);
     setSimulatedLocation(null);
-    setSelectedStation(null);
+    setSelectedStationId(null);
   };
 
   const handleRouteUpdate = (data) => {
@@ -306,6 +311,11 @@ const DiscoveryPage = () => {
     return () => clearInterval(interval);
   };
 
+    const [selectedStationId, setSelectedStationId] = useState(null);
+  const selectedStation = useMemo(() => 
+    selectedStationId ? stations.find(s => String(s._id) === String(selectedStationId)) : null
+  , [selectedStationId, stations]);
+
   return (
     <div className="min-h-90vh w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
       <main className="p-4 flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
@@ -330,7 +340,7 @@ const DiscoveryPage = () => {
             <div className="absolute inset-0">
               <MapComponent
                 stations={filteredStations}
-                onStationSelect={setSelectedStation}
+                onStationSelect={(s) => setSelectedStationId(s._id)}
                 destination={isNavigating ? selectedStation : null}
                 simulatedLocation={simulatedLocation}
                 isSimulating={isNavigating}
@@ -377,7 +387,7 @@ const DiscoveryPage = () => {
                   </MapContainer>
                   {/* Back button */}
                   <button
-                    onClick={() => setSelectedStation(null)}
+                    onClick={() => setSelectedStationId(null)}
                     className="absolute top-4 left-4 z-[500] flex items-center gap-2 bg-white text-gray-700 text-[11px] font-bold px-4 py-2.5 rounded-full shadow-lg border border-gray-100 hover:bg-gray-50 transition-all"
                   >
                     <ArrowLeft size={14} />
@@ -389,7 +399,7 @@ const DiscoveryPage = () => {
                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
                   <StationDetailView
                     station={selectedStation}
-                    onClose={() => setSelectedStation(null)}
+                    onClose={() => setSelectedStationId(null)}
                     onNavigate={handleStartDriving}
                   />
                 </div>
@@ -413,7 +423,7 @@ const DiscoveryPage = () => {
                   <StationListItem
                     key={station._id}
                     station={station}
-                    onClick={() => setSelectedStation(station)}
+                    onClick={() => setSelectedStationId(station._id)}
                     distance={station.distance}
                   />
                 ))
@@ -427,7 +437,7 @@ const DiscoveryPage = () => {
                     No charging available for your vehicle charger type ({selectedFilter === "All" ? "any type" : selectedFilter}) in this area.
                   </p>
                   <button 
-                    onClick={() => setSelectedFilter("All")}
+                    onClick={() => { setSelectedFilter("All"); setSelectedStationId(null); }}
                     className="mt-4 text-emerald-500 font-bold text-[10px] uppercase tracking-widest hover:underline"
                   >
                     Show all stations
