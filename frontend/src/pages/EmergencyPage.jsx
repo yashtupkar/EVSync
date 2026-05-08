@@ -147,6 +147,25 @@ const EmergencyPage = () => {
     window.location.href = `sms:${contact.phone}?body=${encodeURIComponent(message)}`;
   };
 
+    const handleSMSFallback = (contact, type, locationCoords) => {
+    const locStr = locationCoords ? ` Location: https://www.google.com/maps?q=${locationCoords.lat},${locationCoords.lng}` : "";
+    const safeName = user?.name || user?.fullName || "A user";
+    const message = `🚨 EMERGENCY ALERT 🚨\n${safeName} has reported a [${type}].${locStr}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Emergency SOS Alert',
+        text: message,
+      }).catch((error) => {
+        console.error("Error sharing SOS:", error);
+        // Fallback if sharing is cancelled or fails
+        window.location.href = `sms:${contact.phone}?body=${encodeURIComponent(message)}`;
+      });
+    } else {
+      window.location.href = `sms:${contact.phone}?body=${encodeURIComponent(message)}`;
+    }
+  };
+
 const emergencyTypes = [
   { id: 'General SOS', label: 'General SOS', desc: 'General emergency assistance', icon: "🆘", bg: 'bg-red-50', text: 'text-red-500' },
   { id: 'Robbery', label: 'Robbery', desc: 'Report theft or robbery incident', icon: "🔪", bg: 'bg-orange-50', text: 'text-orange-500' },
@@ -198,7 +217,7 @@ const emergencyTypes = [
       toast.error("Failed to send SOS via Twilio. Falling back to local SMS app.", { id: toastId });
       // Fallback to local SMS app for primary contact
       const primary = personalContacts.find(c => c.relation === "Primary") || personalContacts[0];
-      handleSMS(primary, type);
+      if (primary) handleSMSFallback(primary, type, location);
     }
   };
 
