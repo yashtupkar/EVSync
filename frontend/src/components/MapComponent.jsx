@@ -49,7 +49,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const createStationIcon = (station, mapRotation = 0) => {
   const isAvailable =
     station?.status === "available" || station?.isAvailable !== false;
-  
+
   let color = isAvailable ? "#1BAC4B" : "#f1be25ff";
   if (station?.external) {
     color = "#3B82F6"; // Blue for external stations
@@ -83,7 +83,10 @@ const userIcon = (rotation = 0, mapRotation = 0) =>
       <!-- Pulsing Effect -->
       <div class="absolute w-8 h-8 bg-[#4285F4]/20 rounded-full animate-ping"></div>
       
-   
+      <!-- Directional Beam (Cone) -->
+      <div class="absolute inset-0 flex items-center justify-center transition-transform duration-500 directional-beam" style="transform: rotate(${rotation}deg)">
+        <div class="w-12 h-16 bg-gradient-to-t from-[#4285F4]/40 to-transparent clip-path-beam mb-12"></div>
+      </div>
 
       <!-- Center Blue Dot -->
       <div class="relative w-5 h-5 bg-[#4285F4] rounded-full border-[3px] border-white shadow-[0_0_10px_rgba(66,133,244,0.5)] z-10"></div>
@@ -185,7 +188,7 @@ const MapController = ({ center, isSimulating, bearing = 0, isFollowing, setIsFo
         container.classList.remove('hide-station-labels');
       }
     };
-    
+
     updateLabels();
 
     const onDragStart = () => {
@@ -198,12 +201,12 @@ const MapController = ({ center, isSimulating, bearing = 0, isFollowing, setIsFo
     const onInteraction = () => {
       if (setHoveredStation) setHoveredStation(null);
     };
-    
+
     map.on("dragstart", onDragStart);
     map.on("zoomstart", onInteraction);
     map.on("mousemove", onInteraction);
     map.on("zoomend", updateLabels);
-    
+
     return () => {
       map.off("dragstart", onDragStart);
       map.off("zoomstart", onInteraction);
@@ -218,7 +221,7 @@ const MapController = ({ center, isSimulating, bearing = 0, isFollowing, setIsFo
     if (isSimulating) {
       // Set initial zoom for simulation if not already set
       if (!isSimulationStarted.current) {
-        map.setView(center, 15, { animate: true });
+        map.setView(center, 18, { animate: true });
         isSimulationStarted.current = true;
         setIsFollowing(true);
         return;
@@ -247,11 +250,13 @@ const MapController = ({ center, isSimulating, bearing = 0, isFollowing, setIsFo
   useEffect(() => {
     const container = map.getContainer();
     if (isSimulating) {
-      container.style.transition = "transform 0.5s ease-in-out";
-      container.style.transform = `rotate(${-bearing}deg) scale(1.4)`;
+      container.style.transition = "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      container.style.transformOrigin = "center center";
+      // Perspective tilt (rotateX 35deg) + rotation + Scale
+      container.style.transform = `perspective(1000px) rotateX(35deg) rotate(${-bearing}deg) scale(1.8)`;
     } else {
-      container.style.transition = "transform 0.5s ease-in-out";
-      container.style.transform = "rotate(0deg) scale(1)";
+      container.style.transition = "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      container.style.transform = "perspective(1000px) rotateX(0deg) rotate(0deg) scale(1)";
     }
   }, [bearing, isSimulating, map]);
 
@@ -308,6 +313,9 @@ const getInstruction = (step) => {
       return `${type} ${modifier} ${roadName}`.trim();
   }
 };
+// Global keys to prevent redundant route fetches across renders
+let globalLastFetchKey = "";
+let globalLastActiveKey = "";
 
 const MapComponent = ({
   stations = [],
@@ -412,6 +420,25 @@ const MapComponent = ({
   const [suggestions, setSuggestions] = useState([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const watchIdRef = useRef(null);
+
+  // Helper: Request Compass Permission (iOS 13+)
+  const requestCompassPermission = async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
+          console.log("Compass permission granted");
+        }
+      } catch (err) {
+        console.error("Compass permission error:", err);
+      }
+    }
+  };
+
+  // Ref to prevent infinite route fetching loops
+  const lastFetchRef = useRef("");
 
   // Haversine formula to calculate distance between two coordinates
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -640,9 +667,9 @@ const MapComponent = ({
 
   // Start simulation handler
   const handleStartSimulation = () => {
-    // Close any open popups to ensure clear view
-    if (mapRef.current) {
+    if (mapRef.current && routeCoords.length > 0) {
       mapRef.current.closePopup();
+      mapRef.current.setView(routeCoords[0], 18, { animate: true });
     }
 
     setSimulating(true);
@@ -681,6 +708,94 @@ const MapComponent = ({
       );
     }
   }, [startLocation]);
+
+  // Handle Real-Time Navigation (Start Drive)
+  const handleStartDrive = () => {
+    if (navigator.geolocation) {
+      // Close any open popups and zoom in to street level
+      if (mapRef.current && userLocation) {
+        mapRef.current.closePopup();
+        mapRef.current.setView(userLocation, 18, { animate: true });
+      }
+
+      setIsNavigating(true);
+      setIsFollowing(true);
+      // Stop simulation if running
+      if (simulating) handleStopSimulation();
+
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, heading } = position.coords;
+          setUserLocation([latitude, longitude]);
+          if (heading !== null) {
+            setBearing(heading);
+            bearingRef.current = heading;
+          }
+        },
+        (error) => {
+          console.error("Navigation error:", error);
+          setIsNavigating(false);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 10000,
+        }
+      );
+      watchIdRef.current = watchId;
+    } else {
+      alert("Geolocation is not supported by your browser");
+    }
+  };
+
+  // Global Compass/Orientation Listener
+  useEffect(() => {
+    const handleOrientation = (e) => {
+      // Use absolute orientation if available (Android), fallback to webkitCompassHeading (iOS)
+      let heading = e.webkitCompassHeading;
+      
+      if (heading === undefined && e.absolute && e.alpha !== null) {
+        // Android absolute orientation
+        heading = (360 - e.alpha);
+      }
+
+      if (heading !== undefined && heading !== null) {
+        // Only update if not currently simulating (simulation has its own bearing logic)
+        if (!simulating) {
+          setBearing(heading);
+          bearingRef.current = heading;
+        }
+      }
+    };
+
+    if (window.DeviceOrientationEvent) {
+      // Listen for both to cover Android and iOS
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', handleOrientation);
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, [simulating]);
+
+  const handleStopDrive = () => {
+    setIsNavigating(false);
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  };
+
+  // Cleanup watchPosition on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   // Fetch route from OSRM API when destination changes
   useEffect(() => {
@@ -724,8 +839,37 @@ const MapComponent = ({
         const waypointsStr = waypoints.map(wp => {
           const lat = wp.location?.coordinates ? wp.location.coordinates[1] : wp.lat;
           const lng = wp.location?.coordinates ? wp.location.coordinates[0] : wp.lng;
-          return `${lng},${lat}`;
+          return `${lng.toFixed(3)},${lat.toFixed(3)}`;
         }).join(';');
+
+        // Create a unique key for this fetch to prevent duplicates
+        // Rounding to 3 decimal places (~110m precision) stabilizes high-frequency GPS updates
+        const fetchKey = JSON.stringify({
+          start: [start[0].toFixed(3), start[1].toFixed(3)],
+          end: [end[0].toFixed(3), end[1].toFixed(3)],
+          waypoints: waypointsStr,
+          isSimulating: simulating // Re-fetch if we start/stop simulation
+        });
+
+        if (globalLastFetchKey === fetchKey) {
+          setIsLoadingRoute(false);
+          return;
+        }
+        globalLastFetchKey = fetchKey;
+
+        // Strict guard: If we are already simulating or navigating, only re-fetch if the destination or waypoints actually changed.
+        // This stops the infinite loop caused by the moving start location during driving.
+        if (simulating || isNavigating) {
+          const activeKey = JSON.stringify({
+            end: [end[0].toFixed(3), end[1].toFixed(3)],
+            waypoints: waypointsStr
+          });
+          if (globalLastActiveKey === activeKey) {
+            setIsLoadingRoute(false);
+            return;
+          }
+          globalLastActiveKey = activeKey;
+        }
 
         const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start[1]},${start[0]};${waypointsStr ? waypointsStr + ';' : ''}${end[1]},${end[0]}?overview=full&geometries=geojson&steps=true`;
 
@@ -783,8 +927,10 @@ const MapComponent = ({
     fetchRoute();
   }, [destination, userLocation, showRoute, routeTrigger, waypoints, simulating]);
 
-  // Adjust map bounds to fit both locations when route is shown
   useEffect(() => {
+    // Don't auto-fit bounds if we're already simulating or navigating (stay focused on user)
+    if (simulating || isNavigating) return;
+
     if (showRoute && destination && userLocation && mapRef.current) {
       const start = userLocation;
 
@@ -808,9 +954,9 @@ const MapComponent = ({
       });
     }
     // Re-fit when showRoute changes to true or when routeTrigger is incremented
-    // But don't auto-fit if we're already simulating (keep user's focus)
+    // But don't auto-fit if we're already simulating/navigating (keep user's focus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRoute, destination, userLocation, routeTrigger, simulating]);
+  }, [showRoute, destination, userLocation, routeTrigger, simulating, isNavigating]);
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-[#f8fafc]">
@@ -875,8 +1021,8 @@ const MapComponent = ({
         />
 
         <MapController
-          center={simulating ? simMarkerPos : userLocation}
-          isSimulating={simulating}
+          center={simulating && simMarkerPos ? simMarkerPos : userLocation}
+          isSimulating={simulating || isNavigating}
           bearing={bearing}
           isFollowing={isFollowing}
           setIsFollowing={setIsFollowing}
@@ -937,10 +1083,10 @@ const MapComponent = ({
         {!simulating && (
           <Marker
             position={userLocation}
-            icon={startLocation ? startIcon(0) : userIcon(0, 0)}
+            icon={isNavigating || !startLocation ? userIcon(bearing, 0) : startIcon(0)}
             zIndexOffset={1000}
           >
-            {startLocation && (
+            {startLocation && !isNavigating && (
               <Popup className="custom-popup">
                 <div className="p-2 text-center">
                   <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">
@@ -1021,90 +1167,91 @@ const MapComponent = ({
       <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none  ">
         <div className=" w-full flex flex-col gap-4">
           {/* Top Row: Floating Controls (Zoom & Layers) - Positioned above the bar */}
-        
-            <div className="flex items-end justify-between px-4 pointer-events-none">
-              {/* Left side: Compass (Moved here from top) */}
-              <div className="bg-white/90 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white pointer-events-auto flex items-center justify-center">
-                <div className="w-8 h-8 flex items-center justify-center relative">
-                  <div className="absolute inset-0 border-[1.5px] border-gray-100 rounded-full"></div>
-                  <span className="absolute -top-1 text-[6px] font-black text-red-500">
-                    N
-                  </span>
-                  <div
-                    className="w-0.5 h-6 relative flex flex-col items-center transition-transform duration-300"
-                    style={{ transform: `rotate(${-bearing}deg)` }}
-                  >
-                    <div className="w-1 h-3 bg-red-500 rounded-t-full shadow-sm"></div>
-                    <div className="w-1 h-3 bg-gray-300 rounded-b-full shadow-sm"></div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Right side: Map Controls */}
-              <div className="flex flex-col gap-3 pointer-events-auto">
-                {userLocation && (
-                  <button
-                    onClick={() => {
-                      if (mapRef.current) {
-                        const targetPos = simulating ? simMarkerPos : userLocation;
-                        mapRef.current.setView(targetPos, 15, {
-                          animate: true,
-                        });
-                        if (simulating) setIsFollowing(true);
-                      }
-                    }}
-                    className="bg-white/95 backdrop-blur-xl p-3.5 rounded-2xl shadow-xl text-gray-600 hover:text-[#1BAC4B] transition-all border border-white"
-                    title="Find My Location"
-                  >
-                    <LocateFixed size={20} />
-                  </button>
-                )}
-                <div className="relative">
-                  <button
-                    className="bg-white/95 backdrop-blur-xl p-3.5 rounded-2xl shadow-xl text-gray-600 hover:text-[#1BAC4B] transition-all border border-white"
-                    onClick={() => setShowStyleMenu(!showStyleMenu)}
-                  >
-                    <Layers size={20} />
-                  </button>
-                  {showStyleMenu && (
-                    <div className="absolute right-0 bottom-full mb-3 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white overflow-hidden w-48 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      <div className="p-3 space-y-1">
-                        {Object.entries(mapStyles).map(([key, style]) => (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              setMapStyle(key);
-                              setShowStyleMenu(false);
-                            }}
-                            className={`flex items-center gap-3 p-3 rounded-xl text-xs font-black w-full transition-all ${mapStyle === key
-                                ? "bg-[#1BAC4B] text-white"
-                                : "text-gray-600 hover:bg-gray-50"
-                              }`}
-                          >
-                            {style.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white overflow-hidden">
-                  <button
-                    onClick={() => mapRef.current?.zoomIn()}
-                    className="p-3.5 text-gray-600 hover:text-[#1BAC4B] hover:bg-gray-50 transition-all border-b border-gray-100"
-                  >
-                    <Plus size={20} />
-                  </button>
-                  <button
-                    onClick={() => mapRef.current?.zoomOut()}
-                    className="p-3.5 text-gray-600 hover:text-[#1BAC4B] hover:bg-gray-50 transition-all"
-                  >
-                    <Minus size={20} />
-                  </button>
+          <div className="flex items-end justify-between px-4 pointer-events-none">
+            {/* Left side: Compass (Moved here from top) */}
+            <div className="bg-white/90 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white pointer-events-auto flex items-center justify-center">
+              <div className="w-8 h-8 flex items-center justify-center relative">
+                <div className="absolute inset-0 border-[1.5px] border-gray-100 rounded-full"></div>
+                <span className="absolute -top-1 text-[6px] font-black text-red-500">
+                  N
+                </span>
+                <div
+                  className="w-0.5 h-6 relative flex flex-col items-center transition-transform duration-300"
+                  style={{ transform: `rotate(${-bearing}deg)` }}
+                >
+                  <div className="w-1 h-3 bg-red-500 rounded-t-full shadow-sm"></div>
+                  <div className="w-1 h-3 bg-gray-300 rounded-b-full shadow-sm"></div>
                 </div>
               </div>
             </div>
-          
+
+            {/* Right side: Map Controls */}
+            <div className="flex flex-col gap-3 pointer-events-auto">
+              {userLocation && (
+                <button
+                  onClick={() => {
+                    requestCompassPermission();
+                    if (mapRef.current) {
+                      const targetPos = simulating ? simMarkerPos : userLocation;
+                      mapRef.current.setView(targetPos, 15, {
+                        animate: true,
+                      });
+                      if (simulating) setIsFollowing(true);
+                    }
+                  }}
+                  className="bg-white/95 backdrop-blur-xl p-3.5 rounded-2xl shadow-xl text-gray-600 hover:text-[#1BAC4B] transition-all border border-white"
+                  title="Find My Location"
+                >
+                  <LocateFixed size={20} />
+                </button>
+              )}
+              <div className="relative">
+                <button
+                  className="bg-white/95 backdrop-blur-xl p-3.5 rounded-2xl shadow-xl text-gray-600 hover:text-[#1BAC4B] transition-all border border-white"
+                  onClick={() => setShowStyleMenu(!showStyleMenu)}
+                >
+                  <Layers size={20} />
+                </button>
+                {showStyleMenu && (
+                  <div className="absolute right-0 bottom-full mb-3 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white overflow-hidden w-48 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="p-3 space-y-1">
+                      {Object.entries(mapStyles).map(([key, style]) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setMapStyle(key);
+                            setShowStyleMenu(false);
+                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl text-xs font-black w-full transition-all ${mapStyle === key
+                            ? "bg-[#1BAC4B] text-white"
+                            : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                          {style.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white overflow-hidden">
+                <button
+                  onClick={() => mapRef.current?.zoomIn()}
+                  className="p-3.5 text-gray-600 hover:text-[#1BAC4B] hover:bg-gray-50 transition-all border-b border-gray-100"
+                >
+                  <Plus size={20} />
+                </button>
+                <button
+                  onClick={() => mapRef.current?.zoomOut()}
+                  className="p-3.5 text-gray-600 hover:text-[#1BAC4B] hover:bg-gray-50 transition-all"
+                >
+                  <Minus size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+
 
           {/* Main Content Bar */}
           <div className="pointer-events-auto">
@@ -1175,7 +1322,15 @@ const MapComponent = ({
                         >
                           <Zap size={18} />
                         </button>
-                        {simulating ? (
+
+                        {isNavigating ? (
+                          <button
+                            onClick={handleStopDrive}
+                            className="px-5 py-3 bg-red-50 text-red-500 rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-red-100 transition-all border border-red-100"
+                          >
+                            Stop Drive
+                          </button>
+                        ) : simulating ? (
                           <button
                             onClick={handleStopSimulation}
                             className="px-5 py-3 bg-red-50 text-red-500 rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-red-100 transition-all"
@@ -1183,12 +1338,24 @@ const MapComponent = ({
                             Exit
                           </button>
                         ) : (
-                          <button
-                            onClick={handleStartSimulation}
-                            className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-black shadow-lg shadow-gray-200 active:scale-95 transition-all"
-                          >
-                            Start
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleStartSimulation}
+                              className="px-4 py-3 bg-gray-100 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-gray-200 active:scale-95 transition-all"
+                            >
+                              Simulation
+                            </button>
+                            <button
+                              onClick={() => {
+                                requestCompassPermission();
+                                handleStartDrive();
+                              }}
+                              className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider hover:bg-black shadow-lg shadow-gray-200 active:scale-95 transition-all flex items-center gap-2"
+                            >
+                              <Navigation size={14} className="rotate-45" />
+                              Start Drive
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1200,14 +1367,14 @@ const MapComponent = ({
                             <div
                               key={idx}
                               className={`flex items-start gap-4 p-3 rounded-2xl transition-all ${idx === currentStep
-                                  ? "bg-[#1BAC4B]/5 border border-[#1BAC4B]/10"
-                                  : "hover:bg-gray-50"
+                                ? "bg-[#1BAC4B]/5 border border-[#1BAC4B]/10"
+                                : "hover:bg-gray-50"
                                 }`}
                             >
                               <div
                                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5 ${idx === currentStep
-                                    ? "bg-[#1BAC4B] text-white"
-                                    : "bg-gray-100 text-gray-400"
+                                  ? "bg-[#1BAC4B] text-white"
+                                  : "bg-gray-100 text-gray-400"
                                   }`}
                               >
                                 {idx + 1}
@@ -1352,6 +1519,15 @@ const MapComponent = ({
         }
         .custom-popup .leaflet-popup-tip {
           background: white;
+        }
+        .clip-path-beam {
+          clip-path: polygon(50% 100%, 0 0, 100% 0);
+        }
+        /* Hide beam on large screens (desktops/laptops) as they lack compass sensors */
+        @media (min-width: 1024px) {
+          .directional-beam {
+            display: none !important;
+          }
         }
       `}</style>
     </div>
