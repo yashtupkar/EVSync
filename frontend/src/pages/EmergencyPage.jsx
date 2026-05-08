@@ -75,14 +75,6 @@ const EmergencyPage = () => {
     const saved = localStorage.getItem("evsync_emergency_contacts");
     if (saved) {
       setPersonalContacts(JSON.parse(saved));
-    } else {
-      // Default sample contacts
-      const initial = [
-        { id: 1, name: "Priya Sharma", phone: "9876543210", relation: "Primary" },
-        { id: 2, name: "Rahul Verma", phone: "8765432109", relation: "Secondary" }
-      ];
-      setPersonalContacts(initial);
-      localStorage.setItem("evsync_emergency_contacts", JSON.stringify(initial));
     }
   }, []);
 
