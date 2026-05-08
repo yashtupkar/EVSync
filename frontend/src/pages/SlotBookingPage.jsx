@@ -725,8 +725,7 @@ const SlotBookingPage = () => {
     
     switch (status) {
       case "available": return "border-gray-200 bg-white hover:border-gray-300";
-      case "booked": return "border-amber-200 bg-amber-50/30 opacity-90 cursor-not-allowed";
-      case "occupied": return "border-red-200 bg-red-50/30 opacity-90 cursor-not-allowed";
+      case "occupied": return "border-amber-200 bg-amber-50/30 opacity-90 cursor-not-allowed";
       case "maintenance": return "border-gray-300 bg-gray-50 opacity-80 cursor-not-allowed";
       default: return "border-gray-200 bg-white";
     }
@@ -735,8 +734,7 @@ const SlotBookingPage = () => {
   const getStatusIconColor = (status) => {
     switch (status) {
       case "available": return "text-emerald-500";
-      case "booked": return "text-amber-500";
-      case "occupied": return "text-red-500";
+      case "occupied": return "text-amber-500";
       case "maintenance": return "text-gray-400";
       default: return "text-gray-400";
     }
@@ -1218,9 +1216,8 @@ const SlotBookingPage = () => {
                   <div className="flex items-center gap-5">
                     {[
                       { label: "Available", color: "bg-emerald-500" },
-                      { label: "Booked", color: "bg-amber-500" },
-                      { label: "Occupied", color: "bg-red-500" },
-                      { label: "Maintenance", color: "bg-gray-400" }
+                      { label: "Occupied", color: "bg-amber-500" },
+                     { label: "Maintenance", color: "bg-gray-400" }
                     ].map(item => (
                       <div key={item.label} className="flex items-center gap-2">
                         <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>

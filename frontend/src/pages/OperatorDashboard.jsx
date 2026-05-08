@@ -17,7 +17,8 @@ import {
     CheckCircle,
     Check,
     Phone,
-    Car
+    Car,
+    MoreVertical
 } from 'lucide-react';
 import QRScannerModal from '../components/QRScannerModal';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +31,10 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
     const isBooked = charger.status === 'occupied';
     const isCharging = charger.status === 'in_use';
     const isMaintenance = charger.status === 'maintenance';
+
+    const [showMenu, setShowMenu] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState(null);
 
     // Get dynamic price from database fields
     const price = charger.pricePerUnit || charger.pricePerMinute || charger.price || 15;
@@ -76,8 +81,22 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
         return () => clearInterval(interval);
     }, [isCharging, activeBooking]);
 
+    const handleStatusClick = (status) => {
+        setPendingStatus(status);
+        setShowConfirm(true);
+        setShowMenu(false);
+    };
+
+    const confirmStatusChange = () => {
+        if (pendingStatus) {
+            updateChargerStatus(charger.chargerId, pendingStatus);
+        }
+        setShowConfirm(false);
+        setPendingStatus(null);
+    };
+
     return (
-        <div className={`shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 ${isAvailable
+        <div className={`relative shrink-0 rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-300 ${isAvailable
             ? "border-gray-200 bg-white hover:border-emerald-200 hover:shadow-md"
             : isCharging
                 ? "border-blue-100 bg-blue-50/40"
@@ -85,6 +104,33 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                     ? "border-amber-100 bg-amber-50/40"
                     : "border-red-100 bg-red-50/40"
             }`}>
+            {/* Confirmation Popup overlay - Full Screen */}
+            {showConfirm && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm flex flex-col items-center justify-center p-6 text-center shadow-2xl animate-in fade-in zoom-in duration-300">
+                        <AlertTriangle size={32} className="text-amber-500 mb-4" />
+                        <h3 className="text-xl font-black text-slate-800 mb-2">Confirm Status Change</h3>
+                        <p className="text-sm font-medium text-slate-500 mb-6">
+                            Are you sure you want to change the status of charger <span className="font-bold text-slate-800">{charger.chargerId}</span> to <span className="font-black text-slate-800 uppercase">{pendingStatus}</span>?
+                        </p>
+                        <div className="flex gap-3 w-full">
+                            <button 
+                                onClick={() => { setShowConfirm(false); setPendingStatus(null); }}
+                                className="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmStatusChange}
+                                className="flex-1 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isAvailable ? "bg-emerald-50 text-emerald-600" :
                     isCharging ? "bg-blue-50 text-blue-500" :
@@ -166,13 +212,7 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
 
             <div className="pt-2 border-t border-gray-100/50 mt-1">
                 {isAvailable && (
-                    <div className='flex gap-2'>
-                        <button
-                            onClick={() => updateChargerStatus(charger.chargerId, 'in_use')}
-                            className="w-full py-2 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:bg-emerald-700 transition-all"
-                        >
-                            Start Node
-                        </button>
+                    <div className='flex gap-2 justify-end'>
                         <button
                             onClick={() => onScan(charger.chargerId)}
                             className="p-2 bg-slate-100 text-gray-800 hover:text-gray-600 hover:bg-slate-200 rounded-lg transition-colors"
@@ -220,6 +260,31 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                         In Maintenance
                     </button>
                 )}
+
+                {/* 3-Dot Menu at the bottom */}
+                <div className="mt-2 flex justify-end">
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowMenu(!showMenu)} 
+                            className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center justify-center"
+                            title="Change Status"
+                        >
+                            <MoreVertical size={16} />
+                        </button>
+                        
+                        {showMenu && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+                                <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 text-[10px] font-bold uppercase tracking-widest overflow-hidden">
+                                    <button onClick={() => handleStatusClick('available')} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-emerald-600 transition-colors">Available</button>
+                                    <button onClick={() => handleStatusClick('occupied')} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-amber-600 transition-colors">Occupied</button>
+                                    <button onClick={() => handleStatusClick('in_use')} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-blue-600 transition-colors">In Use</button>
+                                    <button onClick={() => handleStatusClick('maintenance')} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-red-600 transition-colors">Maintenance</button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );
