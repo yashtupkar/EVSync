@@ -437,24 +437,26 @@ const MapComponent = ({
     }
   };
 
-  // Ref to prevent infinite route fetching loops
-  const lastFetchRef = useRef("");
-
-  // Haversine formula to calculate distance between two coordinates
+  // Helper: Calculate distance between two coordinates in KM
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
     const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
+      Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distance in km
   };
+
+  // Ref to prevent infinite route fetching loops
+  const lastFetchRef = useRef("");
+
+
 
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
@@ -725,8 +727,15 @@ const MapComponent = ({
 
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
-          const { latitude, longitude, heading } = position.coords;
-          setUserLocation([latitude, longitude]);
+          const { latitude: lat, longitude: lng, heading } = position.coords;
+
+          setUserLocation((prev) => {
+            // Prevent flickering by ignoring micro-movements (jitter) less than 3 meters
+            const distance = calculateDistance(prev[0], prev[1], lat, lng);
+            if (distance < 0.003) return prev; // Ignore small jitters
+            return [lat, lng];
+          });
+
           if (heading !== null) {
             setBearing(heading);
             bearingRef.current = heading;

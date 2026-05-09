@@ -732,7 +732,13 @@ const TripPlannerMap = ({
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude, heading } = position.coords;
-          setUserLocation([latitude, longitude]);
+          
+          setUserLocation((prev) => {
+            // Prevent flickering by ignoring micro-movements (jitter) less than 3 meters
+            const distance = calculateDistance(prev[0], prev[1], latitude, longitude);
+            if (distance < 0.003) return prev; // Ignore small jitters
+            return [latitude, longitude];
+          });
           if (heading !== null) {
             setBearing(heading);
             bearingRef.current = heading;
