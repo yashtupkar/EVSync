@@ -472,7 +472,7 @@ export const StationListItem = ({ station, onClick, distance }) => {
   return (
     <div 
       onClick={onClick}
-      className={`bg-white p-3 rounded-xl border ${isHomeCharger ? 'border-purple-100 bg-purple-50/10' : 'border-gray-100'} shadow-sm hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden shrink-0`}
+      className={`bg-white p-3 rounded-xl border ${isHomeCharger ? 'border-purple-100 bg-purple-50/10' : 'border-gray-100'} shadow-sm hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden shrink-0`}
     >
       {isHomeCharger && (
         <div className="absolute top-0 right-0 px-2 py-0.5 bg-purple-600 text-white text-[8px] font-black uppercase tracking-tighter rounded-bl-lg shadow-sm z-10">
@@ -752,7 +752,8 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
           <img
             src={station.images?.[activeImageIndex] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
             alt={station.name}
-            className="w-full h-full object-cover transition-transform duration-500"
+            loading="lazy"
+            className="w-full h-full object-cover transition-opacity duration-300"
           />
           
           {station.images?.length > 1 && (

@@ -200,68 +200,59 @@ const DiscoveryPage = () => {
     return R * c;
   };
 
-  const filteredStations = stations
-    .filter((station) => {
-      const matchesSearch =
-        station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        station.city?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredStations = useMemo(() => {
+    return stations
+      .filter((station) => {
+        const matchesSearch =
+          station.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          station.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          station.city?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const targetFilter = normalize(selectedFilter);
+        const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const targetFilter = normalize(selectedFilter);
 
-      const matchesFilter =
-        targetFilter === "all" ||
-        station.chargers?.some(c => normalize(c.type) === targetFilter);
+        const matchesFilter =
+          targetFilter === "all" ||
+          station.chargers?.some(c => normalize(c.type) === targetFilter);
 
-      const matchesAvailability =
-        (availabilityFilter.now && station.chargers?.some(c => c.status === "available")) ||
-        (availabilityFilter.today && station.chargers?.some(c => c.status === "available" || c.status === "occupied")) ||
-        (availabilityFilter.occupied && station.chargers?.every(c => c.status === "occupied" || c.status === "in_use"));
+        const matchesAvailability =
+          (availabilityFilter.now && station.chargers?.some(c => c.status === "available")) ||
+          (availabilityFilter.today && station.chargers?.some(c => c.status === "available" || c.status === "occupied")) ||
+          (availabilityFilter.occupied && station.chargers?.every(c => c.status === "occupied" || c.status === "in_use"));
 
-      const matchesPower = !powerFilter || station.chargers?.some(c => (c.power || 0) >= 0); // Simplified for now as powerFilter is max in UI but logic usually implies min. 
-      // Actually the UI shows "120 KW" as the value. Let's assume it's a min power filter if user slides it down? 
-      // Or if it's 120, it shows everything. If it's 60, it shows >= 60.
-      const matchesPowerReal = station.chargers?.some(c => (c.power || 0) >= (120 - powerFilter));
-      // Wait, usually sliders are Min to Max. The UI has 10 to 120. If value is 120, maybe it means Max? 
-      // Most users want "At least X kW". So if slider is at 60, show >= 60.
-      const matchesPowerMin = station.chargers?.some(c => (c.power || 0) >= (powerFilter === 120 ? 0 : powerFilter));
+        const matchesPowerMin = station.chargers?.some(c => (c.power || 0) >= (powerFilter === 120 ? 0 : powerFilter));
 
-      return matchesSearch && matchesFilter && (availabilityFilter.now || availabilityFilter.today || availabilityFilter.occupied ? matchesAvailability : true) && matchesPowerMin;
-    })
-    .map((station) => ({
-      ...station,
-      distance:
-        userLocation && station.location?.coordinates
-          ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            station.location.coordinates[1],
-            station.location.coordinates[0],
-          )
-          : null,
-    }))
-    .filter((station) => {
-      // Secondary filter for distance after calculation
-      // If maxRange is null, we show everything. 
-      if (maxRange === null) return true;
-      // If maxRange is set but distance is null (no GPS), we hide it because we can't tell if it's reachable
-      return station.distance !== null && station.distance <= maxRange;
-    })
-    .sort((a, b) => {
-      // Prioritize local stations if they are within a similar distance range
-      if (a.distance === null && b.distance === null) return 0;
-      if (a.distance === null) return 1;
-      if (b.distance === null) return -1;
+        return matchesSearch && matchesFilter && (availabilityFilter.now || availabilityFilter.today || availabilityFilter.occupied ? matchesAvailability : true) && matchesPowerMin;
+      })
+      .map((station) => ({
+        ...station,
+        distance:
+          userLocation && station.location?.coordinates
+            ? calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              station.location.coordinates[1],
+              station.location.coordinates[0],
+            )
+            : null,
+      }))
+      .filter((station) => {
+        if (maxRange === null) return true;
+        return station.distance !== null && station.distance <= maxRange;
+      })
+      .sort((a, b) => {
+        if (a.distance === null && b.distance === null) return 0;
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
 
-      // If distances are very close (within 100m), prefer local
-      if (Math.abs(a.distance - b.distance) < 0.1) {
-        if (!a.external && b.external) return -1;
-        if (a.external && !b.external) return 1;
-      }
+        if (Math.abs(a.distance - b.distance) < 0.1) {
+          if (!a.external && b.external) return -1;
+          if (a.external && !b.external) return 1;
+        }
 
-      return a.distance - b.distance;
-    });
+        return a.distance - b.distance;
+      });
+  }, [stations, searchQuery, selectedFilter, availabilityFilter, powerFilter, maxRange, userLocation]);
 
   // Split into Map vs List
   const listStations = useMemo(() => {
@@ -485,7 +476,7 @@ const DiscoveryPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-3"
           >
-            <div className={`bg-white/85 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/50 p-1.5 flex items-center gap-1 transition-all duration-300 ${isFocused ? 'ring-2 ring-emerald-500/30 shadow-emerald-500/10' : ''}`}>
+            <div className={`bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-white/50 p-1.5 flex items-center gap-1 transition-all duration-300 ${isFocused ? 'ring-2 ring-emerald-500/30 shadow-emerald-500/10' : ''}`}>
                 <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 shrink-0">
                   <Search size={18} />
                 </div>

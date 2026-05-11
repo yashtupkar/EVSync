@@ -386,31 +386,38 @@ const SlotBookingPage = () => {
     const fetchAllAvailability = async () => {
       if (!stationId || !station || !selectedDateObj) return;
       
-      const availability = {};
       const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      
-      // Only check instant availability for today
       if (selectedDateObj.fullDate !== today) {
         setAllChargersAvailability({});
         return;
       }
 
-      for (const charger of station.chargers) {
-        try {
-          const response = await getAvailableSlots(stationId, charger.chargerId, today);
-          const ranges = response.data.bookedRanges || [];
-          
-          const now = new Date();
-          const currentMinutes = now.getHours() * 60 + now.getMinutes();
-          const startTime = minutesToTime(currentMinutes);
-          
-          // Check if available for next 1 hour
-          availability[charger.chargerId] = isRangeAvailable(startTime, 1, ranges);
-        } catch (e) {
-          console.error(`Error fetching availability for ${charger.chargerId}:`, e);
-        }
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const startTimeStr = minutesToTime(currentMinutes);
+
+      try {
+        const availabilityResults = await Promise.all(
+          station.chargers.map(async (charger) => {
+            try {
+              const response = await getAvailableSlots(stationId, charger.chargerId, today);
+              const ranges = response.data.bookedRanges || [];
+              const isAvailable = isRangeAvailable(startTimeStr, 1, ranges);
+              return { chargerId: charger.chargerId, isAvailable };
+            } catch (e) {
+              return { chargerId: charger.chargerId, isAvailable: false };
+            }
+          })
+        );
+
+        const newAvailability = {};
+        availabilityResults.forEach(res => {
+          newAvailability[res.chargerId] = res.isAvailable;
+        });
+        setAllChargersAvailability(newAvailability);
+      } catch (error) {
+        console.error("Error fetching batch availability:", error);
       }
-      setAllChargersAvailability(availability);
     };
 
     fetchAllAvailability();
