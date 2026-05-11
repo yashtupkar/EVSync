@@ -71,14 +71,14 @@ const GoogleTranslator = () => {
         {isOpen && (
           <>
             <div 
-              className="fixed inset-0 z-40" 
+              className="fixed inset-0 z-[9998]" 
               onClick={() => setIsOpen(false)}
             ></div>
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-50 overflow-hidden"
+              className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-[9999] overflow-hidden"
             >
               <div className="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto custom-scrollbar">
                 {languages.map((lang) => (

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Navbar from "../components/Navbar";
 import GlobalSOSButton from "../components/GlobalSOSButton";
+import MobileBottomNav from "../components/MobileBottomNav";
 
 const UserLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -30,7 +31,8 @@ const UserLayout = () => {
     <div className="min-h-screen bg-[#F8FAF9] text-gray-900 selection:bg-[#1BAC4B] selection:text-white">
       <Navbar />
       <Outlet />
-           <GlobalSOSButton />
+      <GlobalSOSButton />
+      <MobileBottomNav />
     </div>
   );
 };

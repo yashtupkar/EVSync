@@ -17,6 +17,9 @@ const adminRoutes = require('./routes/admin.routes');
 const stationOwnerRoutes = require('./routes/stationOwner.routes');
 const bookingRoutes = require('./routes/booking.routes');
 const emergencyRoutes = require('./routes/emergencyRoutes');
+const aiRoutes = require('./routes/ai.routes');
+const mqttService = require('./services/mqttService');
+
 
 
 const app = express();
@@ -41,14 +44,24 @@ connectDB(); // Enabled as requested
 const startCronJobs = require('./services/cronService');
 startCronJobs(io);
 
+// Initialize MQTT Service
+mqttService.init(io);
+
+
 // Socket.io
 io.on('connection', (socket) => {
 
 
-  socket.on('disconnect', () => {
+  socket.on('join', (userId) => {
+    socket.join(userId);
    
   });
+
+  socket.on('disconnect', () => {
+
+  });
 });
+
 
 
 // Basic Route
@@ -68,6 +81,7 @@ app.use('/api/station-owner', stationOwnerRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/emergency', emergencyRoutes);
+app.use('/api/ai', aiRoutes);
 
 
 const PORT = process.env.PORT || 5000;

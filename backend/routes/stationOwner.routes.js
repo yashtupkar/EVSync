@@ -10,7 +10,7 @@ const {
 // All routes here require being logged in
 router.use(authMiddleware);
 
-router.post('/add', authorize('station_owner'), addStationRequest);
+router.post('/add-request', authorize('station_owner', 'user'), addStationRequest);
 router.get('/my-stations', authorize('station_owner'), getMyStations);
 router.post('/assign-operator', authorize('station_owner', 'admin'), assignOperator);
 

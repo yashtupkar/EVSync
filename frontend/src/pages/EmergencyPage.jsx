@@ -230,25 +230,25 @@ const emergencyTypes = [
             <ArrowLeft size={24} />
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              Emergency & SOS <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="px-3 py-1 bg-red-100 text-red-600 text-xs font-bold rounded-full uppercase">You are safe</motion.span>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
+              Emergency & SOS <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="px-3 py-1 bg-red-100 text-red-600 text-[10px] md:text-xs font-bold rounded-full uppercase">You are safe</motion.span>
             </h1>
-            <p className="text-gray-500 font-medium">Get help instantly. Contact government services or alert your emergency contacts.</p>
+            <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Get help instantly. Contact government services or alert your emergency contacts.</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isTracking ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-            <ShieldAlert size={20} />
+        <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 md:gap-4">
+          <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shrink-0 ${isTracking ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+            <ShieldAlert size={18} />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Live Safety Status</p>
-            <p className="text-[10px] text-gray-500 font-medium">{isTracking ? "Location sharing is ON" : "Location sharing is OFF"}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs md:text-sm font-bold text-gray-900 truncate">Live Safety Status</p>
+            <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">{isTracking ? "Location sharing is ON" : "Location sharing is OFF"}</p>
           </div>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsTracking(!isTracking)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${isTracking ? 'bg-red-50 text-red-600' : 'bg-green-500 text-white'}`}
+            className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] md:text-xs font-bold transition-all shrink-0 ${isTracking ? 'bg-red-50 text-red-600' : 'bg-green-500 text-white'}`}
           >
             {isTracking ? "Stop" : "Enable"}
           </motion.button>
@@ -273,10 +273,10 @@ const emergencyTypes = [
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleSOS}
-                className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.4)] relative group"
+                className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.4)] relative group"
               >
                 <div className="absolute inset-0 bg-white/20 rounded-full animate-ping group-hover:animate-none"></div>
-                <span className="text-red-600 text-5xl font-black tracking-tighter notranslate">SOS</span>
+                <span className="text-red-600 text-4xl md:text-5xl font-black tracking-tighter notranslate">SOS</span>
               </motion.button>
 
               <div className="space-y-2">
@@ -327,18 +327,18 @@ const emergencyTypes = [
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
               <Zap size={20} className="text-emerald-500" /> Quick Actions
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               {[
-                { icon: <MapPin className="text-emerald-500" />, label: "Share Live Location", bg: "bg-emerald-50" },
-                { icon: <Navigation className="text-blue-500" />, label: "Send Custom Message", bg: "bg-blue-50" },
-                { icon: <Mic className="text-red-500" />, label: "Start Audio Recording", bg: "bg-red-50" },
-                { icon: <BookOpen className="text-indigo-500" />, label: "Open Safety Guide", bg: "bg-indigo-50" }
+                { icon: <MapPin className="text-emerald-500" size={20} />, label: "Share Live Location", bg: "bg-emerald-50" },
+                { icon: <Navigation className="text-blue-500" size={20} />, label: "Send Custom Message", bg: "bg-blue-50" },
+                { icon: <Mic className="text-red-500" size={20} />, label: "Start Audio Recording", bg: "bg-red-50" },
+                { icon: <BookOpen className="text-indigo-500" size={20} />, label: "Open Safety Guide", bg: "bg-indigo-50" }
               ].map((item, i) => (
-                <button key={i} className="bg-white p-4 rounded-xl border border-gray-100 hover:border-emerald-200 transition-all flex flex-col items-center gap-3 text-center shadow-sm">
-                  <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center`}>
+                <button key={i} className="bg-white p-3 md:p-4 rounded-xl border border-gray-100 hover:border-emerald-200 transition-all flex flex-col items-center gap-2 md:gap-3 text-center shadow-sm">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 ${item.bg} rounded-xl flex items-center justify-center`}>
                     {item.icon}
                   </div>
-                  <span className="text-[11px] font-bold text-gray-700 leading-tight">{item.label}</span>
+                  <span className="text-[10px] md:text-[11px] font-bold text-gray-700 leading-tight">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -353,7 +353,7 @@ const emergencyTypes = [
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-4">
             {govContacts.map((contact) => (
               <motion.div
                 key={contact.id}
@@ -384,7 +384,7 @@ const emergencyTypes = [
               </div>
             </div>
 
-            <div className="h-64 rounded-2xl z-10 overflow-hidden bg-gray-100 border border-gray-100 relative">
+            <div className="h-48 md:h-64 rounded-2xl z-10 overflow-hidden bg-gray-100 border border-gray-100 relative">
               <MapContainer
                 center={[20.5937, 78.9629]}
                 zoom={5}
@@ -469,11 +469,11 @@ const emergencyTypes = [
                   </div>
                   <p className="text-xs text-gray-500 font-medium">+91 {contact.phone}</p>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => handleCall(contact.phone)} className="p-2 hover:bg-green-50 text-green-600 rounded-lg"><Phone size={14} /></button>
-                  <button onClick={() => handleSMS(contact)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg"><MessageSquare size={14} /></button>
-                  <button onClick={() => editContact(contact)} className="p-2 hover:bg-gray-50 text-gray-400 rounded-lg"><Edit2 size={14} /></button>
-                  <button onClick={() => deleteContact(contact.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={14} /></button>
+                <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                  <button onClick={() => handleCall(contact.phone)} className="p-1.5 md:p-2 hover:bg-green-50 text-green-600 rounded-lg"><Phone size={14} /></button>
+                  <button onClick={() => handleSMS(contact)} className="p-1.5 md:p-2 hover:bg-blue-50 text-blue-600 rounded-lg"><MessageSquare size={14} /></button>
+                  <button onClick={() => editContact(contact)} className="p-1.5 md:p-2 hover:bg-gray-50 text-gray-400 rounded-lg"><Edit2 size={14} /></button>
+                  <button onClick={() => deleteContact(contact.id)} className="p-1.5 md:p-2 hover:bg-red-50 text-red-600 rounded-lg"><Trash2 size={14} /></button>
                 </div>
               </motion.div>
             ))}
@@ -508,7 +508,7 @@ const emergencyTypes = [
       {/* Add/Edit Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-4 pb-8 md:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -517,12 +517,12 @@ const emergencyTypes = [
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
             ></motion.div>
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white w-full max-w-md rounded-xl shadow-2xl relative overflow-hidden"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-t-2xl md:rounded-xl shadow-2xl relative overflow-hidden"
             >
-              <div className="p-8">
+              <div className="p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-2xl font-black text-gray-900">{editingId ? "Edit Contact" : "Add Emergency Contact"}</h3>
                   <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-all">

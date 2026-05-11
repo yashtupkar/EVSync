@@ -34,7 +34,12 @@ const bookingSchema = new mongoose.Schema({
   
   currentKwh: { type: Number, default: 0 },
   percentage: { type: Number, default: 0 },
+  targetPercentage: { type: Number, default: 80 },
+  elapsedTime: { type: String, default: '00:00:00' },
+  ratePerKwh: { type: Number, default: 0 },
   statusMessage: { type: String, default: 'Ready to charge' },
+
+
   
   otp: { type: String, required: true }, // 4-digit code
   

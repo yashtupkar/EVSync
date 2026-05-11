@@ -6,7 +6,7 @@ const OCM_API_URL = 'https://api.openchargemap.io/v3/poi';
  * @returns {Promise<Array>} - Mapped stations
  */
 exports.fetchExternalStations = async (params = {}) => {
-  const { lat, lng, distance = 50, maxResults = 100 } = params;
+  const { lat, lng, distance = 100, maxResults = 50 } = params;
   
   const apiKey = process.env.OCM_API_KEY || '1752b7316-89ed-4009-831c-f5a10476fb73'; // Default to a temp key or empty
   

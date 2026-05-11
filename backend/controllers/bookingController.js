@@ -1,6 +1,9 @@
 const Booking = require('../models/Booking');
 const Station = require('../models/Station');
 const User = require('../models/User');
+const mqttService = require('../services/mqttService');
+
+
 const { sendBookingConfirmation } = require('../services/smsService');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
@@ -407,6 +410,68 @@ exports.startCharging = async (req, res) => {
 };
 
 /**
+ * Start charging session (MQTT Unmanned)
+ */
+exports.startMqttCharging = async (req, res) => {
+  const { bookingId } = req.params;
+  const { currentPercent, targetPercent } = req.body;
+  const io = req.app.get('socketio');
+
+  try {
+    const booking = await Booking.findById(bookingId).populate('stationId');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    // Update status
+    booking.bookingStatus = 'charging';
+    booking.percentage = currentPercent || 0;
+    booking.targetPercentage = targetPercent || 80;
+    booking.currentKwh = 0;
+
+    booking.statusMessage = 'Charging started remotely...';
+    
+    // Set a transaction ID for MQTT matching if not already set
+    if (!booking.transactionId) {
+        booking.transactionId = `TXN_${booking._id.toString().slice(-6)}`;
+    }
+    
+    await booking.save();
+
+    // Update station charger status
+    await Station.findOneAndUpdate(
+      { _id: booking.stationId._id, "chargers.chargerId": booking.chargerId },
+      { $set: { "chargers.$.status": 'in_use' } }
+    );
+
+    // Send MQTT command
+    mqttService.startCharging(booking._id, {
+        batteryCapacity: 40, // Default or from vehicle
+        currentPercent: currentPercent,
+        targetPercent: targetPercent
+    });
+
+
+    if (io) {
+      io.emit('charging_update', { 
+        bookingId: bookingId.toString(), 
+        percentage: currentPercent, 
+        currentKwh: 0, 
+        status: 'charging' 
+      });
+      io.emit('booking_status_updated', { 
+        bookingId: bookingId.toString(), 
+        stationId: booking.stationId._id.toString(),
+        status: 'charging' 
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Charging command sent successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+/**
  * Stop charging session (By Operator)
  */
 exports.stopCharging = async (req, res) => {
@@ -439,7 +504,11 @@ exports.stopCharging = async (req, res) => {
       });
     }
 
+    // Send MQTT Stop
+    mqttService.stopCharging(bookingId);
+
     res.status(200).json({ success: true, message: 'Charging session stopped' });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

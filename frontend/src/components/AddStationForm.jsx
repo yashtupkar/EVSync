@@ -187,6 +187,17 @@ const AddStationForm = ({ onCancel, onSuccess, initialData = null, isAdmin = fal
         });
     };
 
+    const getChargerStatusStyle = (status) => {
+        switch (status) {
+            case 'available': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+            case 'in_use': return 'bg-amber-50 text-amber-600 border-amber-100';
+            case 'reserved': return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'maintenance': return 'bg-red-50 text-red-600 border-red-100';
+            case 'occupied': return 'bg-slate-100 text-slate-600 border-slate-200';
+            default: return 'bg-slate-50 text-slate-400 border-slate-100';
+        }
+    };
+
     const removeCharger = (index) => {
         setFormData(prev => ({
             ...prev,
@@ -495,9 +506,21 @@ const AddStationForm = ({ onCancel, onSuccess, initialData = null, isAdmin = fal
                                                     />
                                                 </td>
                                                 <td className="py-4 px-4">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-[#1BAC4B]" />
-                                                        <span className="text-[10px] font-bold text-[#1BAC4B]">Active</span>
+                                                    <div className="relative group/status">
+                                                        <select 
+                                                            className={`appearance-none px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border outline-none cursor-pointer transition-all ${getChargerStatusStyle(c.status || 'available')}`}
+                                                            value={c.status || 'available'}
+                                                            onChange={(e) => handleChargerChange(i, 'status', e.target.value)}
+                                                        >
+                                                            <option value="available">Available</option>
+                                                            <option value="in_use">In Use</option>
+                                                            <option value="reserved">Reserved</option>
+                                                            <option value="occupied">Occupied</option>
+                                                            <option value="maintenance">Maintenance</option>
+                                                        </select>
+                                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover/status:opacity-100 transition-opacity">
+                                                            <Edit3 size={8} />
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-4">

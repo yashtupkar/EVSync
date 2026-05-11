@@ -232,12 +232,31 @@ const AdminStationsManagementPage = () => {
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-6">
-                                                    <div className="flex flex-col gap-1.5">
+                                                    <div className="flex flex-col gap-2">
                                                         <span className="text-xs font-bold text-slate-700">{station.chargers?.length || 0} Connectors</span>
-                                                        <div className="flex gap-1.5">
-                                                            {station.chargers?.slice(0,3).map((c, i) => (
-                                                                <span key={i} className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 uppercase">{c.type}</span>
-                                                            ))}
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {station.chargers?.map((c, i) => {
+                                                                const getStatusDot = (status) => {
+                                                                    switch(status) {
+                                                                        case 'available': return 'bg-emerald-500';
+                                                                        case 'in_use': return 'bg-amber-500';
+                                                                        case 'maintenance': return 'bg-red-500';
+                                                                        case 'reserved': return 'bg-blue-500';
+                                                                        case 'occupied': return 'bg-slate-400';
+                                                                        default: return 'bg-slate-200';
+                                                                    }
+                                                                };
+                                                                return (
+                                                                    <div key={i} className="group/dot relative">
+                                                                        <div className={`w-2 h-2 rounded-full ${getStatusDot(c.status)}`} />
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/dot:block z-50">
+                                                                            <div className="bg-slate-800 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tighter whitespace-nowrap">
+                                                                                {c.chargerId}: {c.status || 'available'}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </td>

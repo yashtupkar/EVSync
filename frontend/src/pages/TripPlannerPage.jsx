@@ -48,6 +48,7 @@ import {
 
 import TripPlannerMap from "../components/TripPlannerMap";
 import { VehicleCard } from "../components/DiscoveryComponents";
+import AIRecommendationCard from "../components/AIRecommendationCard";
 import { socket } from "../utils/socket";
 
 // Haversine formula to calculate distance between two coordinates
@@ -101,8 +102,46 @@ const TripPlannerPage = () => {
   const [favorites, setFavorites] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState(() => {
+    const saved = localStorage.getItem("evsync_ai_trip");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const lastAiLocation = useRef(null);
 
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
+  const getImageUrl = (url) => {
+    if (!url) return "https://images.unsplash.com/photo-1593941707882-a5bba14938c7";
+    if (url.startsWith("http")) return url;
+    return `${backendURL}${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  const getAmenityIcon = (label) => {
+    const icons = {
+      restroom: Soup,
+      cafe: Coffee,
+      wifi: Wifi,
+      parking: ParkingCircle,
+      waiting: Clock,
+      support: Headphones
+    };
+    return icons[label.toLowerCase()] || Info;
+  };
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    if (selectedStation?.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % selectedStation.images.length);
+    }
+  };
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    if (selectedStation?.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + selectedStation.images.length) % selectedStation.images.length);
+    }
+  };
 
   // State for the next stop (booked station)
   const [nextStopId, setNextStopId] = useState(null);
@@ -144,7 +183,6 @@ const TripPlannerPage = () => {
   }, [nextStopId, backendURL]);
 
   // Filter stations based on user vehicle compatibility
-
   const filteredStations = useMemo(() => {
     if (!user || !user.vehicles || user.vehicles.length === 0) return stations;
 
@@ -157,18 +195,19 @@ const TripPlannerPage = () => {
     const userACPorts = (vehicleDetails.ac_charger?.ports || []).map(p => p.toLowerCase());
     const userDCPorts = (vehicleDetails.dc_charger?.ports || []).map(p => p.toLowerCase());
 
-    return stations.filter(station => {
-      // If station has no chargers listed, show it just in case
+    return stations.map(station => ({
+      ...station,
+      distance: fromLocation && station.location?.coordinates 
+        ? calculateDistance(fromLocation.lat, fromLocation.lng, station.location.coordinates[1], station.location.coordinates[0])
+        : null
+    })).filter(station => {
       if (!station.chargers || station.chargers.length === 0) return true;
 
       return station.chargers.some(charger => {
         const type = charger.type?.toLowerCase() || "";
-
-        // Define port categories
         const isAC = ["type 2", "ac", "type-2"].some(t => type.includes(t));
         const isDC = ["ccs2", "chademo", "dc"].some(t => type.includes(t));
 
-        // Check compatibility based on category
         if (isDC) {
           return userDCPorts.some(port => type.includes(port.replace(/\s+/g, "")));
         }
@@ -180,8 +219,6 @@ const TripPlannerPage = () => {
               type.includes(p.replace('type', 'type-'));
           });
         }
-
-        // Default to showing if it doesn't clearly fall into AC/DC categories we filter
         return true;
       });
     });
@@ -193,35 +230,31 @@ const TripPlannerPage = () => {
       return filteredStations;
     }
 
-    // Return stations that are within 15km of any point on the route
     return filteredStations.filter(station => {
-
       const stationLat = station.location.coordinates[1];
       const stationLng = station.location.coordinates[0];
 
       return routeData.coordinates.some((point, index) => {
         if (index % 10 !== 0 && index !== routeData.coordinates.length - 1) return false;
         const dist = calculateDistance(stationLat, stationLng, point[0], point[1]);
-        return dist <= 15; // 15km radius for map markers
+        return dist <= 15;
       });
     });
   }, [filteredStations, isRouteCalculated, routeData]);
 
-  // Intermediate stations for the itinerary (strictly on route or very close)
+  // Intermediate stations for the itinerary
   const itineraryStops = useMemo(() => {
     if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) {
       return [];
     }
 
     const stops = filteredStations.map(station => {
-
       const stationLat = station.location.coordinates[1];
       const stationLng = station.location.coordinates[0];
 
       let minDistance = Infinity;
       let closestIndex = -1;
 
-      // Find closest point on route
       routeData.coordinates.forEach((point, index) => {
         const dist = calculateDistance(stationLat, stationLng, point[0], point[1]);
         if (dist < minDistance) {
@@ -230,33 +263,22 @@ const TripPlannerPage = () => {
         }
       });
 
-      // If station is within 5km of the route, consider it an intermediate stop
       if (minDistance <= 5) {
         const totalPoints = routeData.coordinates.length;
         const totalDistanceKm = routeData.distance / 1000;
         const distanceFromStart = (closestIndex / totalPoints) * totalDistanceKm;
         const distanceFromEnd = totalDistanceKm - distanceFromStart;
 
-        // Skip stations within 5km of start or destination to keep it "intermediate"
         if (distanceFromStart < 5 || distanceFromEnd < 5) return null;
 
-        return {
-          ...station,
-          distanceFromStart,
-          closestIndex
-        };
+        return { ...station, distanceFromStart, closestIndex };
       }
       return null;
     }).filter(s => s !== null);
 
-    // Sort by sequence on the route
     const sortedStops = stops.sort((a, b) => a.closestIndex - b.closestIndex);
 
-    // Calculate arrival times for each stop
-    let currentDuration = 0;
-    // This is simplified, real calculation would involve matching legs
     return sortedStops.map((stop, idx) => {
-      // Estimate duration based on distance (simplified)
       const avgSpeedKmH = 50;
       const durationHours = stop.distanceFromStart / avgSpeedKmH;
       const arrivalTime = new Date(new Date().getTime() + (durationHours * 3600 * 1000));
@@ -270,27 +292,22 @@ const TripPlannerPage = () => {
     });
   }, [filteredStations, isRouteCalculated, routeData, waypoints, nextStopId]);
 
-
   const debounceTimer = useRef(null);
 
-  // Load recent searches on mount
   useEffect(() => {
     const saved = localStorage.getItem("recent_searches");
-    if (saved) {
-      setRecentSearches(JSON.parse(saved));
-    }
+    if (saved) setRecentSearches(JSON.parse(saved));
   }, []);
 
   const saveToRecent = (suggestion) => {
     const newRecent = [
       suggestion,
       ...recentSearches.filter((s) => s.place_id !== suggestion.place_id),
-    ].slice(0, 5); // Keep last 5
+    ].slice(0, 5);
     setRecentSearches(newRecent);
     localStorage.setItem("recent_searches", JSON.stringify(newRecent));
   };
 
-  // Load trip data from localStorage
   useEffect(() => {
     const savedTrip = localStorage.getItem("evsync_trip_data");
     if (savedTrip) {
@@ -307,26 +324,15 @@ const TripPlannerPage = () => {
         console.error("Error parsing saved trip:", e);
       }
     }
-
     const savedFavorites = localStorage.getItem("evsync_favorites");
     if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
   }, []);
 
-  // Save trip data to localStorage
   useEffect(() => {
-    const tripData = {
-      from,
-      to,
-      fromLocation,
-      toLocation,
-      waypoints,
-      isRouteCalculated,
-      routeData
-    };
+    const tripData = { from, to, fromLocation, toLocation, waypoints, isRouteCalculated, routeData };
     localStorage.setItem("evsync_trip_data", JSON.stringify(tripData));
   }, [from, to, fromLocation, toLocation, waypoints, isRouteCalculated, routeData]);
 
-  // Save favorites to localStorage
   useEffect(() => {
     localStorage.setItem("evsync_favorites", JSON.stringify(favorites));
   }, [favorites]);
@@ -344,121 +350,60 @@ const TripPlannerPage = () => {
     setNextStopId(null);
   };
 
-
   const toggleFavorite = (stationId) => {
-    setFavorites(prev =>
-      prev.includes(stationId)
-        ? prev.filter(id => id !== stationId)
-        : [...prev, stationId]
-    );
+    setFavorites(prev => prev.includes(stationId) ? prev.filter(id => id !== stationId) : [...prev, stationId]);
   };
 
   const handleShare = (station) => {
     const shareText = `Check out this charging station: ${station.name} - ${station.address}`;
     if (navigator.share) {
-      navigator.share({
-        title: station.name,
-        text: shareText,
-        url: window.location.href,
-      }).catch(console.error);
+      navigator.share({ title: station.name, text: shareText, url: window.location.href }).catch(console.error);
     } else {
       navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
       alert("Link copied to clipboard!");
     }
   };
 
-  const getAmenityIcon = (label) => {
-    const icons = {
-      restroom: Soup,
-      cafe: Coffee,
-      wifi: Wifi,
-      parking: ParkingCircle,
-      waiting: Clock,
-      support: Headphones,
-      food: Soup,
-      restaurant: Soup,
-      washroom: Soup
-    };
-    return icons[label.toLowerCase()] || Info;
-  };
-
-  const handleNextImage = () => {
-    if (selectedStation?.images?.length > 1) {
-      setCurrentImageIndex((prev) => (prev + 1) % selectedStation.images.length);
-    }
-  };
-
-  const handlePrevImage = () => {
-    if (selectedStation?.images?.length > 1) {
-      setCurrentImageIndex((prev) => (prev - 1 + selectedStation.images.length) % selectedStation.images.length);
-    }
-  };
-
-  const getImageUrl = (url) => {
-    if (!url) return "https://images.unsplash.com/photo-1593941707882-a5bba14938c7";
-    if (url.startsWith("http")) return url;
-    return `${backendURL}${url.startsWith("/") ? "" : "/"}${url}`;
-  };
-
   const watchId = useRef(null);
-
   const hasSetInitialLocation = useRef(false);
 
-  // Get user current location and watch for changes
   useEffect(() => {
     if (navigator.geolocation) {
       watchId.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setFromLocation({ lat: latitude, lng: longitude });
-
           if (!hasSetInitialLocation.current) {
             setFrom("Your Location");
             hasSetInitialLocation.current = true;
           }
         },
-        (error) => {
-          console.error("Error watching location:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 5000,
-        }
+        (error) => console.error("Error watching location:", error),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
-
     return () => {
-      if (watchId.current !== null) {
-        navigator.geolocation.clearWatch(watchId.current);
-      }
+      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     };
   }, []);
 
   const fetchSuggestions = useCallback(
     async (query, setSuggestions, setLoading) => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
       if (query.length < 3) {
         setSuggestions([]);
         return;
       }
-
       debounceTimer.current = setTimeout(async () => {
         setLoading(true);
         try {
-          // Bias results towards user location if available
           let biasParams = "";
           if (fromLocation) {
             const { lat, lng } = fromLocation;
-            // Create a 50km bounding box around user
             const offset = 0.5;
             biasParams = `&viewbox=${lng - offset},${lat + offset},${lng + offset},${lat - offset}`;
           }
-
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&countrycodes=in${biasParams}`,
-          );
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&countrycodes=in${biasParams}`);
           const data = await response.json();
           setSuggestions(data);
         } catch (error) {
@@ -466,7 +411,7 @@ const TripPlannerPage = () => {
         } finally {
           setLoading(false);
         }
-      }, 400); // 400ms debounce
+      }, 400);
     },
     [fromLocation],
   );
@@ -475,9 +420,7 @@ const TripPlannerPage = () => {
     const fetchStations = async () => {
       try {
         let url = `${backendURL}/api/stations`;
-        if (fromLocation) {
-          url = `${backendURL}/api/stations/nearby?lat=${fromLocation.lat}&lng=${fromLocation.lng}&distance=200`;
-        }
+        if (fromLocation) url = `${backendURL}/api/stations/nearby?lat=${fromLocation.lat}&lng=${fromLocation.lng}&distance=200`;
         const response = await fetch(url);
         const data = await response.json();
         setStations(data);
@@ -488,25 +431,14 @@ const TripPlannerPage = () => {
     fetchStations();
   }, [fromLocation?.lat, fromLocation?.lng]);
 
-  // Dynamic station fetching along the route
   useEffect(() => {
     if (!isRouteCalculated || !routeData || !routeData.coordinates || routeData.coordinates.length === 0) return;
-
     const fetchAlongRoute = async () => {
       const coords = routeData.coordinates;
-      // Pick several points along the route for better coverage
-      const indices = [
-        0, 
-        Math.floor(coords.length / 4),
-        Math.floor(coords.length / 2),
-        Math.floor((coords.length * 3) / 4),
-        coords.length - 1
-      ];
-
+      const indices = [0, Math.floor(coords.length / 4), Math.floor(coords.length / 2), Math.floor((coords.length * 3) / 4), coords.length - 1];
       for (const idx of indices) {
         const point = coords[idx];
         if (!point) continue;
-        
         try {
           const res = await fetch(`${backendURL}/api/stations/nearby?lat=${point[0]}&lng=${point[1]}&distance=50`);
           if (!res.ok) continue;
@@ -521,9 +453,64 @@ const TripPlannerPage = () => {
         }
       }
     };
-
     fetchAlongRoute();
   }, [routeData, isRouteCalculated, backendURL]);
+
+  useEffect(() => {
+    if (isRouteCalculated && itineraryStops.length > 0 && fromLocation) {
+      let shouldFetch = aiRecommendations.length === 0;
+      
+      if (lastAiLocation.current) {
+        const dist = calculateDistance(
+          fromLocation.lat, 
+          fromLocation.lng, 
+          lastAiLocation.current.lat, 
+          lastAiLocation.current.lng
+        );
+        if (dist > 0.1) shouldFetch = true;
+      } else {
+        shouldFetch = true;
+      }
+
+      if (!shouldFetch || isAiLoading) return;
+
+      const fetchAIRecommendations = async () => {
+        setIsAiLoading(true);
+        lastAiLocation.current = fromLocation;
+        try {
+          const availableStops = itineraryStops
+            .filter(s => s.chargers?.some(c => c.status === "available"))
+            .slice(0, 10);
+
+          if (availableStops.length === 0) {
+            setIsAiLoading(false);
+            return;
+          }
+
+          const response = await fetch(`${backendURL}/api/ai/recommend`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userLocation: fromLocation,
+              vehicleInfo: user?.vehicles?.[activeVehicleIndex] || {},
+              stations: availableStops,
+              destination: to
+            }),
+          });
+          const data = await response.json();
+          if (data.success) {
+            setAiRecommendations(data.recommendations);
+            localStorage.setItem("evsync_ai_trip", JSON.stringify(data.recommendations));
+          }
+        } catch (error) {
+          console.error("Error fetching AI recommendations:", error);
+        } finally {
+          setIsAiLoading(false);
+        }
+      };
+      fetchAIRecommendations();
+    }
+  }, [isRouteCalculated, itineraryStops.length, fromLocation, user, activeVehicleIndex, to]);
 
   // Real-time charger updates
   useEffect(() => {
@@ -1513,6 +1500,14 @@ const TripPlannerPage = () => {
                     <Share2 size={14} /> Share Trip
                   </button>
                 </div>
+
+                {(aiRecommendations.length > 0 || isAiLoading) && (
+                  <AIRecommendationCard 
+                    recommendations={aiRecommendations} 
+                    stations={filteredStations}
+                    isLoading={isAiLoading} 
+                  />
+                )}
 
                 <div className="grid grid-cols-3 gap-2 p-4 bg-gray-50 rounded-2xl">
                   <div className="text-center border-r border-gray-200">

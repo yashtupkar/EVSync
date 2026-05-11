@@ -78,8 +78,8 @@ exports.getAllStations = async (req, res) => {
     // Fetch local stations (including pending/rejected for hackathon visibility)
     const localStations = await Station.find();
     
-    // Fetch external stations (only 20 for global view to avoid cluttering far away)
-    const externalStations = await ocmService.fetchExternalStations({ maxResults: 20 });
+    // Fetch external stations (limited to 50 for performance)
+    const externalStations = await ocmService.fetchExternalStations({ maxResults: 50 });
     
     res.json([...localStations, ...externalStations]);
   } catch (error) {
@@ -132,8 +132,8 @@ exports.getNearbyStations = async (req, res) => {
             maxResults: 50
         });
     } else {
-        // If no lat/lng, maybe fetch a few but prioritize local
-        externalStations = await ocmService.fetchExternalStations({ maxResults: 10 });
+        // Limit to 50 even when no coordinates are provided
+        externalStations = await ocmService.fetchExternalStations({ maxResults: 50 });
     }
 
     res.json([...localStations, ...externalStations]);

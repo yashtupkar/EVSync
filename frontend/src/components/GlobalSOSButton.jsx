@@ -15,9 +15,9 @@ const emergencyTypes = [
 
 const GlobalSOSButton = ({ 
   isFloating = true, 
-  buttonClasses = "w-20 h-20 bg-red-600 text-white shadow-[0_10px_40px_rgba(220,38,38,0.4)] border-4 border-white",
+  buttonClasses = "w-14 h-14 bg-red-600 text-white shadow-[0_10px_30px_rgba(220,38,38,0.4)] border-2 border-white",
   pingClasses = "bg-red-600 animate-ping opacity-25",
-  textClasses = "text-xl",
+  textClasses = "text-sm",
   showPressText = true,
   userLocation = null
 }) => {
@@ -131,7 +131,7 @@ const GlobalSOSButton = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleSOSClick}
-          className={`fixed bottom-6 right-6 rounded-full flex flex-col items-center justify-center z-[90] group notranslate ${buttonClasses}`}
+          className={`fixed bottom-24 right-4 rounded-full flex flex-col items-center justify-center z-[6000] group notranslate ${buttonClasses}`}
         >
           <div className={`absolute inset-0 rounded-full ${pingClasses}`}></div>
           <span className={`font-black tracking-tighter ${textClasses}`}>SOS</span>

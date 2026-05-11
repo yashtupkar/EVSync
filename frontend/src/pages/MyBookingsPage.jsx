@@ -71,7 +71,7 @@ const MyBookingsPage = () => {
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-50 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">My Bookings</h1>
+          <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">My Bookings</h1>
         </div>
       </div>
 
@@ -98,19 +98,19 @@ const MyBookingsPage = () => {
               className="bg-white rounded-3xl border border-gray-100 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all cursor-pointer group"
             >
               <div className="flex justify-between items-start mb-4">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shrink-0">
-                    <Zap size={24} />
+                <div className="flex flex-1 gap-3 md:gap-4 min-w-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 rounded-xl md:rounded-2xl flex items-center justify-center text-emerald-500 shrink-0">
+                    <Zap size={20} className="md:w-6 md:h-6" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{booking.stationId?.name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-gray-900 group-hover:text-emerald-600 transition-colors truncate text-sm md:text-base">{booking.stationId?.name}</h3>
                     <div className="flex items-center gap-1 text-gray-400 mt-0.5">
-                      <MapPin size={12} />
-                      <p className="text-[11px] font-medium truncate max-w-[200px]">{booking.stationId?.address}</p>
+                      <MapPin size={10} />
+                      <p className="text-[10px] md:text-[11px] font-medium truncate">{booking.stationId?.address}</p>
                     </div>
                   </div>
                 </div>
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${getStatusColor(booking.bookingStatus)}`}>
+                <div className={`flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full border text-[9px] md:text-[11px] font-bold uppercase tracking-wider shrink-0 ${getStatusColor(booking.bookingStatus)}`}>
                   {getStatusIcon(booking.bookingStatus)}
                   {booking.bookingStatus}
                 </div>
@@ -127,32 +127,32 @@ const MyBookingsPage = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white p-1 rounded-lg border border-gray-100 shadow-sm">
-                    <QRCodeCanvas value={`${window.location.origin}/verify-booking/${booking._id}`} size={32} />
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                  <div className="bg-white p-1 rounded-lg border border-gray-100 shadow-sm shrink-0">
+                    <QRCodeCanvas value={`${window.location.origin}/verify-booking/${booking._id}`} size={28} />
                   </div>
 
-                  <div className="px-3 py-1.5 bg-gray-900 text-white rounded-xl flex items-center gap-2">
-                    <QrCode size={14} className="text-emerald-400" />
-                    <span className="text-sm font-black tracking-widest">{booking.otp}</span>
+                  <div className="px-2.5 py-1.5 bg-gray-900 text-white rounded-xl flex items-center gap-2 shrink-0">
+                    <QrCode size={12} className="text-emerald-400" />
+                    <span className="text-xs font-black tracking-widest">{booking.otp}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Verification OTP</span>
+                  <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Verification OTP</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-0 border-gray-50">
                   {booking.bookingStatus === 'charging' && (
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/charging-progress/${booking._id}`);
                       }}
-                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all"
+                      className="px-3 md:px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all shrink-0"
                     >
-                      <Activity size={14} /> Track Progress
+                      <Activity size={14} /> Track
                     </button>
                   )}
-                  <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
+                  <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs md:text-sm whitespace-nowrap">
                     Details <ChevronRight size={16} />
                   </div>
                 </div>

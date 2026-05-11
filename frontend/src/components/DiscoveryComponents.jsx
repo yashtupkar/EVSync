@@ -22,7 +22,9 @@ import {
   ChevronDown,
   Check,
   Car,
-  ChevronLeft
+  ChevronLeft,
+  ArrowRight,
+  Home
 } from "lucide-react";
 
 import { useSelector, useDispatch } from "react-redux";
@@ -75,7 +77,7 @@ export const VehicleCard = () => {
   };
 
   return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative">
+    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative shrink-0">
       <div className="flex justify-between items-center">
         <span className="text-gray-500 font-bold text-[10px] uppercase tracking-widest">Your Vehicle</span>
         <div className="relative">
@@ -154,7 +156,7 @@ export const VehicleCard = () => {
   );
 };
 
-export const ReachableStationsCard = ({ total = 12, withinRange = 9, onRangeFilter }) => {
+export const ReachableStationsCard = ({ total = 0, withinRange = 0, onRangeFilter }) => {
   const { user, activeVehicleIndex } = useSelector((state) => state.auth);
   const activeVehicle = user?.vehicles?.[activeVehicleIndex];
   const vehicleDetails = activeVehicle ? evData.data.find(v => v.id === activeVehicle.vehicleId) : null;
@@ -162,172 +164,296 @@ export const ReachableStationsCard = ({ total = 12, withinRange = 9, onRangeFilt
 
   const [battery, setBattery] = React.useState(78);
   const [isCalculating, setIsCalculating] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [hasSearched, setHasSearched] = React.useState(false);
 
   const handleCalculate = () => {
     if (battery === '') return;
     setIsCalculating(true);
-    // Simulate a brief calculation delay for UX
     setTimeout(() => {
       const maxDist = (vehicleRange * (parseInt(battery) || 0)) / 100;
       onRangeFilter(maxDist);
       setIsCalculating(false);
+      setHasSearched(true);
     }, 800);
   };
 
-  const handleReset = () => {
+  const handleReset = (e) => {
+    e.stopPropagation();
     onRangeFilter(null);
     setBattery(100);
+    setHasSearched(false);
+    setIsExpanded(false);
   };
 
   return (
-    <div className="bg-emerald-500 p-4 rounded-2xl text-white shadow-lg shadow-emerald-100 flex flex-col gap-4 relative overflow-hidden group">
-      {/* Decorative Background Element */}
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700"></div>
-      
-      <div className="flex justify-between items-center relative z-10">
+    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 relative overflow-hidden group shrink-0 transition-all duration-300">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-md">
-            <Zap size={14} className="text-white" />
+          <div className="bg-emerald-50 p-1.5 rounded-lg">
+            <Zap size={14} className="text-emerald-500" />
           </div>
-          <span className="font-bold text-[10px] text-white uppercase tracking-widest opacity-90">Range Check</span>
+          <span className="font-bold text-[10px] text-gray-800 uppercase tracking-widest">Reachable Hubs</span>
         </div>
-        <div className="flex items-center gap-2">
+        {hasSearched && (
           <button 
             onClick={handleReset}
-            className="text-[8px] font-black uppercase opacity-60 hover:opacity-100 transition-opacity mr-1"
+            className="text-[9px] font-bold text-emerald-500 uppercase hover:text-emerald-600 transition-colors"
           >
             Reset
           </button>
-          <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-md">
-            {withinRange} Hubs
-          </span>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-end justify-between gap-4 relative z-10">
-        <div className="flex-1 space-y-1.5">
-          <span className="text-[8px] font-bold uppercase opacity-60 tracking-wider">Current Battery</span>
-          <div className="flex items-center bg-white/10 p-2.5 rounded-xl border border-white/10 focus-within:border-white/40 focus-within:bg-white/20 transition-all group/input">
-            <input 
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={battery}
-              placeholder="Enter %"
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9]/g, '');
-                setBattery(val === '' ? '' : Math.min(100, parseInt(val)));
-              }}
-              className="w-full bg-transparent text-sm font-bold outline-none placeholder-white/30 text-white"
-            />
-            <span className="text-[10px] font-black opacity-30 group-focus-within/input:opacity-60 transition-opacity uppercase ml-2 tracking-tighter">Percent</span>
+      {!isExpanded && !hasSearched ? (
+        <div 
+          onClick={() => setIsExpanded(true)}
+          className="flex flex-col gap-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/50 cursor-pointer hover:bg-emerald-50 transition-all group/card"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-gray-700">Check reachable hubs</span>
+            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm group-hover/card:translate-x-1 transition-transform">
+              <ChevronDown size={12} className="text-emerald-500 -rotate-90" />
+            </div>
+          </div>
+          <p className="text-[9px] text-gray-400 font-medium leading-tight">
+            Calculate which charging stations are reachable based on your current battery percentage.
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-emerald-600">All {total} hubs visible</span>
+            <div className="h-1 flex-1 bg-emerald-100 rounded-full overflow-hidden">
+              <div className="h-full w-full bg-emerald-500"></div>
+            </div>
           </div>
         </div>
-        
-        <button 
-          onClick={handleCalculate}
-          disabled={isCalculating || battery === ''}
-          className={`bg-white text-emerald-500 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 min-w-[100px] ${
-            (isCalculating || battery === '') ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-50 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
-          }`}
-        >
-          {isCalculating ? (
-            <div className="w-3 h-3 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-          ) : (
-            <Navigation size={14} />
-          )}
-          {isCalculating ? "..." : "Check"}
-        </button>
-      </div>
+      ) : (
+        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+            <div className="flex-1 flex items-center px-2">
+              <input 
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                value={battery}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, '');
+                  setBattery(val === '' ? '' : Math.min(100, parseInt(val)));
+                }}
+                className="w-10 bg-transparent text-sm font-bold outline-none text-gray-800"
+              />
+              <span className="text-[10px] font-bold text-gray-400 uppercase ml-1">% Battery</span>
+            </div>
+            
+            <button 
+              onClick={handleCalculate}
+              disabled={isCalculating || battery === ''}
+              className={`bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-100 flex items-center justify-center gap-1.5 ${
+                (isCalculating || battery === '') ? "opacity-50" : "hover:bg-emerald-600 active:scale-95"
+              }`}
+            >
+              {isCalculating ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                "Check"
+              )}
+            </button>
+          </div>
 
-      <div className="space-y-1.5 relative z-10">
-        <div className="flex justify-between text-[8px] font-black uppercase opacity-60 tracking-widest">
-          <span>Network Coverage</span>
-          <span>{total > 0 ? Math.round((withinRange / total) * 100) : 0}%</span>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Network Coverage</span>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                {withinRange} / {total} Hubs
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                style={{ width: `${total > 0 ? (withinRange / total) * 100 : 0}%` }} 
+                className="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+              ></div>
+            </div>
+            <p className="text-[8px] text-gray-400 font-medium italic">
+              {hasSearched 
+                ? `Showing hubs reachable within ${((vehicleRange * (parseInt(battery) || 0)) / 100).toFixed(0)}km`
+                : "Enter battery to filter reachable hubs"
+              }
+            </p>
+          </div>
         </div>
-        <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-          <div 
-            style={{ width: `${total > 0 ? (withinRange / total) * 100 : 0}%` }} 
-            className="h-full bg-white transition-all duration-1000 shadow-[0_0_10px_white]"
-          ></div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
 
-export const FilterSection = ({ onShowStations }) => {
+
+
+export const FilterSection = ({ onShowStations, stations = [] }) => {
   const { user, activeVehicleIndex } = useSelector((state) => state.auth);
+  const [isExpanded, setIsExpanded] = React.useState(true);
   const [selectedFilter, setSelectedFilter] = React.useState("All");
-  const [isAvailableOnly, setIsAvailableOnly] = React.useState(false);
+  const [availability, setAvailability] = React.useState({
+    now: false,
+    today: false,
+    occupied: false
+  });
+  const [powerValue, setPowerValue] = React.useState(120);
+  const [distanceValue, setDistanceValue] = React.useState(20);
 
   const activeVehicle = user?.vehicles?.[activeVehicleIndex];
   const vehicleDetails = activeVehicle ? evData.data.find(v => v.id === activeVehicle.vehicleId) : null;
 
   const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  React.useEffect(() => {
-    if (vehicleDetails) {
-      const chargerType = vehicleDetails.dc_charger?.ports?.[0] || vehicleDetails.ac_charger?.ports?.[0];
-      if (chargerType) {
-        // Map common charger names to UI labels
-        const labels = ["CCS2", "CHAdeMO", "Type 2", "GB/T"];
-        const matchedLabel = labels.find(l => normalize(l) === normalize(chargerType));
-        setSelectedFilter(matchedLabel || "All");
-      } else {
-        setSelectedFilter("All");
-      }
-    }
-  }, [activeVehicleIndex, vehicleDetails]);
+  const handleReset = (e) => {
+    e.stopPropagation();
+    setSelectedFilter("All");
+    setAvailability({ now: false, today: false, occupied: false });
+    setPowerValue(120);
+    setDistanceValue(20);
+    onShowStations({
+      type: "All",
+      availability: { now: false, today: false, occupied: false },
+      power: 120,
+      distance: null
+    });
+  };
+
+  const handleApply = () => {
+    onShowStations({
+      type: selectedFilter,
+      availability,
+      power: powerValue,
+      distance: distanceValue
+    });
+    // Optional: auto-collapse on apply to save space
+    // setIsExpanded(false);
+  };
+
+  const counts = React.useMemo(() => {
+    return {
+      now: stations.filter(s => s.chargers?.some(c => c.status === "available")).length,
+      today: stations.filter(s => s.chargers?.some(c => c.status === "available" || c.status === "occupied")).length,
+      occupied: stations.filter(s => s.chargers?.every(c => c.status === "occupied" || c.status === "in_use")).length
+    };
+  }, [stations]);
 
   return (
-    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <span className="text-gray-800 font-bold text-[10px] uppercase tracking-widest">Filters</span>
+    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 shrink-0 transition-all duration-300">
+      <div 
+        className="flex justify-between items-center cursor-pointer group"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <div className={`p-1 rounded-md transition-colors ${isExpanded ? 'bg-emerald-50 text-emerald-500' : 'bg-gray-50 text-gray-400'}`}>
+            <ChevronDown size={14} className={`transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />
+          </div>
+          <h3 className="text-gray-900 font-bold text-sm">Filter Stations</h3>
+        </div>
         <button 
-          onClick={() => {
-            setSelectedFilter("All");
-            setIsAvailableOnly(false);
-          }}
-          className="text-gray-400 font-bold text-[9px] uppercase hover:text-gray-600"
+          onClick={handleReset}
+          className="text-emerald-500 font-bold text-[10px] uppercase tracking-widest hover:text-emerald-600 transition-colors"
         >
           Reset
         </button>
       </div>
       
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {["All", "CCS2", "CHAdeMO", "Type 2", "GB/T"].map((type) => (
-            <button 
-              key={type}
-              onClick={() => setSelectedFilter(type)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${normalize(selectedFilter) === normalize(type) ? "bg-emerald-500 text-white" : "bg-gray-50 text-gray-500"}`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
+      {isExpanded && (
+        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="h-px bg-gray-50"></div>
 
-      <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
-        <span className="text-[10px] font-bold text-gray-700">Available Now</span>
-        <div 
-          onClick={() => setIsAvailableOnly(!isAvailableOnly)}
-          className={`w-10 h-5 ${isAvailableOnly ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full p-0.5 relative cursor-pointer transition-colors`}
-        >
-          <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${isAvailableOnly ? 'right-0.5' : 'left-0.5'}`}></div>
-        </div>
-      </div>
+          {/* Connector Type */}
+          <div className="space-y-3">
+            <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider block">Connector Type</span>
+            <div className="flex flex-wrap gap-1.5">
+              {["All", "CCS2", "CHAdeMO", "Type 2", "GBT"].map((type) => (
+                <button 
+                  key={type}
+                  onClick={() => setSelectedFilter(type)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    normalize(selectedFilter) === normalize(type) 
+                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-100" 
+                    : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <button 
-        onClick={() => onShowStations(selectedFilter, isAvailableOnly)}
-        className="w-full bg-emerald-500 text-white py-3 cursor-pointer rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-green-100"
-      >
-        Show Matching Stations
-      </button>
+          {/* Availability */}
+          <div className="space-y-3">
+            <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider block">Availability</span>
+            <div className="space-y-2.5">
+              {[
+                { id: 'now', label: 'Available Now', count: counts.now },
+                { id: 'today', label: 'Available Today', count: counts.today },
+                { id: 'occupied', label: 'Occupied', count: counts.occupied }
+              ].map((item) => (
+                <div 
+                  key={item.id}
+                  onClick={() => setAvailability(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                  className="flex justify-between items-center cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded border transition-all flex items-center justify-center ${
+                      availability[item.id] ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200 group-hover:border-emerald-200'
+                    }`}>
+                      {availability[item.id] && <Check size={12} className="text-white" strokeWidth={4} />}
+                    </div>
+                    <span className={`text-[11px] font-bold ${availability[item.id] ? 'text-gray-800' : 'text-gray-500'}`}>{item.label}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-400">({item.count})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sliders in a more compact layout */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-bold text-[9px] uppercase tracking-wider">Power</span>
+                <span className="text-[9px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-md">{powerValue} kW</span>
+              </div>
+              <input 
+                type="range" 
+                min="10" 
+                max="120" 
+                value={powerValue}
+                onChange={(e) => setPowerValue(parseInt(e.target.value))}
+                className="w-full h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-bold text-[9px] uppercase tracking-wider">Dist</span>
+                <span className="text-[9px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-md">{distanceValue} km</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="20" 
+                value={distanceValue}
+                onChange={(e) => setDistanceValue(parseInt(e.target.value))}
+                className="w-full h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+          </div>
+
+          <button 
+            onClick={handleApply}
+            className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-[0.1em] shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-[0.98]"
+          >
+            Apply Filters
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 
 export const StationListItem = ({ station, onClick, distance }) => {
@@ -336,100 +462,172 @@ export const StationListItem = ({ station, onClick, distance }) => {
   const isFullyOccupied = totalSlots > 0 && availableSlots === 0;
   const navigate = useNavigate();
 
-  // Logic for Instant Badge
   const hasInstantCharger = station.chargers?.some(charger => {
     if (charger.status !== 'available') return false;
     return ['CCS2', 'TYPE 2', 'DC'].includes(charger.type?.toUpperCase());
   });
 
+  const isHomeCharger = station.stationType === "home-charger";
+
   return (
     <div 
       onClick={onClick}
-      className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-500/5 hover:border-green-500/20 transition-all cursor-pointer group relative overflow-hidden"
+      className={`bg-white p-3 rounded-xl border ${isHomeCharger ? 'border-purple-100 bg-purple-50/10' : 'border-gray-100'} shadow-sm hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden shrink-0`}
     >
-      <div className="flex gap-3 items-center mb-3">
-        <div className={`w-10 h-10 ${isFullyOccupied ? 'bg-amber-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center shrink-0 transition-colors`}>
-          <EvCharger size={22} className="text-white" />
+      {isHomeCharger && (
+        <div className="absolute top-0 right-0 px-2 py-0.5 bg-purple-600 text-white text-[8px] font-black uppercase tracking-tighter rounded-bl-lg shadow-sm z-10">
+          Home Hub
         </div>
-        <div className="min-w-0 flex-1">
+      )}
+      <div className="flex gap-3 items-center mb-2">
+        <div className={`w-8 h-8 ${isFullyOccupied ? 'bg-amber-500' : isHomeCharger ? 'bg-purple-600' : 'bg-emerald-500'} rounded-lg flex items-center justify-center shrink-0 transition-colors`}>
+          {isHomeCharger ? <Home size={18} className="text-white" /> : <EvCharger size={20} className="text-white" />}
+        </div>
+        <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-            <div className="flex items-center gap-2 truncate">
-              <h3 className="font-bold text-sm text-gray-800 group-hover:text-emerald-500 transition-colors truncate">{station.name}</h3>
-              {station.external && (
-                <span className="bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0">External</span>
-              )}
-            </div>
-            <div className="flex items-center gap-0.5 text-yellow-500 font-bold text-[10px] shrink-0 ml-2">
+            <h3 className="font-bold text-sm text-[#1A2E35] group-hover:text-emerald-500 transition-colors truncate pr-2">{station.name}</h3>
+            <div className="flex items-center gap-0.5 text-yellow-500 font-bold text-[10px] shrink-0">
               <Star size={10} fill="currentColor" />
               <span>{station.rating || "4.6"}</span>
             </div>
           </div>
-          <div className="flex justify-between items-center mt-0.5">
-            <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest truncate max-w-[70%]">{station.address}</p>
-            {distance && (
-              <span className="text-[9px] font-black text-emerald-500 bg-green-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
-                {distance.toFixed(1)} km
-              </span>
-            )}
-          </div>
+          <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mt-0.5 truncate">{station.address}</p>
         </div>
       </div>
       
-      <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-emerald-500 rounded text-white shadow-sm">
-            <PlugZap size={10} />
-          </div>
-          <span className="text-[10px] font-black text-gray-800 uppercase">
-            {station.chargers?.[0]?.power || "60"}kW
-          </span>
-          <span className="text-[8px] text-gray-400 font-bold uppercase">
-            {station.chargers?.[0]?.type || "CCS2"}
-          </span>
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+           <PlugZap size={10} className="text-emerald-500" />
+           <span className="text-[10px] font-bold text-gray-700">{station.chargers?.[0]?.power || "60"}kW</span>
         </div>
+        <span className="text-[9px] font-bold text-gray-400 uppercase">{station.chargers?.[0]?.type || "CCS2"}</span>
         
-        <span className={`text-[8px] font-bold ${isFullyOccupied ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-1 rounded-lg uppercase`}>
+        <div className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase ${isFullyOccupied ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'}`}>
           {isFullyOccupied ? 'Occupied' : 'Available'} ({availableSlots}/{totalSlots})
-        </span>
-          {hasInstantCharger && (
-                <div className="flex">
-                  <div className="px-2 py-1 flex gap-1 rounded-sm text-[8px] transition-all bg-black text-white w-fit items-center">
-                    <Zap size={10} className="text-amber-400 fill-amber-400" /> 
-                    Instant
-                  </div>
-                </div>
-              )}
+        </div>
+
+        {distance && (
+          <div className="ml-auto text-[9px] font-black text-emerald-500 bg-green-50 px-2 py-1 rounded-lg">
+            {distance.toFixed(1)} km
+          </div>
+        )}
       </div>
 
-      {/* Action Button */}
-      {station.external ? (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const lat = station.location?.coordinates[1];
-            const lng = station.location?.coordinates[0];
-            window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
-          }}
-          className="w-full mt-3 py-2 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2"
-        >
-          <Navigation size={12} />
-          Navigate Now
-        </button>
-      ) : (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/book-slot/${station._id}`);
-          }}
-          className="w-full mt-3 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-2"
-        >
-          <Calendar size={12} />
-          Book Now
-        </button>
-      )}
+      <div className="flex justify-between items-center gap-2">
+        {hasInstantCharger && (
+          <div className="px-2 py-1 flex gap-1 rounded-lg text-[8px] font-black transition-all bg-gray-900 text-white items-center uppercase tracking-wider">
+            <Zap size={10} className="text-yellow-400 fill-yellow-400" /> 
+            Instant
+          </div>
+        )}
+
+        <div className="flex gap-1.5 flex-1 justify-end">
+          {station.external ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const lat = station.location?.coordinates[1];
+                const lng = station.location?.coordinates[0];
+                window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+              }}
+              className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[9px] font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Navigation size={12} />
+              Navigate
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const lat = station.location?.coordinates[1];
+                  const lng = station.location?.coordinates[0];
+                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+                }}
+                className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-[9px] font-bold hover:bg-gray-100 transition-all border border-gray-100 flex items-center gap-1.5"
+              >
+                <Navigation size={12} />
+                Route
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/book-slot/${station._id}`);
+                }}
+                className="flex-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-[9px] font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Calendar size={12} />
+                Book Now
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
+
+
+
+
+
+
+export const HomeChargerPromoCard = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="bg-emerald-100 p-6 rounded-2xl border border-gray-50 shadow-sm flex flex-col gap-5 shrink-0 relative overflow-hidden group">
+      {/* Decorative gradient background */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 blur-3xl opacity-50"></div>
+      
+      <div className="flex justify-between relative items-start relative z-10">
+        <div className="flex-1">
+          <h3 className="text-[#1A2E35] font-bold text-lg leading-tight mb-2">
+            Earn Money with <br /> Your Home Charger
+          </h3>
+          <p className="text-[11px] text-gray-500 font-medium leading-relaxed max-w-[180px]">
+            List your home charger on EVSync and earn from every booking. Help build a stronger EV community.
+          </p>
+        </div>
+        <div className="w-26 absolute -right-6 -top-0 shrink-0 ">
+          <img 
+            src="/assets/home-charger.png" 
+            alt="Home Charger Illustration" 
+            className="w-full h-full object-contain"
+          />
+       
+        </div>
+      </div>
+
+      <div className="space-y-2.5 relative z-10">
+        {[
+          "Set your own price",
+          "Choose your availability",
+          "Safe & verified users"
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-2.5">
+            <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <Check size={10} className="text-white" strokeWidth={4} />
+            </div>
+            <span className="text-[11px] font-bold text-[#4A5D65]">{item}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3 relative z-10">
+        <button 
+          onClick={() => navigate('/add-home-charger')}
+          className="w-full bg-emerald-500 text-white py-3.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-[0.98]"
+        >
+          List Your Home Charger
+        </button>
+        <button className="w-full text-emerald-500 font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:underline">
+          Learn More <ArrowRight size={12} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 export const QuickActionCard = ({ icon: Icon, title, desc, onClick }) => (
   <div 
@@ -547,11 +745,10 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
 
   return (
     <div className="bg-white flex flex-col">
-
       {/* Station Header Row */}
-      <div className="flex gap-4 p-5 border-b border-gray-100 items-start">
+      <div className="flex flex-col md:flex-row gap-4 p-4 md:p-5 border-b border-gray-100 items-start">
         {/* Station Image Slider */}
-        <div className="w-48 h-32 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative group/img">
+        <div className="w-full md:w-48 h-48 md:h-32 rounded-2xl overflow-hidden shrink-0 border border-gray-100 relative group/img">
           <img
             src={station.images?.[activeImageIndex] || "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"}
             alt={station.name}
@@ -562,19 +759,19 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
             <>
               <button 
                 onClick={prevImage}
-                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover/img:opacity-100 transition-opacity"
               >
-                <Plus size={12} className="rotate-45" /> 
+                <ChevronLeft size={16} /> 
               </button>
               <button 
                 onClick={nextImage}
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover/img:opacity-100 transition-opacity"
               >
-                <Plus size={12} />
+                <ChevronRight size={16} />
               </button>
-              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {station.images.map((_, i) => (
-                  <div key={i} className={`w-1 h-1 rounded-full ${i === activeImageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                  <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === activeImageIndex ? 'bg-white w-3' : 'bg-white/40'}`} />
                 ))}
               </div>
             </>
@@ -582,35 +779,41 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
         </div>
 
         {/* Station Info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 w-full">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Open 24/7</span>
+            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">Open 24/7</span>
+            {hasInstantCharger && (
+               <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded flex items-center gap-1">
+                 <Zap size={8} className="fill-amber-500" /> Instant
+               </span>
+            )}
           </div>
-          <h2 className="text-lg font-bold text-gray-900 leading-tight">{station.name}</h2>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Star size={12} fill="currentColor" className="text-yellow-400" />
+          <h2 className="text-xl md:text-lg font-bold text-gray-900 leading-tight">{station.name}</h2>
+          <div className="flex items-center gap-1.5 mt-1">
+            <Star size={14} fill="currentColor" className="text-yellow-400" />
             <span className="text-sm font-bold text-gray-700">{station.rating || "4.3"}</span>
             <span className="text-xs text-gray-400 font-medium">({station.reviewsCount || "124"} reviews)</span>
           </div>
-          <div className="flex items-start gap-1 mt-1">
-            <MapPin size={11} className="text-gray-400 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-gray-500 font-medium leading-snug">{station.address}</p>
+          <div className="flex items-start gap-1 mt-2">
+            <MapPin size={12} className="text-gray-400 mt-0.5 shrink-0" />
+            <p className="text-[12px] md:text-[11px] text-gray-500 font-medium leading-snug">{station.address}</p>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{maxPower} kW</span>
-            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{station.chargers?.[0]?.type || "CCS2"}</span>
+          
+          <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{maxPower} kW</span>
+            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.chargers?.[0]?.type || "CCS2"}</span>
             {station.distance && (
-              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md">{station.distance.toFixed(1)} km away</span>
+              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.distance.toFixed(1)} km away</span>
             )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2 shrink-0">
+        <div className="flex md:flex-col gap-2 w-full md:w-auto shrink-0 mt-2 md:mt-0">
           {!station.external ? (
             <button
               onClick={() => navigate(`/book-slot/${station._id}`)}
-              className="flex items-center gap-2 bg-emerald-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all whitespace-nowrap"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500 text-white text-[11px] font-bold px-4 py-3 rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all whitespace-nowrap"
             >
               <Calendar size={14} />
               Book Now
@@ -622,24 +825,24 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
                 const lng = station.location?.coordinates[0];
                 window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
               }}
-              className="flex items-center gap-2 bg-blue-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-600 transition-all whitespace-nowrap"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-500 text-white text-[11px] font-bold px-4 py-3 rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-600 transition-all whitespace-nowrap"
             >
               <Navigation size={14} />
-              Open in Maps
+              Open Maps
             </button>
           )}
           <button
             onClick={() => onNavigate(station)}
-            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-[11px] font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all whitespace-nowrap"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 text-[11px] font-bold px-4 py-3 rounded-xl hover:bg-gray-50 transition-all whitespace-nowrap"
           >
             <Navigation size={14} />
-            Start Driving
+            Navigate
           </button>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 divide-x divide-gray-100 border-b border-gray-100">
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 border-b border-gray-100">
         {[
           { label: "Available Slots", value: `${availableChargers.length} / ${totalChargers}`, icon: Battery, color: "text-emerald-500" },
           { label: "Max Power", value: `${maxPower} kW`, icon: Zap, color: "text-blue-500" },

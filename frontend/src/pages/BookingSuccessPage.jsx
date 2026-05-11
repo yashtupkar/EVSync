@@ -16,9 +16,13 @@ import {
   ShieldCheck,
   Navigation,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCcw
 } from 'lucide-react';
 import { socket } from '../utils/socket';
+import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+
 
 const BookingSuccessPage = () => {
   const { bookingId } = useParams();
@@ -27,6 +31,10 @@ const BookingSuccessPage = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [batteryConfig, setBatteryConfig] = useState({ current: 20, target: 80 });
+  const [isStarting, setIsStarting] = useState(false);
+
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -63,6 +71,33 @@ const BookingSuccessPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleStartChargingMqtt = async () => {
+    try {
+      setIsStarting(true);
+      const token = localStorage.getItem('token');
+      const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+      
+      const response = await axios.post(`${backendURL}/api/bookings/${bookingId}/start-mqtt`, {
+        currentPercent: batteryConfig.current,
+        targetPercent: batteryConfig.target
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        toast.success("Charging initiated via MQTT!");
+        navigate(`/charging-progress/${bookingId}`);
+      }
+    } catch (error) {
+      console.error("Error starting MQTT charging:", error);
+      toast.error(error.response?.data?.message || "Failed to start charging");
+    } finally {
+      setIsStarting(false);
+      setShowSetupModal(false);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAF9] flex items-center justify-center">
@@ -83,7 +118,9 @@ const BookingSuccessPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <>
+      <div className="min-h-screen bg-[#F8FAF9] py-8 md:py-12 px-4 sm:px-6 lg:px-8 font-sans">
+
       <div className="max-w-2xl mx-auto">
         {/* Success Animation Header */}
         <div className="text-center mb-10">
@@ -91,17 +128,17 @@ const BookingSuccessPage = () => {
             <div className="absolute inset-0 bg-emerald-200 rounded-full animate-ping opacity-20"></div>
             <CheckCircle2 size={40} className="text-emerald-500 relative z-10" />
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Booking Confirmed!</h1>
-          <p className="text-gray-500 mt-2 font-medium">Your charging slot has been successfully reserved.</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Booking Confirmed!</h1>
+          <p className="text-sm md:text-base text-gray-500 mt-2 font-medium px-4">Your charging slot has been successfully reserved.</p>
         </div>
 
         {/* OTP Card - Rapido Style */}
         <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden mb-8">
-          <div className="bg-emerald-500 p-8 text-center text-white flex flex-col md:flex-row items-center justify-center gap-8">
-            <div className="bg-white p-3 rounded-2xl shadow-lg">
+          <div className="bg-emerald-500 p-6 md:p-8 text-center text-white flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
+            <div className="bg-white p-2.5 md:p-3 rounded-2xl shadow-lg shrink-0">
               <QRCodeCanvas 
                 value={`${window.location.origin}/verify-booking/${bookingId}`} 
-                size={150}
+                size={window.innerWidth < 768 ? 120 : 150}
 
                 level={"H"}
                 includeMargin={false}
@@ -127,8 +164,8 @@ const BookingSuccessPage = () => {
               {/* Hidden OTP Section */}
               <div className="flex flex-col items-center md:items-start gap-3">
                 {showOTP ? (
-                  <div className="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-2xl backdrop-blur-md border border-white/20 animate-in fade-in zoom-in duration-300">
-                    <span className="text-4xl font-black tracking-[0.3em] text-white">{booking.otp}</span>
+                  <div className="flex items-center gap-3 md:gap-4 bg-white/10 px-3 md:px-4 py-2 rounded-2xl backdrop-blur-md border border-white/20 animate-in fade-in zoom-in duration-300">
+                    <span className="text-2xl md:text-4xl font-black tracking-[0.2em] md:tracking-[0.3em] text-white">{booking.otp}</span>
                     <button 
                       onClick={handleCopyOTP}
                       className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
@@ -138,7 +175,7 @@ const BookingSuccessPage = () => {
                     </button>
                     <button 
                       onClick={() => setShowOTP(false)}
-                      className="text-[10px] font-black uppercase tracking-widest text-emerald-100 hover:text-white transition-colors"
+                      className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-emerald-100 hover:text-white transition-colors"
                     >
                       Hide
                     </button>
@@ -146,7 +183,7 @@ const BookingSuccessPage = () => {
                 ) : (
                   <button 
                     onClick={() => setShowOTP(true)}
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl border border-white/10 transition-all text-xs font-black uppercase tracking-widest text-white group"
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 md:px-4 py-2 rounded-xl border border-white/10 transition-all text-[10px] md:text-xs font-black uppercase tracking-widest text-white group"
                   >
                     <ShieldCheck size={14} className="group-hover:scale-110 transition-transform" />
                     Show OTP Code
@@ -161,8 +198,8 @@ const BookingSuccessPage = () => {
           </div>
 
 
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="p-6 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               {/* Left Column: Details */}
               <div className="space-y-6">
                 <div>
@@ -241,12 +278,23 @@ const BookingSuccessPage = () => {
               {booking.bookingStatus === 'charging' && (
                 <button 
                   onClick={() => navigate(`/charging-progress/${bookingId}`)}
-                  className="w-full flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all animate-pulse"
+                  className="w-full flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 md:py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all animate-pulse"
                 >
                   <Activity size={20} />
                   Track Live Progress
                 </button>
               )}
+
+              {booking.stationId.stationType === 'unmanned' && booking.bookingStatus === 'upcoming' && (
+                <button 
+                  onClick={() => setShowSetupModal(true)}
+                  className="w-full flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 md:py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all"
+                >
+                  <Zap size={20} />
+                  Start Charging Now (Unmanned)
+                </button>
+              )}
+
 
               {localStorage.getItem("evsync_trip_in_progress") === "true" && (
                 <button 
@@ -254,7 +302,7 @@ const BookingSuccessPage = () => {
                     localStorage.removeItem("evsync_trip_in_progress");
                     navigate(`/trip-planner?nextStopId=${booking.stationId._id}`);
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all"
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 md:py-5 rounded-2xl shadow-xl shadow-emerald-100 transition-all"
                 >
                   <Navigation size={20} />
                   Continue Trip Planner
@@ -283,7 +331,7 @@ const BookingSuccessPage = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="flex items-center justify-center gap-6 text-gray-400">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-gray-400 pb-8 md:pb-0">
           <button className="flex items-center gap-2 text-xs font-bold hover:text-gray-600 transition-colors">
             <Download size={14} /> Download Receipt
           </button>
@@ -296,7 +344,91 @@ const BookingSuccessPage = () => {
         </div>
       </div>
     </div>
+
+    {/* SETUP MODAL */}
+    <AnimatePresence>
+        {showSetupModal && (
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSetupModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              className="bg-white w-full max-w-md rounded-t-[2.5rem] md:rounded-3xl p-6 md:p-8 shadow-2xl relative z-10 border border-slate-100"
+            >
+              <div className="text-center space-y-2 mb-8">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500 mb-2">
+                  <Zap size={32} fill="currentColor" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Charging Setup</h3>
+                <p className="text-slate-400 font-medium text-sm">Configure your battery targets for this session.</p>
+              </div>
+
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Battery Level</label>
+                    <span className="text-sm font-black text-emerald-600">{batteryConfig.current}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" max="100" 
+                    value={batteryConfig.current}
+                    onChange={(e) => setBatteryConfig({...batteryConfig, current: parseInt(e.target.value)})}
+                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Battery Level</label>
+                    <span className="text-sm font-black text-emerald-600">{batteryConfig.target}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" max="100" 
+                    value={batteryConfig.target}
+                    onChange={(e) => setBatteryConfig({...batteryConfig, target: parseInt(e.target.value)})}
+                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                    <Activity size={20} className="text-emerald-500" />
+                    <p className="text-[11px] font-bold text-emerald-800">
+                        Estimated charge: {Math.max(0, batteryConfig.target - batteryConfig.current)}% increase
+                    </p>
+                </div>
+
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setShowSetupModal(false)}
+                        className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleStartChargingMqtt}
+                        disabled={isStarting}
+                        className="flex-2 py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 px-8"
+                    >
+                        {isStarting ? <RefreshCcw className="animate-spin" size={16} /> : <><Zap size={16} /> Start Session</>}
+                    </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
 export default BookingSuccessPage;
+

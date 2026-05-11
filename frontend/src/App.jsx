@@ -23,6 +23,7 @@ import StationOwnerDashboard from "./pages/StationOwnerDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import LoginPage from "./pages/LoginPage";
 import AddStationPage from "./pages/AddStationPage";
+import AddHomeChargerPage from "./pages/AddHomeChargerPage";
 import UserLayout from "./layouts/UserLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { adminSidebarItems } from "./config/adminSidebar";
@@ -88,6 +89,7 @@ function App() {
           <Route path="/my-bookings" element={<MyBookingsPage />} />
           <Route path="/charging-progress/:bookingId" element={<ChargingProgressPage />} />
           <Route path="/emergency" element={<EmergencyPage />} />
+          <Route path="/add-home-charger" element={<ProtectedRoute><AddHomeChargerPage /></ProtectedRoute>} />
         </Route>
         <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
 

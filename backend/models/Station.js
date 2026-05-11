@@ -22,7 +22,12 @@ const stationSchema = new mongoose.Schema({
   chargers: [chargerSchema],
   
   // NEW FIELDS
-  stationType: { type: String, enum: ['manned', 'unmanned'], default: 'unmanned' },
+  stationType: { type: String, enum: ['manned', 'unmanned', 'home-charger', 'commercial'], default: 'unmanned' },
+  propertyType: { type: String }, // e.g., Apartment, Independent House, Villa
+  parkingType: { type: String }, // e.g., Covered, Open, Private Garage
+  suitableFor: [String], // e.g., 4 Wheeler, 2 Wheeler
+  houseRules: { type: String },
+  additionalNotes: { type: String },
   amenities: [String], // e.g., parking, washroom, cafe
   contactNumber: { type: String },
   email: { type: String },

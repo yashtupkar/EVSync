@@ -49,28 +49,39 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const createStationIcon = (station, mapRotation = 0) => {
   const isAvailable =
     station?.status === "available" || station?.isAvailable !== false;
+  const isHomeCharger = station?.stationType === "home-charger";
+  const isExternal = station?.external;
 
-  let color = isAvailable ? "#1BAC4B" : "#f1be25ff";
-  if (station?.external) {
-    color = "#3B82F6"; // Blue for external stations
+  let iconUrl = "/assets/map-markers/available.png";
+
+  if (isExternal) {
+    iconUrl = "/assets/map-markers/external-staiton.png";
+  } else if (isHomeCharger) {
+    iconUrl = isAvailable 
+      ? "/assets/map-markers/home-available.png" 
+      : "/assets/map-markers/home-occupied.png";
+  } else {
+    iconUrl = isAvailable 
+      ? "/assets/map-markers/available.png" 
+      : "/assets/map-markers/occupied.png";
   }
 
   return L.divIcon({
     className: "custom-station-icon",
     html: `
       <div class="relative transition-transform duration-500" style="transform: rotate(${mapRotation}deg)">
-        <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg relative z-10">
-          <path d="M18 42C18 42 36 28.5 36 18C36 8.05888 27.9411 0 18 0C8.05888 0 0 8.05888 0 18C0 28.5 18 42 18 42Z" fill="white"/>
-          <path d="M18 39.5C18 39.5 33 26.5 33 18C33 9.71573 26.2843 3 18 3C9.71573 3 3 9.71573 3 18C3 26.5 18 39.5 18 39.5Z" fill="${color}"/>
-          <circle cx="18" cy="18" r="12" fill="white"/>
-          <path d="M19 8L10 20H17L16 28L25 16H18L19 8Z" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
-        </svg>
-        ${station?.name ? `<div class="station-label" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);white-space:nowrap;color:white;font-size:12.5px;font-weight:600;pointer-events:none;opacity:1;transition:opacity 0.25s ease;text-shadow:0 1px 3px rgba(0,0,0,0.9),0 0 4px rgba(0,0,0,1);z-index:20;">${station.name}</div>` : ''}
+        <img 
+          src="${iconUrl}" 
+          style="width: 36px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));"
+          class="relative z-10"
+          alt="station"
+        />
+        ${station?.name ? `<div class="station-label" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);width:110px;white-space:normal;text-align:center;line-height:1.2;color:#1F2937;background:white;padding:4px 6px;border-radius:6px;font-size:10px;font-weight:700;pointer-events:none;opacity:1;transition:opacity 0.25s ease;border:1px solid rgba(0,0,0,0.1);z-index:20;">${station.name}</div>` : ''}
       </div>
     `,
-    iconSize: [36, 42],
-    iconAnchor: [18, 42],
-    popupAnchor: [0, -44],
+    iconSize: [42, 48],
+    iconAnchor: [21, 48],
+    popupAnchor: [0, -48],
   });
 };
 
@@ -331,10 +342,19 @@ const MapComponent = ({
   usePaperPins = false,
   routeTrigger = 0,
   waypoints = EMPTY_ARRAY, // Array of {lat, lng} or station objects with coordinates
+  mobileControlsOffset = 0,
 }) => {
   const [userLocation, setUserLocation] = useState(
     startLocation || [23.2599, 77.4126],
   ); // Default Bhopal
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (startLocation) {
@@ -971,7 +991,7 @@ const MapComponent = ({
     <div className="w-full h-full relative overflow-hidden bg-[#f8fafc]">
 
       {/* Custom hover card overlay — rendered outside MapContainer to avoid autoPan */}
-      {hoveredStation && (
+      {hoveredStation && !isMobile && (
         <div
           className="absolute z-[9999] pointer-events-none"
           style={{ left: cardPos.x, top: cardPos.y, width: 300 }}
@@ -1057,6 +1077,7 @@ const MapComponent = ({
             )}
             eventHandlers={{
               mouseover: (e) => {
+                if (isMobile) return;
                 L.DomEvent.stopPropagation(e);
                 const map = mapRef.current;
                 if (!map) return;
@@ -1095,7 +1116,7 @@ const MapComponent = ({
             icon={isNavigating || !startLocation ? userIcon(bearing, 0) : startIcon(0)}
             zIndexOffset={1000}
           >
-            {startLocation && !isNavigating && (
+            {startLocation && !isNavigating && !isMobile && (
               <Popup className="custom-popup">
                 <div className="p-2 text-center">
                   <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">
@@ -1127,16 +1148,18 @@ const MapComponent = ({
             icon={destinationIcon(simulating ? bearing : 0)}
             zIndexOffset={500}
           >
-            <Popup className="custom-popup">
-              <div className="p-2 text-center">
-                <div className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">
-                  Destination
+            {!isMobile && (
+              <Popup className="custom-popup">
+                <div className="p-2 text-center">
+                  <div className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">
+                    Destination
+                  </div>
+                  <div className="text-xs font-bold text-gray-800">
+                    Your trip ends here
+                  </div>
                 </div>
-                <div className="text-xs font-bold text-gray-800">
-                  Your trip ends here
-                </div>
-              </div>
-            </Popup>
+              </Popup>
+            )}
           </Marker>
         )}
 
@@ -1173,7 +1196,10 @@ const MapComponent = ({
       </MapContainer>
 
       {/* Unified Bottom Bar Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none  ">
+      <div 
+        className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none transition-all duration-500"
+        style={{ paddingBottom: isMobile ? `${mobileControlsOffset}px` : "0px" }}
+      >
         <div className=" w-full flex flex-col gap-4">
           {/* Top Row: Floating Controls (Zoom & Layers) - Positioned above the bar */}
 

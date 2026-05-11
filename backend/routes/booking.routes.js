@@ -27,6 +27,9 @@ router.patch('/:bookingId/status', authMiddleware, bookingController.updateBooki
 // Start charging session (Protected)
 router.post('/:bookingId/start-charging', authMiddleware, bookingController.startCharging);
 
+// Start charging session (MQTT Unmanned)
+router.post('/:bookingId/start-mqtt', authMiddleware, bookingController.startMqttCharging);
+
 // Stop charging session (Protected)
 router.post('/:bookingId/stop-charging', authMiddleware, bookingController.stopCharging);
 

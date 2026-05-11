@@ -755,7 +755,7 @@ const SlotBookingPage = () => {
   };
 
   return (
-    <div className="h-90vh w-full overflow-hidden bg-[#F8FAF9] font-sans text-gray-900">
+    <div className="min-h-screen lg:h-screen w-full lg:overflow-hidden bg-[#F8FAF9] font-sans text-gray-900 pb-24 lg:pb-0">
       {/* Top Header */}
       <div className=" mx-auto hidden px-6 pt-6 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -784,10 +784,10 @@ const SlotBookingPage = () => {
         </div>
       </div>
 
-      <div className="max-w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-[400px_1fr_350px] gap-4 mt-4">
+      <div className="max-w-full mx-auto px-4 lg:px-6 grid grid-cols-1 lg:grid-cols-[400px_1fr_350px] gap-4 mt-4">
         
         {/* Left Sidebar - Station Card */}
-        <div className="space-y-6 h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20 pt-1 px-1 -mx-1">
+        <div className="hidden lg:block space-y-6 lg:h-[calc(100vh-100px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20 pt-1 px-1 -mx-1">
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm flex flex-col h-fit">
             {/* Image Header with Slider */}
             <div className="relative h-[240px] group">
@@ -1076,7 +1076,7 @@ const SlotBookingPage = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="space-y-8 bg-white p-6 rounded-2xl h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20">
+        <div className="space-y-8 bg-white p-4 lg:p-6 rounded-2xl lg:h-[calc(100vh-100px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20">
           
           {/* Step 1: Vehicle Selection */}
           <section className="space-y-4">
@@ -1115,7 +1115,7 @@ const SlotBookingPage = () => {
               )}
 
               {showVehicleDropdown && userVehicles.length > 1 && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed lg:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:top-full lg:left-0 lg:translate-x-0 lg:translate-y-0 w-[90%] lg:w-full mt-0 lg:mt-2 bg-white border border-gray-100 rounded-3xl lg:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] lg:shadow-xl z-[100] max-h-[60vh] lg:max-h-[300px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                   <div className="max-h-[300px] overflow-y-auto">
                     {userVehicles.map((v) => (
                       <div 
@@ -1153,7 +1153,7 @@ const SlotBookingPage = () => {
           </section>
 
           {/* Step 2: Charger & Slot Selection */}
-          <section className="space-y-6">
+          <section id="step-2-selection" className="space-y-6 scroll-mt-24">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">2</div>
@@ -1191,8 +1191,8 @@ const SlotBookingPage = () => {
             ) : (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Filter Tabs & Legend */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button 
                       onClick={() => setChargerFilter('All')} 
                       className={`px-4 py-2 rounded-xl text-[13px] font-bold transition-all border ${chargerFilter === 'All' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
@@ -1213,15 +1213,15 @@ const SlotBookingPage = () => {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-5">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     {[
                       { label: "Available", color: "bg-emerald-500" },
                       { label: "Occupied", color: "bg-amber-500" },
-                     { label: "Maintenance", color: "bg-gray-400" }
+                      { label: "Maintenance", color: "bg-gray-400" }
                     ].map(item => (
-                      <div key={item.label} className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div>
-                        <span className="text-[12px] font-bold text-gray-500">{item.label}</span>
+                      <div key={item.label} className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
+                        <span className="text-[11px] font-bold text-gray-500">{item.label}</span>
                       </div>
                     ))}
                   </div>
@@ -1282,7 +1282,7 @@ const SlotBookingPage = () => {
           </section>
 
           {/* Step 3: Date & Time */}
-          <section className={`space-y-5 transition-all duration-500 ${!selectedSlot ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+          <section id="step-3-selection" className={`space-y-5 transition-all duration-500 scroll-mt-24 ${!selectedSlot ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[12px] font-bold">3</div>
               <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Select Date & Time {!selectedSlot && <span className="text-[10px] text-amber-500 ml-2">(Select charger first)</span>}</h2>
@@ -1390,7 +1390,7 @@ const SlotBookingPage = () => {
                     </div>
                     
                     {isTimeDropdownOpen && (
-                      <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 max-h-[250px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                      <div className="fixed lg:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:top-full lg:left-0 lg:translate-x-0 lg:translate-y-0 w-[90%] lg:w-full mt-0 lg:mt-2 bg-white border border-gray-100 rounded-3xl lg:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] lg:shadow-xl z-[100] max-h-[60vh] lg:max-h-[250px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                         {slotsLoading ? (
                           <div className="p-4 text-center text-xs text-gray-400 font-bold">Loading...</div>
                         ) : !selectedSlot ? (
@@ -1549,7 +1549,7 @@ const SlotBookingPage = () => {
         </div>
 
         {/* Right Sidebar - Booking Summary */}
-        <div className="space-y-6 h-[calc(100vh-100px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20 pt-1 px-1 -mx-1">
+        <div className="space-y-6 lg:h-[calc(100vh-100px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-20 pt-1 px-1 -mx-1">
           <div className="bg-white  rounded-xl p-6 border border-gray-100 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sticky top-6">
             <h2 className="text-[18px] font-extrabold text-gray-900 tracking-tight mb-8">Booking Summary</h2>
             
@@ -1668,7 +1668,44 @@ const SlotBookingPage = () => {
         </div>
       </div>
 
-     
+      {/* Mobile Floating Action Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 pb-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full duration-500">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Amount</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-black text-gray-900">₹1</span>
+              <span className="text-[10px] text-gray-400 font-bold">/ session</span>
+            </div>
+          </div>
+          
+          <div className="flex-grow flex gap-2">
+            {!selectedSlot || !selectedStartTime ? (
+              <button 
+                onClick={() => {
+                  const element = document.getElementById('step-2-selection');
+                  element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className="w-full bg-emerald-50 text-emerald-600 font-bold py-3.5 rounded-xl text-[12px] uppercase tracking-widest border border-emerald-100 active:scale-95 transition-all"
+              >
+                {!selectedSlot ? 'Select Charger' : 'Select Time'}
+              </button>
+            ) : (
+              <button 
+                onClick={handleBooking}
+                disabled={isProcessing}
+                className="w-full bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-[12px] uppercase tracking-widest shadow-lg shadow-emerald-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                {isProcessing ? (
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>Confirm & Pay</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

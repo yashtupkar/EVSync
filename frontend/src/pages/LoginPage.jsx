@@ -37,9 +37,9 @@ const LoginPage = ({ role }) => {
   const mobile = `+91${phone}`;
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const action = await dispatch(loginWithGoogle({ 
-        credential: credentialResponse.credential,
-        requestedRole 
+    const action = await dispatch(loginWithGoogle({
+      credential: credentialResponse.credential,
+      requestedRole
     }));
 
     if (loginWithGoogle.fulfilled.match(action)) {
@@ -128,26 +128,26 @@ const LoginPage = ({ role }) => {
     }
   }, [view, timer]);
 
-    const isNewUser = useSelector(state => state.auth.isNewUser);
+  const isNewUser = useSelector(state => state.auth.isNewUser);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated || !user) {
       return;
     }
 
     // Role-based redirection logic
     if (user.role === "admin") {
-        navigate("/admin", { replace: true });
+      navigate("/admin", { replace: true });
     } else if (user.role === "station_owner") {
-        if (isNewUser) {
-            navigate("/profile", { replace: true });
-        } else {
-            navigate("/owner-dashboard", { replace: true });
-        }
+      if (isNewUser) {
+        navigate("/profile", { replace: true });
+      } else {
+        navigate("/owner-dashboard", { replace: true });
+      }
     } else if (user.role === "operator") {
-        navigate("/operator-dashboard", { replace: true });
+      navigate("/operator-dashboard", { replace: true });
     } else {
-        navigate("/", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -158,11 +158,7 @@ const LoginPage = ({ role }) => {
   }, [dispatch, view]);
 
   return (
-    <div style={{
-      backgroundImage: "url('/assets/login.png')",
-      backgroundPosition: 'bottom 0% left 20%',
-      backgroundRepeat: 'no-repeat'
-    }} className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 lg:bg-[url('/assets/login.png')] lg:bg-[position:bottom_0%_left_20%] lg:bg-no-repeat items-center justify-center p-4 md:p-8">
       {/* --- TOP NAVIGATION BAR --- */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2">
@@ -181,13 +177,13 @@ const LoginPage = ({ role }) => {
       </header>
 
       {/* --- MAIN LAYOUT --- */}
-      <main className="flex-grow shadow-xl rounded-xl overflow-hidden flex m-auto max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0">
-        
+      <main className="md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-3xl md:rounded-[2.5rem] overflow-hidden flex md:m-auto lg:max-h-[85vh] flex-col lg:flex-row w-full max-w-5xl md:bg-white z-10 relative">
+
         {/* LEFT COMPONENT: Branding & Visuals */}
         <section className="hidden lg:flex w-1/2 flex-col bg-[#FBFCFE] bg-cover bg-center relative overflow-hidden">
-          <div 
+          <div
             className="absolute inset-0 z-0 opacity-100 mix-blend-multiply transition-opacity duration-1000"
-            style={{ 
+            style={{
               backgroundImage: "url('/assets/login-bg.png')",
               backgroundSize: '100%',
               backgroundPosition: 'bottom -10% left 20%',
@@ -197,23 +193,23 @@ const LoginPage = ({ role }) => {
 
           <div className="z-10 h-full p-10">
             <h2 className="text-3xl font-black text-slate-800 leading-[1.1] mb-4">
-              {requestedRole === 'admin' ? 'Global Network Control.' : 
-               requestedRole === 'station_owner' ? 'Scale Your EV Business.' :
-               requestedRole === 'operator' ? 'Efficient Station Operations.' :
-               'Powering Journeys.'}<br />
+              {requestedRole === 'admin' ? 'Global Network Control.' :
+                requestedRole === 'station_owner' ? 'Scale Your EV Business.' :
+                  requestedRole === 'operator' ? 'Efficient Station Operations.' :
+                    'Powering Journeys.'}<br />
               <span className="text-emerald-500">
-                {requestedRole === 'admin' ? 'Intelligently.' : 
-                 requestedRole === 'station_owner' ? 'Profitably.' :
-                 requestedRole === 'operator' ? 'Seamlessly.' :
-                 'Sustainably.'}
+                {requestedRole === 'admin' ? 'Intelligently.' :
+                  requestedRole === 'station_owner' ? 'Profitably.' :
+                    requestedRole === 'operator' ? 'Seamlessly.' :
+                      'Sustainably.'}
               </span>
             </h2>
-            
+
             <p className="text-sm text-slate-600 mb-6 max-w-md font-medium leading-relaxed">
-              {requestedRole === 'admin' ? 'Manage global infrastructure, verify station requests, and monitor network health from a unified command center.' : 
-               requestedRole === 'station_owner' ? 'List your stations, track real-time revenue, and manage your operator team with high-performance tools.' :
-               requestedRole === 'operator' ? 'Verify customer bookings, monitor charger status, and ensure maximum uptime for your assigned station.' :
-               'Find, access and manage EV charging stations with ease. Plan smarter. Drive further.'}
+              {requestedRole === 'admin' ? 'Manage global infrastructure, verify station requests, and monitor network health from a unified command center.' :
+                requestedRole === 'station_owner' ? 'List your stations, track real-time revenue, and manage your operator team with high-performance tools.' :
+                  requestedRole === 'operator' ? 'Verify customer bookings, monitor charger status, and ensure maximum uptime for your assigned station.' :
+                    'Find, access and manage EV charging stations with ease. Plan smarter. Drive further.'}
             </p>
 
             <div className="space-y-8 mb-30">
@@ -226,10 +222,10 @@ const LoginPage = ({ role }) => {
                     {requestedRole === 'admin' ? 'Network Overview' : requestedRole === 'station_owner' ? 'Multi-Station Management' : requestedRole === 'operator' ? 'Booking Verification' : 'Find Nearby Stations'}
                   </h3>
                   <p className="text-sm text-slate-500 font-medium">
-                    {requestedRole === 'admin' ? 'Real-time monitoring of all charging nodes globally.' : 
-                     requestedRole === 'station_owner' ? 'Manage all your charging locations from one dashboard.' :
-                     requestedRole === 'operator' ? 'Scan customer QR codes and verify sessions instantly.' :
-                     'Locate fast and reliable charging stations near you.'}
+                    {requestedRole === 'admin' ? 'Real-time monitoring of all charging nodes globally.' :
+                      requestedRole === 'station_owner' ? 'Manage all your charging locations from one dashboard.' :
+                        requestedRole === 'operator' ? 'Scan customer QR codes and verify sessions instantly.' :
+                          'Locate fast and reliable charging stations near you.'}
                   </p>
                 </div>
               </div>
@@ -243,10 +239,10 @@ const LoginPage = ({ role }) => {
                     {requestedRole === 'admin' ? 'Partner Verification' : requestedRole === 'station_owner' ? 'Revenue Analytics' : requestedRole === 'operator' ? 'Live Monitoring' : 'Plan Your Trip'}
                   </h3>
                   <p className="text-sm text-slate-500 font-medium">
-                    {requestedRole === 'admin' ? 'Streamlined approval workflow for new station owners.' : 
-                     requestedRole === 'station_owner' ? 'Deep insights into occupancy and financial performance.' :
-                     requestedRole === 'operator' ? 'Track live charger occupancy and energy usage data.' :
-                     'Plan long trips with charging stops optimized for your EV.'}
+                    {requestedRole === 'admin' ? 'Streamlined approval workflow for new station owners.' :
+                      requestedRole === 'station_owner' ? 'Deep insights into occupancy and financial performance.' :
+                        requestedRole === 'operator' ? 'Track live charger occupancy and energy usage data.' :
+                          'Plan long trips with charging stops optimized for your EV.'}
                   </p>
                 </div>
               </div>
@@ -260,10 +256,10 @@ const LoginPage = ({ role }) => {
                     {requestedRole === 'admin' ? 'System Integrity' : requestedRole === 'station_owner' ? 'Operator Assignment' : requestedRole === 'operator' ? 'Uptime Control' : 'Real-time Updates'}
                   </h3>
                   <p className="text-sm text-slate-500 font-medium">
-                    {requestedRole === 'admin' ? 'Maintain high standards of service across the entire network.' : 
-                     requestedRole === 'station_owner' ? 'Easily assign and manage on-site operators via email.' :
-                     requestedRole === 'operator' ? 'Manage hardware health and report on-site technical issues.' :
-                     'Get real-time availability, pricing and station status.'}
+                    {requestedRole === 'admin' ? 'Maintain high standards of service across the entire network.' :
+                      requestedRole === 'station_owner' ? 'Easily assign and manage on-site operators via email.' :
+                        requestedRole === 'operator' ? 'Manage hardware health and report on-site technical issues.' :
+                          'Get real-time availability, pricing and station status.'}
                   </p>
                 </div>
               </div>
@@ -275,19 +271,19 @@ const LoginPage = ({ role }) => {
         </section>
 
         {/* RIGHT COMPONENT: Auth Form */}
-        <section className="w-full lg:w-1/2 flex bg-white flex-col items-center justify-center py-10 relative">
-          <div className="w-[480px] p-8 md:p-12 transition-all duration-500">
-            
+        <section className="w-full lg:w-1/2 flex md:bg-white flex-col items-center justify-center py-4 md:py-10 relative">
+          <div className="w-full max-w-[480px] p-4 md:p-12 transition-all duration-500">
+
             {view === "login" ? (
               <>
-              <h2 className="text-2xl font-bold text-center mb-2">
+                <h2 className="text-xl md:text-2xl font-black text-center mb-1">
                   Welcome to EV<span className="text-emerald-500">Sync</span>
-              </h2>
-              <p className="text-center text-gray-500 mb-6">
-                Login to continue as {requestedRole.replace('_', ' ')}
-              </p>
+                </h2>
+                <p className="text-center text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
+                  Login to continue as {requestedRole.replace('_', ' ')}
+                </p>
 
-              {/* Role Display (Non-interactive)
+                {/* Role Display (Non-interactive)
               <div className="flex items-center justify-center gap-3 mb-8 px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl">
                 <div className="p-2 rounded-lg bg-emerald-500">
                   {requestedRole === 'admin' ? <ShieldCheck className="text-white w-5 h-5" /> : 
@@ -303,64 +299,63 @@ const LoginPage = ({ role }) => {
 
 
 
-              
+
                 <div className="w-full flex justify-center">
                   <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => {
-                          toast.error("Google login failed. Please check if your domain is authorized in Google Console.");
-                      }}
-                      useOneTap
-                      theme="filled_blue"
-                      shape="pill"
-                      size="large"
-                      width="320"
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                      toast.error("Google login failed. Please check if your domain is authorized in Google Console.");
+                    }}
+                    useOneTap
+                    theme="filled_blue"
+                    shape="pill"
+                    size="large"
+                    width={window.innerWidth < 400 ? "240" : "320"}
                   />
                 </div>
 
-              <div className="text-center text-gray-400 text-sm my-4">---------- OR ----------</div>
+                <div className="text-center text-gray-400 text-sm my-4">---------- OR ----------</div>
 
-              <div className="flex gap-2 mb-4">
-                  <div className="px-5 py-2 border border-black/10 bg-slate-50 rounded-lg font-bold text-slate-600">+91</div>
-                  <input 
-                      type="text"
-                      placeholder="Enter mobile number"
-                      className={`flex-1 border rounded-lg px-4 py-2 outline-none font-medium transition-all ${
-                        phoneError
-                          ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                          : "border-black/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                <div className="flex gap-2 mb-4">
+                  <div className="px-3 md:px-5 py-2 border border-black/10 bg-slate-50 rounded-lg font-bold text-slate-600 text-sm md:text-base">+91</div>
+                  <input
+                    type="text"
+                    placeholder="Enter mobile number"
+                    className={`flex-1 border rounded-lg px-3 md:px-4 py-2 outline-none font-medium text-sm md:text-base transition-all ${phoneError
+                        ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                        : "border-black/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       }`}
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
-                        if (phoneError) {
-                          setPhoneError("");
-                        }
-                      }}
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
+                      if (phoneError) {
+                        setPhoneError("");
+                      }
+                    }}
                   />
-              </div>
+                </div>
 
-              {phoneError && (
-                <p className="mb-4 text-sm font-medium text-red-500">{phoneError}</p>
-              )}
+                {phoneError && (
+                  <p className="mb-4 text-sm font-medium text-red-500">{phoneError}</p>
+                )}
 
-              <button 
+                <button
                   onClick={handleSendOTP}
                   disabled={loading}
-                  className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black uppercase tracking-[0.1em] hover:bg-emerald-600 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
-              >
+                  className="w-full bg-emerald-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase tracking-[0.1em] hover:bg-emerald-600 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
+                >
                   {loading ? "Sending..." : "Send Secure OTP"}
-              </button>
+                </button>
 
 
 
-              <p className="text-xs text-center text-gray-500 mt-6 font-medium">
-                By continuing, you agree to <span className="text-emerald-500 cursor-pointer">Terms</span> & <span className="text-emerald-500 cursor-pointer">Privacy Policy</span>
-              </p>
+                <p className="text-xs text-center text-gray-500 mt-6 font-medium">
+                  By continuing, you agree to <span className="text-emerald-500 cursor-pointer">Terms</span> & <span className="text-emerald-500 cursor-pointer">Privacy Policy</span>
+                </p>
               </>
             ) : (
-            <>
-                <button 
+              <>
+                <button
                   onClick={() => {
                     setView("login");
                     setOtp(["", "", "", "", "", ""]);
@@ -368,19 +363,19 @@ const LoginPage = ({ role }) => {
                   }}
                   className="mb-6 p-2 rounded-full hover:bg-slate-100 transition-all"
                 >
-                <ArrowLeft size={20} />
+                  <ArrowLeft size={20} />
                 </button>
 
-              <h2 className="text-xl font-bold text-center mb-2">
-                Verify Your <span className="text-emerald-500">Number</span>
-              </h2>
+                <h2 className="text-lg md:text-xl font-bold text-center mb-1">
+                  Verify Your <span className="text-emerald-500">Number</span>
+                </h2>
 
-              <p className="text-center text-gray-500 mb-8 font-medium">
-                Enter the 6-digit OTP sent to {mobile}
-              </p>
+                <p className="text-center text-xs md:text-sm text-gray-500 mb-6 md:mb-8 font-medium">
+                  Enter the 6-digit OTP sent to {mobile}
+                </p>
 
-              {/* OTP */}
-              <div className="flex justify-between mb-8">
+                {/* OTP */}
+                <div className="flex justify-between mb-8">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -388,36 +383,36 @@ const LoginPage = ({ role }) => {
                       value={digit}
                       maxLength={1}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
-                      className="w-14 h-16 text-center border border-black/10 bg-slate-50 rounded-xl text-2xl font-bold focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                      className="w-10 h-12 md:w-14 md:h-16 text-center border border-black/10 bg-slate-50 rounded-xl text-xl md:text-2xl font-bold focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
                     />
                   ))}
                 </div>
 
-              <p className="text-center text-sm text-gray-500 mb-6 font-medium">
-                OTP expires in{" "}
-                <span className="text-emerald-500 font-bold">
-                  {timer}s
-                </span>
-              </p>
+                <p className="text-center text-sm text-gray-500 mb-6 font-medium">
+                  OTP expires in{" "}
+                  <span className="text-emerald-500 font-bold">
+                    {timer}s
+                  </span>
+                </p>
 
-              <button
-                onClick={handleVerifyOTP}
-                disabled={loading}
-                className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70 shadow-lg shadow-green-100 transition-all active:scale-95"
-              >
+                <button
+                  onClick={handleVerifyOTP}
+                  disabled={loading}
+                  className="w-full bg-emerald-500 text-white py-2.5 md:py-3 rounded-xl font-bold hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70 shadow-lg shadow-green-100 transition-all active:scale-95"
+                >
                   {loading ? "Verifying..." : "Verify & Continue"}
                 </button>
 
-              <p className="text-center text-sm mt-6 text-gray-500 font-medium">
-                Didn’t receive OTP?{" "}
-                <span
-                  className="text-emerald-500 cursor-pointer font-bold hover:underline"
-                  onClick={handleSendOTP}
-                >
-                  Resend
-                </span>
-              </p>
-            </>
+                <p className="text-center text-sm mt-6 text-gray-500 font-medium">
+                  Didn’t receive OTP?{" "}
+                  <span
+                    className="text-emerald-500 cursor-pointer font-bold hover:underline"
+                    onClick={handleSendOTP}
+                  >
+                    Resend
+                  </span>
+                </p>
+              </>
             )}
           </div>
         </section>
