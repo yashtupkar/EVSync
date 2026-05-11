@@ -50,30 +50,35 @@ const GoogleTranslator = () => {
 
   const applyLanguage = (langCode) => {
     const cookieValue = `/en/${langCode}`;
-    const expires = "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
-    const path = "; path=/";
     
-    // Clear any existing cookies first to avoid conflicts
-    const domainParts = window.location.hostname.split('.');
-    const baseDomain = domainParts.length >= 2 ? `.${domainParts.slice(-2).join('.')}` : '';
-    
-    const clearCookie = (name, dom) => {
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      if (dom) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${dom};`;
-    };
+    // Most robust way to set the google translate cookie
+    // We set it for both the specific domain and the root path
+    const domains = [
+      window.location.hostname,
+      `.${window.location.hostname}`,
+      window.location.hostname.split('.').slice(-2).join('.')
+    ];
 
-    clearCookie('googtrans');
-    clearCookie('googtrans', baseDomain);
-    clearCookie('googtrans', `.${window.location.hostname}`);
-
-    // Set new cookie
-    document.cookie = `googtrans=${cookieValue}${expires}${path}`;
-    if (baseDomain) {
-      document.cookie = `googtrans=${cookieValue}${expires}${path}; domain=${baseDomain}`;
-    }
+    // Clear and set
+    domains.forEach(domain => {
+      if (!domain) return;
+      const d = domain.startsWith('.') ? domain : `.${domain}`;
+      
+      // Clear
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${d};`;
+      
+      // Set
+      document.cookie = `googtrans=${cookieValue}; path=/;`;
+      document.cookie = `googtrans=${cookieValue}; path=/; domain=${d};`;
+    });
 
     localStorage.setItem('userLanguage', langCode);
-    window.location.reload();
+    
+    // Small delay before reload to ensure cookies are written
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
   };
 
   const changeLanguage = (langCode) => {
