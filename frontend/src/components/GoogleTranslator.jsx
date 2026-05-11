@@ -24,9 +24,9 @@ const GoogleTranslator = () => {
     const getCookie = (name) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) {
+      if (parts.length >= 2) {
         const val = parts.pop().split(';').shift();
-        return val.replace(/^"|"$/g, '');
+        return val ? val.replace(/^"|"$/g, '') : null;
       }
       return null;
     };
@@ -43,42 +43,45 @@ const GoogleTranslator = () => {
         }
       }
     } else if (savedLang && savedLang !== 'en') {
-      // If we have a saved preference but no cookie, re-apply it
-      applyLanguage(savedLang);
+      // Safeguard against reload loops: 
+      // Only auto-apply if we haven't reloaded for this reason in the last 10 seconds
+      const lastAutoApply = sessionStorage.getItem('last_lang_auto_apply');
+      const now = Date.now();
+      
+      if (!lastAutoApply || (now - parseInt(lastAutoApply)) > 10000) {
+        sessionStorage.setItem('last_lang_auto_apply', now.toString());
+        setCurrentLang(savedLang);
+        applyLanguage(savedLang);
+      } else {
+        // If we are likely in a loop, just set the state but don't reload
+        setCurrentLang(savedLang);
+      }
     }
   }, []);
 
   const applyLanguage = (langCode) => {
     const cookieValue = `/en/${langCode}`;
     
-    // Most robust way to set the google translate cookie
-    // We set it for both the specific domain and the root path
-    const domains = [
-      window.location.hostname,
-      `.${window.location.hostname}`,
-      window.location.hostname.split('.').slice(-2).join('.')
-    ];
+    // Set cookie for current domain and base domain
+    const hostname = window.location.hostname;
+    const domainParts = hostname.split('.');
+    const baseDomain = domainParts.length >= 2 ? `.${domainParts.slice(-2).join('.')}` : '';
 
-    // Clear and set
-    domains.forEach(domain => {
-      if (!domain) return;
-      const d = domain.startsWith('.') ? domain : `.${domain}`;
-      
-      // Clear
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${d};`;
-      
-      // Set
-      document.cookie = `googtrans=${cookieValue}; path=/;`;
-      document.cookie = `googtrans=${cookieValue}; path=/; domain=${d};`;
-    });
+    // Clear existing
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    if (baseDomain) document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${baseDomain};`;
+
+    // Set new
+    document.cookie = `googtrans=${cookieValue}; path=/;`;
+    if (baseDomain) {
+      document.cookie = `googtrans=${cookieValue}; path=/; domain=${baseDomain};`;
+    }
 
     localStorage.setItem('userLanguage', langCode);
     
-    // Small delay before reload to ensure cookies are written
     setTimeout(() => {
       window.location.reload();
-    }, 150);
+    }, 100);
   };
 
   const changeLanguage = (langCode) => {
@@ -86,6 +89,8 @@ const GoogleTranslator = () => {
       setIsOpen(false);
       return;
     }
+    // Set a manual reload flag to skip the auto-apply safeguard
+    sessionStorage.setItem('last_lang_auto_apply', Date.now().toString());
     setCurrentLang(langCode);
     setIsOpen(false);
     applyLanguage(langCode);
