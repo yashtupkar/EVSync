@@ -21,54 +21,69 @@ const GoogleTranslator = () => {
   const [currentLang, setCurrentLang] = useState('en');
 
   useEffect(() => {
-    // 1. Check localStorage first (more reliable for UI state)
-    const savedLang = localStorage.getItem('userLanguage');
-    if (savedLang) {
-      setCurrentLang(savedLang);
-      return;
-    }
-
-    // 2. Fallback to google translate cookie
     const getCookie = (name) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
       if (parts.length === 2) {
         const val = parts.pop().split(';').shift();
-        // Remove quotes if present
         return val.replace(/^"|"$/g, '');
       }
+      return null;
     };
 
     const googTrans = getCookie('googtrans');
+    const savedLang = localStorage.getItem('userLanguage');
+
     if (googTrans) {
       const lang = googTrans.split('/').pop();
-      if (lang && lang.length <= 5) { // Basic validation
+      if (lang && lang.length <= 5) {
         setCurrentLang(lang);
-        localStorage.setItem('userLanguage', lang);
+        if (lang !== savedLang) {
+          localStorage.setItem('userLanguage', lang);
+        }
       }
+    } else if (savedLang && savedLang !== 'en') {
+      // If we have a saved preference but no cookie, re-apply it
+      applyLanguage(savedLang);
     }
   }, []);
 
+  const applyLanguage = (langCode) => {
+    const cookieValue = `/en/${langCode}`;
+    const expires = "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
+    const path = "; path=/";
+    
+    // Clear any existing cookies first to avoid conflicts
+    const domainParts = window.location.hostname.split('.');
+    const baseDomain = domainParts.length >= 2 ? `.${domainParts.slice(-2).join('.')}` : '';
+    
+    const clearCookie = (name, dom) => {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      if (dom) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${dom};`;
+    };
+
+    clearCookie('googtrans');
+    clearCookie('googtrans', baseDomain);
+    clearCookie('googtrans', `.${window.location.hostname}`);
+
+    // Set new cookie
+    document.cookie = `googtrans=${cookieValue}${expires}${path}`;
+    if (baseDomain) {
+      document.cookie = `googtrans=${cookieValue}${expires}${path}; domain=${baseDomain}`;
+    }
+
+    localStorage.setItem('userLanguage', langCode);
+    window.location.reload();
+  };
+
   const changeLanguage = (langCode) => {
+    if (langCode === currentLang) {
+      setIsOpen(false);
+      return;
+    }
     setCurrentLang(langCode);
     setIsOpen(false);
-    localStorage.setItem('userLanguage', langCode);
-
-    // Google Translate works by setting a cookie 'googtrans'
-    // Format: /en/hi (from English to Hindi)
-    const cookieValue = `/en/${langCode}`;
-    
-    // Set cookie for current domain and root path
-    document.cookie = `googtrans=${cookieValue}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
-    
-    // Also try setting it for the base domain to ensure it's picked up
-    const domain = window.location.hostname.split('.').slice(-2).join('.');
-    if (domain.includes('.')) {
-      document.cookie = `googtrans=${cookieValue}; domain=.${domain}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
-    }
-    
-    // Refresh the page to apply translation
-    window.location.reload();
+    applyLanguage(langCode);
   };
 
   const currentLangName = languages.find(l => l.code === currentLang)?.name || 'English';
