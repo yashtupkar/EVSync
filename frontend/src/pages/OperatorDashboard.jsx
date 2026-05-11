@@ -60,7 +60,7 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                     let hours = parseInt(endHour);
                     if (endPeriod === 'PM' && hours !== 12) hours += 12;
                     if (endPeriod === 'AM' && hours === 12) hours = 0;
-                    
+
                     const end = new Date();
                     end.setHours(hours, parseInt(endM), 0);
 
@@ -114,13 +114,13 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                             Are you sure you want to change the status of charger <span className="font-bold text-slate-800">{charger.chargerId}</span> to <span className="font-black text-slate-800 uppercase">{pendingStatus}</span>?
                         </p>
                         <div className="flex gap-3 w-full">
-                            <button 
+                            <button
                                 onClick={() => { setShowConfirm(false); setPendingStatus(null); }}
                                 className="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-colors"
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 onClick={confirmStatusChange}
                                 className="flex-1 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors"
                             >
@@ -172,8 +172,8 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                             </div>
                         </div>
                         <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full bg-blue-500 transition-all duration-500" 
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-500"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
@@ -264,14 +264,14 @@ const ChargerCard = ({ charger, updateChargerStatus, onScan, onStopCharging, act
                 {/* 3-Dot Menu at the bottom */}
                 <div className="mt-2 flex justify-end">
                     <div className="relative">
-                        <button 
-                            onClick={() => setShowMenu(!showMenu)} 
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
                             className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center justify-center"
                             title="Change Status"
                         >
                             <MoreVertical size={16} />
                         </button>
-                        
+
                         {showMenu && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
@@ -305,7 +305,7 @@ const OperatorDashboard = () => {
     const [isGeneratingBill, setIsGeneratingBill] = useState(false);
     const navigate = useNavigate();
 
-        const fetchDashboardData = React.useCallback(async () => {
+    const fetchDashboardData = React.useCallback(async () => {
         try {
             setRefreshing(true);
             const stationRes = await axios.get(`${backendURL}/api/stations/operator/my-station`, {
@@ -326,7 +326,7 @@ const OperatorDashboard = () => {
                         // First priority: Instant bookings
                         if (a.isInstant && !b.isInstant) return -1;
                         if (!a.isInstant && b.isInstant) return 1;
-                        
+
                         // Second priority: Active/Charging status
                         const statusPriority = { 'charging': 0, 'upcoming': 1, 'billing_pending': 2, 'completed': 3, 'cancelled': 4 };
                         const priorityA = statusPriority[a.bookingStatus] ?? 5;
@@ -450,14 +450,14 @@ const OperatorDashboard = () => {
 
         try {
             setIsGeneratingBill(true);
-            const response = await axios.post(`${backendURL}/api/bookings/${billingBooking._id}/generate-bill`, 
+            const response = await axios.post(`${backendURL}/api/bookings/${billingBooking._id}/generate-bill`,
                 { unitsConsumed: parseFloat(unitsConsumed) },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             if (response.data.success) {
                 toast.success("Bill generated and sent to user");
-                
+
                 // Immediately update charger status to available after bill generation
                 if (billingBooking && billingBooking.chargerId) {
                     await updateChargerStatus(billingBooking.chargerId, 'available');
@@ -558,11 +558,11 @@ const OperatorDashboard = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {station.chargers.filter(c => c.chargerId.startsWith('DC') || c.type.toLowerCase().includes('ccs') || c.type.toLowerCase().includes('dc')).map((charger, i) => (
-                                        <ChargerCard 
-                                            key={i} 
-                                            charger={charger} 
-                                            updateChargerStatus={updateChargerStatus} 
-                                            onScan={() => setIsScannerOpen(true)} 
+                                        <ChargerCard
+                                            key={i}
+                                            charger={charger}
+                                            updateChargerStatus={updateChargerStatus}
+                                            onScan={() => setIsScannerOpen(true)}
                                             onStopCharging={handleStopCharging}
                                             activeBooking={bookings.find(b => b.chargerId === charger.chargerId && (b.bookingStatus === 'charging' || b.bookingStatus === 'billing_pending'))}
                                         />
@@ -579,11 +579,11 @@ const OperatorDashboard = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {station.chargers.filter(c => c.chargerId.startsWith('AC') || c.type.toLowerCase().includes('type 2') || c.type.toLowerCase().includes('ac')).map((charger, i) => (
-                                        <ChargerCard 
-                                            key={i} 
-                                            charger={charger} 
-                                            updateChargerStatus={updateChargerStatus} 
-                                            onScan={() => setIsScannerOpen(true)} 
+                                        <ChargerCard
+                                            key={i}
+                                            charger={charger}
+                                            updateChargerStatus={updateChargerStatus}
+                                            onScan={() => setIsScannerOpen(true)}
                                             onStopCharging={handleStopCharging}
                                             activeBooking={bookings.find(b => b.chargerId === charger.chargerId && (b.bookingStatus === 'charging' || b.bookingStatus === 'billing_pending'))}
                                         />
@@ -633,18 +633,16 @@ const OperatorDashboard = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
                             {bookings.length > 0 ? (
                                 bookings.map((booking, i) => (
-                                    <div key={i} className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
-                                        booking.isInstant ? 'border-amber-100 bg-amber-50/20' : 'border-slate-50 bg-white'
-                                    }`}>
+                                    <div key={i} className={`p-4 rounded-2xl border transition-all hover:shadow-md ${booking.isInstant ? 'border-amber-100 bg-amber-50/20' : 'border-slate-50 bg-white'
+                                        }`}>
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${
-                                                    booking.isInstant ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
-                                                }`}>
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs ${booking.isInstant ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+                                                    }`}>
                                                     {booking.userId?.name?.[0] || 'U'}
                                                 </div>
                                                 <div>
@@ -661,14 +659,13 @@ const OperatorDashboard = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
-                                                    booking.bookingStatus === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                                                    booking.bookingStatus === 'charging' ? 'bg-blue-100 text-blue-700' :
-                                                    booking.bookingStatus === 'billing_pending' ? 'bg-purple-100 text-purple-700' :
-                                                    booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                                    booking.bookingStatus === 'pending_payment' ? 'bg-slate-100 text-slate-500 border border-slate-200' :
-                                                    'bg-amber-100 text-amber-700'
-                                                }`}>
+                                                <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${booking.bookingStatus === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                        booking.bookingStatus === 'charging' ? 'bg-blue-100 text-blue-700' :
+                                                            booking.bookingStatus === 'billing_pending' ? 'bg-purple-100 text-purple-700' :
+                                                                booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                                    booking.bookingStatus === 'pending_payment' ? 'bg-slate-100 text-slate-500 border border-slate-200' :
+                                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
                                                     {booking.bookingStatus === 'pending_payment' ? 'Paying...' : (booking.bookingStatus || 'Upcoming')}
                                                 </div>
                                                 <p className="text-[9px] font-bold text-[#94A3B8] mt-1">{booking.date}</p>
@@ -707,9 +704,9 @@ const OperatorDashboard = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         {booking.bookingStatus === 'upcoming' && (
-                                            <button 
+                                            <button
                                                 onClick={() => setIsScannerOpen(true)}
                                                 className="w-full mt-3 py-2 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                                             >
@@ -825,13 +822,13 @@ const OperatorDashboard = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="p-8 space-y-6">
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Units Consumed (kWh)</label>
                                 <div className="relative">
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={unitsConsumed}
                                         onChange={(e) => setUnitsConsumed(e.target.value)}
                                         placeholder="e.g. 15.5"

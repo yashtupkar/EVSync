@@ -119,7 +119,7 @@ const BookingSuccessPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-[#F8FAF9] py-8 md:py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="min-h-screen bg-[#F8FAF9] py-8 md:py-12 px-4 sm:px-6 lg:px-8 font-sans pb-24 md:pb-12">
 
       <div className="max-w-2xl mx-auto">
         {/* Success Animation Header */}
@@ -360,7 +360,7 @@ const BookingSuccessPage = () => {
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
-              className="bg-white w-full max-w-md rounded-t-[2.5rem] md:rounded-3xl p-6 md:p-8 shadow-2xl relative z-10 border border-slate-100"
+              className="bg-white w-full max-w-md  rounded-t-[2.5rem] md:rounded-3xl p-6 pb-24 md:pb-8 shadow-2xl relative z-10 border border-slate-100"
             >
               <div className="text-center space-y-2 mb-8">
                 <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500 mb-2">

@@ -21,29 +21,51 @@ const GoogleTranslator = () => {
   const [currentLang, setCurrentLang] = useState('en');
 
   useEffect(() => {
-    // Check if google translate cookie exists
+    // 1. Check localStorage first (more reliable for UI state)
+    const savedLang = localStorage.getItem('userLanguage');
+    if (savedLang) {
+      setCurrentLang(savedLang);
+      return;
+    }
+
+    // 2. Fallback to google translate cookie
     const getCookie = (name) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
+      if (parts.length === 2) {
+        const val = parts.pop().split(';').shift();
+        // Remove quotes if present
+        return val.replace(/^"|"$/g, '');
+      }
     };
 
     const googTrans = getCookie('googtrans');
     if (googTrans) {
       const lang = googTrans.split('/').pop();
-      setCurrentLang(lang || 'en');
+      if (lang && lang.length <= 5) { // Basic validation
+        setCurrentLang(lang);
+        localStorage.setItem('userLanguage', lang);
+      }
     }
   }, []);
 
   const changeLanguage = (langCode) => {
     setCurrentLang(langCode);
     setIsOpen(false);
+    localStorage.setItem('userLanguage', langCode);
 
     // Google Translate works by setting a cookie 'googtrans'
     // Format: /en/hi (from English to Hindi)
     const cookieValue = `/en/${langCode}`;
-    document.cookie = `googtrans=${cookieValue}; path=/`;
-    document.cookie = `googtrans=${cookieValue}; domain=.${window.location.host}; path=/`;
+    
+    // Set cookie for current domain and root path
+    document.cookie = `googtrans=${cookieValue}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+    
+    // Also try setting it for the base domain to ensure it's picked up
+    const domain = window.location.hostname.split('.').slice(-2).join('.');
+    if (domain.includes('.')) {
+      document.cookie = `googtrans=${cookieValue}; domain=.${domain}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+    }
     
     // Refresh the page to apply translation
     window.location.reload();

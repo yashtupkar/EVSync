@@ -147,11 +147,11 @@ const EmergencyPage = () => {
     window.location.href = `sms:${contact.phone}?body=${encodeURIComponent(message)}`;
   };
 
-    const handleSMSFallback = (contact, type, locationCoords) => {
+  const handleSMSFallback = (contact, type, locationCoords) => {
     const locStr = locationCoords ? ` Location: https://www.google.com/maps?q=${locationCoords.lat},${locationCoords.lng}` : "";
     const safeName = user?.name || user?.fullName || "A user";
     const message = `🚨 EMERGENCY ALERT 🚨\n${safeName} has reported a [${type}].${locStr}`;
-    
+
     if (navigator.share) {
       navigator.share({
         title: 'Emergency SOS Alert',
@@ -166,14 +166,14 @@ const EmergencyPage = () => {
     }
   };
 
-const emergencyTypes = [
-  { id: 'General SOS', label: 'General SOS', desc: 'General emergency assistance', icon: "🆘", bg: 'bg-red-50', text: 'text-red-500' },
-  { id: 'Robbery', label: 'Robbery', desc: 'Report theft or robbery incident', icon: "🔪", bg: 'bg-orange-50', text: 'text-orange-500' },
-  { id: 'Medical Emergency', label: 'Medical Emergency', desc: 'Medical help required urgently', icon: "🏥", bg: 'bg-pink-50', text: 'text-pink-500' },
-  { id: 'Fire', label: 'Fire', desc: 'Report fire emergency', icon: "🔥", bg: 'bg-amber-50', text: 'text-amber-500' },
-  { id: 'Accident', label: 'Accident', desc: 'Road accident assistance', icon: "🚗", bg: 'bg-blue-50', text: 'text-blue-500' },
-  { id: 'Vehicle Breakdown', label: 'Vehicle Breakdown', desc: 'Vehicle breakdown assistance', icon: "🚧", bg: 'bg-purple-50', text: 'text-purple-500' },
-];
+  const emergencyTypes = [
+    { id: 'General SOS', label: 'General SOS', desc: 'General emergency assistance', icon: "🆘", bg: 'bg-red-50', text: 'text-red-500' },
+    { id: 'Robbery', label: 'Robbery', desc: 'Report theft or robbery incident', icon: "🔪", bg: 'bg-orange-50', text: 'text-orange-500' },
+    { id: 'Medical Emergency', label: 'Medical Emergency', desc: 'Medical help required urgently', icon: "🏥", bg: 'bg-pink-50', text: 'text-pink-500' },
+    { id: 'Fire', label: 'Fire', desc: 'Report fire emergency', icon: "🔥", bg: 'bg-amber-50', text: 'text-amber-500' },
+    { id: 'Accident', label: 'Accident', desc: 'Road accident assistance', icon: "🚗", bg: 'bg-blue-50', text: 'text-blue-500' },
+    { id: 'Vehicle Breakdown', label: 'Vehicle Breakdown', desc: 'Vehicle breakdown assistance', icon: "🚧", bg: 'bg-purple-50', text: 'text-purple-500' },
+  ];
 
   const handleSOS = () => {
     if (personalContacts.length === 0) {
@@ -588,71 +588,71 @@ const emergencyTypes = [
 
       <AnimatePresence>
         {showTypeModal && (
-         <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-4 pb-8 md:p-4">
-                     <motion.div
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       onClick={() => setShowTypeModal(false)}
-                       className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
-                     ></motion.div>
-                     <motion.div
-                       initial={{ opacity: 0, y: 100 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       exit={{ opacity: 0, y: 100 }}
-                       className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden z-10"
-                     >
-                       <div className="p-6 md:p-8">
-                         <div className="flex justify-between items-start mb-8">
-                           <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 bg-red-50 relative">
-                               <div className="absolute inset-0 rounded-full border border-red-200 animate-ping opacity-20"></div>
-                               <span className="text-xs font-black">SOS</span>
-                             </div>
-                             <div>
-                               <h3 className="text-xl font-black text-gray-900">What is your emergency?</h3>
-                               <p className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-widest">Select an option to alert your contacts instantly</p>
-                             </div>
-                           </div>
-                           <button onClick={() => setShowTypeModal(false)} className="p-2 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-full transition-all">
-                             <X size={18} />
-                           </button>
-                         </div>
-         
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                           {emergencyTypes.map((type) => (
-                             <motion.button
-                               key={type.id}
-                               whileHover={{ scale: 1.02 }}
-                               whileTap={{ scale: 0.98 }}
-                               onClick={() => confirmSOS(type.id)}
-                               className="p-4 rounded-[1.25rem] border border-gray-100/80 hover:border-red-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(239,68,68,0.08)] transition-all flex items-center gap-4 bg-white hover:bg-red-50/10 group text-left"
-                             >
-                               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${type.bg} text-3xl shrink-0`}>
-                                 {type.icon}
-                               </div>
-                               <div>
-                                 <span className="block text-sm font-bold text-gray-900 group-hover:text-red-600 transition-colors">{type.label}</span>
-                                 <span className="block text-[10px] text-gray-500 font-medium mt-0.5 leading-tight">{type.desc}</span>
-                               </div>
-                             </motion.button>
-                           ))}
-                         </div>
-         
-                         <div className="bg-green-50 rounded-2xl p-4 flex items-center gap-3 border border-green-100/50">
-                           <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-                             <ShieldAlert size={16} />
-                           </div>
-                           <div>
-                             <p className="text-xs font-bold text-green-800">Your location will be shared</p>
-                             <p className="text-[10px] text-green-600/80 font-medium mt-0.5">Your live location will be shared with your emergency contacts.</p>
-                           </div>
-                         </div>
-         
-         
-                       </div>
-                     </motion.div>
-                   </div>
+          <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-4 pb-8 md:p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTypeModal(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+            ></motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden z-10"
+            >
+              <div className="p-6 md:p-8">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 bg-red-50 relative">
+                      <div className="absolute inset-0 rounded-full border border-red-200 animate-ping opacity-20"></div>
+                      <span className="text-xs font-black">SOS</span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-gray-900">What is your emergency?</h3>
+                      <p className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-widest">Select an option to alert your contacts instantly</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowTypeModal(false)} className="p-2 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-full transition-all">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {emergencyTypes.map((type) => (
+                    <motion.button
+                      key={type.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => confirmSOS(type.id)}
+                      className="p-4 rounded-[1.25rem] border border-gray-100/80 hover:border-red-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(239,68,68,0.08)] transition-all flex items-center gap-4 bg-white hover:bg-red-50/10 group text-left"
+                    >
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${type.bg} text-3xl shrink-0`}>
+                        {type.icon}
+                      </div>
+                      <div>
+                        <span className="block text-sm font-bold text-gray-900 group-hover:text-red-600 transition-colors">{type.label}</span>
+                        <span className="block text-[10px] text-gray-500 font-medium mt-0.5 leading-tight">{type.desc}</span>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+
+                <div className="bg-green-50 rounded-2xl p-4 flex items-center gap-3 border border-green-100/50">
+                  <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                    <ShieldAlert size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-green-800">Your location will be shared</p>
+                    <p className="text-[10px] text-green-600/80 font-medium mt-0.5">Your live location will be shared with your emergency contacts.</p>
+                  </div>
+                </div>
+
+
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

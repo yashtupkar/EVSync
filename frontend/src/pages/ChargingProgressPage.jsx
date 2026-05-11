@@ -211,6 +211,11 @@ const ChargingProgressPage = () => {
     };
   }, [bookingId, token]);
 
+  // Auto-scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [bookingId]);
+
   // Update remaining time
   useEffect(() => {
     if (!booking?.endTime) return;
@@ -386,28 +391,28 @@ const ChargingProgressPage = () => {
    
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-7xl mx-auto space-y-3">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
+        <div className="max-w-7xl mx-auto space-y-2">
           
           {(status === 'billing_pending' || status === 'completed') ? (
             /* --- SESSION SUMMARY VIEW (POST-CHARGING) --- */
-            <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-6 duration-1000">
               
               {/* LEFT COLUMN */}
               <div className="space-y-3">
                 {/* HERO CARD */}
-                <div className="bg-white rounded-3xl border-2 border-emerald-500/10 shadow-sm overflow-hidden flex items-center  p-6 gap-6">
+                <div className="bg-white rounded-3xl border-2 border-emerald-500/10 shadow-sm overflow-hidden flex flex-col md:flex-row items-center text-center md:text-left p-6 gap-4 md:gap-6">
                   <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white shrink-0 shadow-lg shadow-emerald-100 relative">
                     <CheckCheck size={32} />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Session Completed</h2>
+                    <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Session Completed</h2>
                     <p className="text-gray-400 font-bold text-sm">Thank you for charging with EVSync!</p>
                   </div>
                 </div>
 
 
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     { label: 'Total Time', value: elapsedTime, sub: 'HH:MM:SS', icon: Clock, color: 'blue' },
                     { label: 'Energy', value: `${(bill?.unitsConsumed || currentKwh).toFixed(2)}`, sub: 'kWh', icon: Zap, color: 'emerald' },
@@ -431,8 +436,8 @@ const ChargingProgressPage = () => {
                 <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6 shadow-sm">
                   <h3 className="text-base font-black text-gray-900 tracking-tight">Payment</h3>
                   
-                  <div className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${bill?.paymentStatus === 'paid' ? 'border-emerald-100 bg-emerald-50/30' : 'border-amber-100 bg-amber-50/30'}`}>
-                    <div className="flex items-center gap-4">
+                  <div className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col md:flex-row items-center justify-between gap-4 transition-all ${bill?.paymentStatus === 'paid' ? 'border-emerald-100 bg-emerald-50/30' : 'border-amber-100 bg-amber-50/30'}`}>
+                    <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ${bill?.paymentStatus === 'paid' ? 'bg-emerald-500 shadow-emerald-100' : 'bg-amber-500 shadow-amber-100'}`}>
                         {bill?.paymentStatus === 'paid' ? <CheckCircle2 size={24} /> : <CreditCard size={24} />}
                       </div>
@@ -441,7 +446,7 @@ const ChargingProgressPage = () => {
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">ID: {booking.billTransactionId || 'T-823901'}</p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-center md:text-right">
                       <p className="text-2xl font-black text-gray-900 tracking-tighter">₹{(bill?.totalBill || currentCost).toFixed(0)}</p>
                     </div>
                   </div>
@@ -466,9 +471,9 @@ const ChargingProgressPage = () => {
                     </button>
                   )}
 
-                  <div className="p-8 bg-emerald-50/50 rounded-3xl border border-emerald-100/50 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm">
+                  <div className="p-6 md:p-8 bg-emerald-50/50 rounded-3xl border border-emerald-100/50 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
                         <Star className="fill-emerald-500" size={24} />
                       </div>
                       <div>
@@ -487,7 +492,7 @@ const ChargingProgressPage = () => {
 
 
               {/* BOTTOM ACTIONS BAR */}
-              <div className="lg:col-span-2 grid grid-cols-3 gap-8 pt-4">
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 pt-4 pb-20 md:pb-4">
                 {[
                   { label: 'Need Help?', sub: 'Contact support for any queries', icon: Headphones, color: 'emerald' },
                   { label: 'Find Nearby Stations', sub: 'Locate charging stations near you', icon: MapIcon, color: 'blue' },
@@ -517,12 +522,12 @@ const ChargingProgressPage = () => {
             </div>
           ) : (
             /* --- ACTIVE CHARGING VIEW --- */
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
-              <div className="space-y-4 pb-32">
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden py-8 pr-8">
-                  <div className="flex justify-between items-center mb-10 pl-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-2">
+              <div className="space-y-2 pb-8 md:pb-32">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-4 md:p-8 md:pr-8">
+                  <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+                    <div className="flex items-center gap-4 text-center md:text-left">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shrink-0">
                         <Zap size={24} fill="currentColor" />
                       </div>
                       <div>
@@ -536,13 +541,13 @@ const ChargingProgressPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col md:flex-row items-center gap-12 relative">
-                    <div className="flex-1 w-full max-w-[390px] relative">
+                  <div className="flex flex-col md:flex-row items-center gap-8 relative">
+                    <div className="hidden md:block flex-1 w-full max-w-[390px] relative">
                       <img src="/assets/ev-images/charging-progress.png" alt="Car" className="w-full h-auto object-contain z-10 relative" />
                       <div className="absolute inset-0 bg-emerald-100/20 blur-[60px] rounded-full scale-75 -z-0"></div>
                     </div>
 
-                    <div className="flex-1 w-full space-y-6">
+                    <div className="flex-1 w-full space-y-4">
                       <div className="text-center">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Battery Level</p>
                         <div className="flex items-baseline justify-center gap-1">
@@ -572,68 +577,68 @@ const ChargingProgressPage = () => {
                   </div>
 
                   {/* PREMIUM STATS GRID */}
-                  <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm mt-12 overflow-hidden">
-                    <div className="grid grid-cols-4 divide-x divide-gray-50">
+                  <div className="bg-white rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm mt-8 overflow-hidden">
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-50">
                       {/* ENERGY */}
-                      <div className="p-8 flex flex-col items-center text-center space-y-4">
-                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
-                          <Battery size={24} />
+                      <div className="p-4 md:p-6 flex flex-col items-center text-center space-y-2">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 shadow-inner shrink-0">
+                          <Battery size={18} />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Energy Delivered</p>
-                          <p className="text-2xl font-black text-gray-900 tracking-tight">{parseFloat(currentKwh).toFixed(4)} kWh</p>
-                          <p className="text-[10px] font-bold text-emerald-500">+{((currentKwh / (parseFloat(elapsedTime.split(':')[1]) || 1)) * 60).toFixed(2)} kWh since last hour</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Energy Delivered</p>
+                          <p className="text-xl font-black text-gray-900 tracking-tight">{parseFloat(currentKwh).toFixed(3)} kWh</p>
+                          <p className="text-[8px] font-bold text-emerald-500 leading-none">+{((currentKwh / (parseFloat(elapsedTime.split(':')[1]) || 1)) * 60).toFixed(2)} kWh/h</p>
                         </div>
                       </div>
 
                       {/* TIME */}
-                      <div className="p-8 flex flex-col items-center text-center space-y-4">
-                        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
-                          <Clock size={24} />
+                      <div className="p-4 md:p-6 flex flex-col items-center text-center space-y-2">
+                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 shadow-inner shrink-0">
+                          <Clock size={18} />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Charging Time</p>
-                          <p className="text-2xl font-black text-gray-900 tracking-tight">{elapsedTime}</p>
-                          <p className="text-[10px] font-bold text-gray-400">Started at {booking.startTime}</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Charging Time</p>
+                          <p className="text-xl font-black text-gray-900 tracking-tight">{elapsedTime}</p>
+                          <p className="text-[8px] font-bold text-gray-400 leading-none">Started at {booking.startTime}</p>
                         </div>
                       </div>
 
                       {/* COST */}
-                      <div className="p-8 flex flex-col items-center text-center space-y-4">
-                        <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500 shadow-inner">
-                          <IndianRupee size={24} />
+                      <div className="p-4 md:p-6 flex flex-col items-center text-center space-y-2">
+                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 shadow-inner shrink-0">
+                          <IndianRupee size={18} />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Charging Cost</p>
-                          <p className="text-2xl font-black text-gray-900 tracking-tight">₹{parseFloat(currentCost).toFixed(1)}</p>
-                          <p className="text-[10px] font-bold text-gray-400">₹{booking.ratePerKwh || 8.00} / kWh</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Charging Cost</p>
+                          <p className="text-xl font-black text-gray-900 tracking-tight">₹{parseFloat(currentCost).toFixed(1)}</p>
+                          <p className="text-[8px] font-bold text-gray-400 leading-none">₹{booking.ratePerKwh || 8.00} / kWh</p>
                         </div>
                       </div>
 
                       {/* REMAINING */}
-                      <div className="p-8 flex flex-col items-center text-center space-y-4">
-                        <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
-                          <Timer size={24} />
+                      <div className="p-4 md:p-6 flex flex-col items-center text-center space-y-2">
+                        <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner shrink-0">
+                          <Timer size={18} />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time Remaining</p>
-                          <p className="text-2xl font-black text-gray-900 tracking-tight">{remainingTime}</p>
-                          <p className="text-[10px] font-bold text-gray-400">Est. 100% by {booking.endTime}</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Time Remaining</p>
+                          <p className="text-xl font-black text-gray-900 tracking-tight">{remainingTime}</p>
+                          <p className="text-[8px] font-bold text-gray-400 leading-none">Est. by {booking.endTime}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* FEATURE HIGHLIGHTS */}
-                  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm mt-6 overflow-hidden">
-                    <div className="grid grid-cols-4 divide-x divide-gray-50">
+                  <div className="bg-white rounded-3xl md:rounded-[2rem] border border-gray-100 shadow-sm mt-4 overflow-hidden">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-50">
                       {[
                         { title: 'Secure Connection', desc: 'Your session is safe and encrypted', icon: ShieldCheck, color: 'emerald' },
                         { title: 'Vehicle Protected', desc: 'Overcurrent & overheating protection enabled', icon: Car, color: 'blue' },
                         { title: 'Smart Charging', desc: 'Optimizing power for better efficiency', icon: Gauge, color: 'purple' },
                         { title: 'Live Monitoring', desc: "We'll notify you of any important updates", icon: Bell, color: 'amber' }
                       ].map((item, i) => (
-                        <div key={i} className="p-6 flex items-center gap-4">
+                        <div key={i} className="p-4 flex items-center gap-3">
                           <div className={`w-12 h-12 bg-${item.color}-50 text-${item.color}-500 rounded-2xl flex items-center justify-center shrink-0`}>
                             <item.icon size={20} />
                           </div>
@@ -651,7 +656,7 @@ const ChargingProgressPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6 shadow-sm">
                   <div className="flex justify-between items-start">
                     <div>
@@ -691,7 +696,7 @@ const ChargingProgressPage = () => {
                 </div>
 
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Telemetry</h3>
                     <div className="flex items-center gap-1">
@@ -738,7 +743,7 @@ const ChargingProgressPage = () => {
       {/* REVIEW MODAL */}
       <AnimatePresence>
         {showReviewModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
