@@ -1,18 +1,18 @@
-import { Activity, Clock, Settings, HardHat } from 'lucide-react';
+import { Activity, Clock, Settings, HardHat, Layout } from 'lucide-react';
 
 export const operatorSidebarItems = [
     { 
-        id: 'live', 
-        label: 'Live Monitoring', 
-        icon: Activity, 
+        id: 'dashboard', 
+        label: 'Dashboard', 
+        icon: Layout, 
         path: '/operator-dashboard',
         isActive: true
     },
     { 
         id: 'queue', 
-        label: 'Booking Queue', 
+        label: 'Bookings', 
         icon: Clock, 
-        path: '/operator-dashboard/queue' // For now let's just use tabs inside the main page
+        path: '/operator/bookings' // For now let's just use tabs inside the main page
     },
     { 
         id: 'maintenance', 

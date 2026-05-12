@@ -289,7 +289,7 @@ export const ReachableStationsCard = ({ total = 0, withinRange = 0, onRangeFilte
 
 export const FilterSection = ({ onShowStations, stations = [] }) => {
   const { user, activeVehicleIndex } = useSelector((state) => state.auth);
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const [selectedFilter, setSelectedFilter] = React.useState("All");
   const [availability, setAvailability] = React.useState({
     now: false,

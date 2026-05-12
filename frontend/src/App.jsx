@@ -21,6 +21,7 @@ import AdminStationRequestsPage from "./pages/AdminStationRequestsPage";
 import AdminStationsManagementPage from "./pages/AdminStationsManagementPage";
 import StationOwnerDashboard from "./pages/StationOwnerDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
+import OperatorBookingsPage from "./pages/OperatorBookingsPage";
 import LoginPage from "./pages/LoginPage";
 import AddStationPage from "./pages/AddStationPage";
 import AddHomeChargerPage from "./pages/AddHomeChargerPage";
@@ -163,7 +164,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-       
+          <Route
+            path="/operator/bookings"
+            element={
+              <ProtectedRoute allowedRoles={["operator"]}>
+                <OperatorBookingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </Router>

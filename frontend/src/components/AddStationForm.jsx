@@ -278,7 +278,7 @@ const AddStationForm = ({ onCancel, onSuccess, initialData = null, isAdmin = fal
             if (onSubmitOverride) {
                 await onSubmitOverride(payload);
             } else {
-                const response = await axios.post(`${backendURL}/api/station-owner/add`, payload, {
+                const response = await axios.post(`${backendURL}/api/station-owner/add-request`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (response.data.success) {

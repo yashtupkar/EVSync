@@ -189,22 +189,18 @@ const MapController = ({
   isFollowing,
   setIsFollowing,
   setHoveredStation,
+  onZoomChange,
 }) => {
   const map = useMap();
   const lastCenter = useRef(null);
   const isSimulationStarted = useRef(false);
 
   useEffect(() => {
-    const updateLabels = () => {
-      const container = map.getContainer();
-      if (map.getZoom() < 13) {
-        container.classList.add('hide-station-labels');
-      } else {
-        container.classList.remove('hide-station-labels');
-      }
+    const handleZoom = () => {
+      if (onZoomChange) onZoomChange(map.getZoom());
     };
     
-    updateLabels();
+    handleZoom();
 
     const onDragStart = () => {
       if (isSimulating) {
@@ -220,15 +216,15 @@ const MapController = ({
     map.on("dragstart", onDragStart);
     map.on("zoomstart", onInteraction);
     map.on("mousemove", onInteraction);
-    map.on("zoomend", updateLabels);
+    map.on("zoomend", handleZoom);
     
     return () => {
       map.off("dragstart", onDragStart);
       map.off("zoomstart", onInteraction);
       map.off("mousemove", onInteraction);
-      map.off("zoomend", updateLabels);
+      map.off("zoomend", handleZoom);
     };
-  }, [map, isSimulating, setIsFollowing]);
+  }, [map, isSimulating, setIsFollowing, onZoomChange]);
 
   useEffect(() => {
     if (!center) return;
@@ -351,6 +347,8 @@ const TripPlannerMap = ({
   const [userLocation, setUserLocation] = useState(
     startLocation || [23.2599, 77.4126],
   ); // Default Bhopal
+
+  const [currentZoom, setCurrentZoom] = useState(13);
 
   useEffect(() => {
     if (startLocation) {
@@ -990,7 +988,7 @@ const TripPlannerMap = ({
   }, [showRoute, destination, userLocation, routeTrigger, simulating, isNavigating]);
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-[#f8fafc]">
+    <div className={`w-full h-full relative overflow-hidden bg-[#f8fafc] ${currentZoom < 13 ? 'hide-station-labels' : ''}`}>
 
       {/* Custom hover card overlay — rendered outside MapContainer to avoid autoPan */}
       {hoveredStation && (
@@ -1058,6 +1056,7 @@ const TripPlannerMap = ({
           isFollowing={isFollowing}
           setIsFollowing={setIsFollowing}
           setHoveredStation={setHoveredStation}
+          onZoomChange={setCurrentZoom}
         />
 
         {/* Stations */}

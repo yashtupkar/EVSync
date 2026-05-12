@@ -16,9 +16,11 @@
   z-index: 20;
 }
 
-/* Hide labels when map has .hide-station-labels class (applied on zoom < 13) */
+/* Hide labels when map has .hide-station-labels class (applied on zoom < 14) */
 .hide-station-labels .station-label {
   opacity: 0 !important;
+  display: none !important;
+  visibility: hidden !important;
   pointer-events: none !important;
 }
 

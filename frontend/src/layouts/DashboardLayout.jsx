@@ -9,10 +9,11 @@ import {
     User, Settings, HelpCircle, ChevronRight,
     Calendar, PlusCircle, LayoutDashboard,
     PieChart, BarChart3, MessageSquare, ClipboardList,
-    DollarSign, Monitor, Wallet
+    DollarSign, Monitor, Wallet, QrCode
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmergencyAlertListener from '../components/EmergencyAlertListener';
+import QRScannerModal from '../components/QRScannerModal';
 
 const DashboardLayout = ({ 
     children, 
@@ -24,12 +25,35 @@ const DashboardLayout = ({
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(window.innerWidth >= 1024);
+    const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                setIsSidebarOpen(true);
+            } else {
+                setIsSidebarOpen(false);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleLogout = () => {
         dispatch(logout());
         toast.success("Logged out successfully");
         navigate('/login');
+    };
+
+    const handleScanSuccess = (decodedText) => {
+        setIsScannerOpen(false);
+        if (decodedText.includes('/verify-booking/')) {
+            const bookingId = decodedText.split('/verify-booking/')[1];
+            navigate(`/verify-booking/${bookingId}`);
+        } else {
+            toast.error("Invalid QR Code format");
+        }
     };
 
     const themeConfig = {
@@ -39,21 +63,10 @@ const DashboardLayout = ({
             lightBg: 'bg-emerald-50',
             text: 'text-emerald-500'
         },
-        indigo: {
-            accent: '#4f46e5',
-            bg: 'bg-indigo-600',
-            lightBg: 'bg-indigo-50',
-            text: 'text-indigo-600'
-        },
-        slate: {
-            accent: '#0f172a',
-            bg: 'bg-slate-900',
-            lightBg: 'bg-slate-50',
-            text: 'text-slate-900'
-        },
+      
     };
 
-    const config = themeConfig[theme] || themeConfig.green;
+    const config = themeConfig.green;
     const brandConfig = {
         'Global Administrator': {
             title: 'Admin',
@@ -78,17 +91,30 @@ const DashboardLayout = ({
     };
 
     return (
-        <div className="min-h-screen bg-[#F9FAFB] flex font-sans text-slate-900">
+        <div className="min-h-screen bg-[#F9FAFB] flex font-sans text-slate-900 overflow-x-hidden">
             <EmergencyAlertListener />
+
+            {/* --- MOBILE BACKDROP --- */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[95] lg:hidden transition-opacity duration-300"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* --- SIDEBAR --- */}
-            <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-slate-100 flex flex-col transition-all duration-300 fixed h-full z-[100]`}>
+            <aside className={`
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} 
+                ${isSidebarOpen ? 'w-64' : 'lg:w-20'} 
+                bg-white border-r border-slate-100 flex flex-col transition-all duration-300 fixed h-full z-[100]
+            `}>
                 {/* Logo Section */}
-                <div className="p-6 mb-2">
+                <div className="p-6 mb-2 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-3">
                         <div className={`${config.bg} w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100 shrink-0`}>
                             <Zap className="text-white w-6 h-6 fill-white" />
                         </div>
-                        {isSidebarOpen && (
+                        {(isSidebarOpen || window.innerWidth < 1024) && (
                             <div className="animate-in fade-in duration-500">
                                 <h1 className="text-xl font-black tracking-tight text-slate-800 leading-none">
                                     {brand.title}<span className={config.text}>{brand.accent}</span>
@@ -97,6 +123,13 @@ const DashboardLayout = ({
                             </div>
                         )}
                     </Link>
+                    {/* Mobile Close Button */}
+                    <button 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -172,25 +205,25 @@ const DashboardLayout = ({
             </aside>
 
             {/* --- MAIN CONTENT AREA --- */}
-            <div className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
+            <div className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} ml-0`}>
                 {/* Top Navbar */}
-                <header className="h-[70px] bg-white border-b border-slate-100 sticky top-0 z-[90] flex items-center justify-between px-8">
-                    <div className="flex items-center gap-4">
+                <header className="h-[70px] bg-white border-b border-slate-100 sticky top-0 z-[90] flex items-center justify-between px-4 md:px-8">
+                    <div className="flex items-center gap-2 md:gap-4">
                         <button 
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className="p-2 text-slate-400 hover:text-slate-600 transition-all"
                         >
-                            {isSidebarOpen ? <Menu size={20} /> : <Menu size={20} />}
+                            <Menu size={20} />
                         </button>
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight ml-2">
-                            Welcome back, <span className="text-emerald-500">{user?.name || 'Devplex'}!</span> 👋
+                        <h2 className="text-sm md:text-xl font-black text-slate-800 tracking-tight ml-1 md:ml-2 line-clamp-1">
+                            Welcome back, <span className="text-emerald-500">{user?.name?.split(' ')[0] || 'User'}!</span> 👋
                         </h2>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl flex items-center gap-3 text-xs font-bold text-slate-500 cursor-pointer hover:bg-slate-100 transition-all">
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="hidden sm:flex bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl items-center gap-3 text-xs font-bold text-slate-500 cursor-pointer hover:bg-slate-100 transition-all">
                             <Calendar size={14} />
-                            May 18 - May 24, 2025
+                            May 18 - 24
                             <ChevronRight size={14} className="rotate-90" />
                         </div>
                         <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-all relative">
@@ -214,9 +247,70 @@ const DashboardLayout = ({
                 </header>
 
                 {/* Content */}
-                <main className="p-8">
+                <main className="p-4 md:p-8 pb-24 lg:pb-8">
                     <Outlet/>
                 </main>
+
+                {/* --- BOTTOM NAVIGATION (MOBILE) --- */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-2 py-3 z-[90] flex items-center justify-around shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)]">
+                    {(() => {
+                        const baseItems = sidebarItems.slice(0, 4);
+                        const isOperator = roleName === 'On-Site Operator';
+                        
+                        let displayItems = [];
+                        if (isOperator) {
+                            // Inject Scanner in the middle
+                            displayItems = [
+                                ...baseItems.slice(0, 2),
+                                { label: 'Scan', icon: QrCode, isScanner: true, onClick: () => setIsScannerOpen(true) },
+                                ...baseItems.slice(2, 4)
+                            ];
+                        } else {
+                            displayItems = [
+                                ...baseItems,
+                                { label: 'More', icon: MoreVerticalIcon, onClick: () => setIsSidebarOpen(true) }
+                            ];
+                        }
+
+                        return displayItems.map((item, index) => {
+                            const isActive = location.pathname === item.path || item.isActive;
+                            
+                            if (item.isScanner) {
+                                return (
+                                    <button
+                                        key="scanner"
+                                        onClick={item.onClick}
+                                        className="relative -top-4 flex flex-col items-center gap-1 group"
+                                    >
+                                        <div className={`${config.bg} w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-100 group-active:scale-90 transition-all`}>
+                                            <QrCode size={24} className="text-white" />
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest mt-1">Scan</span>
+                                    </button>
+                                );
+                            }
+
+                            return (
+                                <button
+                                    key={index}
+                                    onClick={() => item.onClick ? item.onClick() : navigate(item.path)}
+                                    className={`flex flex-col items-center gap-1 transition-all ${isActive ? config.text : 'text-slate-400'}`}
+                                >
+                                    <div className={`p-1.5 rounded-xl transition-all ${isActive ? `${config.lightBg}` : ''}`}>
+                                        <item.icon size={20} className={isActive ? config.text : 'text-slate-400'} />
+                                    </div>
+                                    <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+                                </button>
+                            );
+                        });
+                    })()}
+                </div>
+
+                <QRScannerModal 
+                    isOpen={isScannerOpen} 
+                    onClose={() => setIsScannerOpen(false)} 
+                    onScanSuccess={handleScanSuccess} 
+                />
             </div>
         </div>
     );
@@ -226,6 +320,12 @@ const DashboardLayout = ({
 const CheckCircle = ({ size, className }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
+const MoreVerticalIcon = ({ size, className }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
     </svg>
 );
 
