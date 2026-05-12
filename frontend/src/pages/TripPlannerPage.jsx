@@ -50,7 +50,7 @@ import {
 
 import TripPlannerMap from "../components/TripPlannerMap";
 import { VehicleCard } from "../components/DiscoveryComponents";
-import AIRecommendationCard from "../components/AIRecommendationCard";
+import SmartRecommendationCard from "../components/SmartRecommendationCard";
 import { socket } from "../utils/socket";
 
 // Haversine formula to calculate distance between two coordinates
@@ -104,15 +104,9 @@ const TripPlannerPage = () => {
   const [favorites, setFavorites] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [aiRecommendations, setAiRecommendations] = useState(() => {
-    const saved = localStorage.getItem("evsync_ai_trip");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
-  const lastAiLocation = useRef(null);
+
 
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
@@ -297,6 +291,67 @@ const TripPlannerPage = () => {
     });
   }, [filteredStations, isRouteCalculated, routeData, waypoints, nextStopId]);
 
+  const smartRecommendations = useMemo(() => {
+    // 1. Get user's vehicle compatibility info
+    const activeVehicle = user?.vehicles?.[activeVehicleIndex];
+    const vehicleDetails = activeVehicle ? evData.data.find(d => d.id === activeVehicle.vehicleId) : null;
+    const userACPorts = (vehicleDetails?.ac_charger?.ports || []).map(p => p.toLowerCase());
+    const userDCPorts = (vehicleDetails?.dc_charger?.ports || []).map(p => p.toLowerCase());
+
+    const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedAC = userACPorts.map(normalize);
+    const normalizedDC = userDCPorts.map(normalize);
+
+    const isCompatible = (charger) => {
+      if (!vehicleDetails) return true;
+      const charType = normalize(charger.type);
+      if (!charType) return false;
+
+      // If it's a DC charger, check DC ports
+      const isDC = ["ccs2", "chademo", "dc"].some(t => charType.includes(t));
+      if (isDC) return normalizedDC.some(p => charType.includes(p) || p.includes(charType));
+
+      // If it's an AC charger, check AC ports
+      const isAC = ["type2", "type1", "ac", "gb/t"].some(t => charType.includes(t));
+      if (isAC) return normalizedAC.some(p => charType.includes(p) || p.includes(charType));
+
+      // Fallback
+      return [...normalizedAC, ...normalizedDC].some(p => charType.includes(p) || p.includes(charType));
+    };
+
+    // 2. Filter stops with available AND compatible chargers
+    const stationsWithCompatiblePrice = itineraryStops.map(s => {
+      const compatibleAvailableChargers = s.chargers?.filter(c => c.status === "available" && isCompatible(c));
+      if (!compatibleAvailableChargers || compatibleAvailableChargers.length === 0) return { ...s, minPrice: Infinity };
+      const minPrice = Math.min(...compatibleAvailableChargers.map(c => c.pricePerUnit || 15));
+      return { ...s, minPrice };
+    }).filter(s => s.minPrice !== Infinity);
+
+    // 3. Compare prices
+    const globalMinPrice = stationsWithCompatiblePrice.length > 0 ? Math.min(...stationsWithCompatiblePrice.map(s => s.minPrice)) : 15;
+
+    return stationsWithCompatiblePrice
+      .filter(s => (s.rating || 0) >= 4 || s.minPrice <= globalMinPrice)
+      .sort((a, b) => (a.closestIndex || 0) - (b.closestIndex || 0))
+      .slice(0, 5)
+      .map(s => {
+        const isLowPrice = s.minPrice <= globalMinPrice;
+        const badges = ["Route Choice"];
+        if (s.rating >= 4.5) badges.push("Top Rated");
+        if (isLowPrice) badges.push("Best Value");
+
+        return {
+          stationId: s._id,
+          reason: isLowPrice 
+            ? `Best price for your ${vehicleDetails?.name || 'vehicle'} at ₹${s.minPrice}/kWh.` 
+            : "Highly rated compatible station along your route.",
+          badges,
+          price: s.minPrice,
+          waitTime: "No wait"
+        };
+      });
+  }, [itineraryStops, user, activeVehicleIndex]);
+
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -461,61 +516,7 @@ const TripPlannerPage = () => {
     fetchAlongRoute();
   }, [routeData, isRouteCalculated, backendURL]);
 
-  useEffect(() => {
-    if (isRouteCalculated && itineraryStops.length > 0 && fromLocation) {
-      let shouldFetch = aiRecommendations.length === 0;
-      
-      if (lastAiLocation.current) {
-        const dist = calculateDistance(
-          fromLocation.lat, 
-          fromLocation.lng, 
-          lastAiLocation.current.lat, 
-          lastAiLocation.current.lng
-        );
-        if (dist > 0.1) shouldFetch = true;
-      } else {
-        shouldFetch = true;
-      }
 
-      if (!shouldFetch || isAiLoading) return;
-
-      const fetchAIRecommendations = async () => {
-        setIsAiLoading(true);
-        lastAiLocation.current = fromLocation;
-        try {
-          const availableStops = itineraryStops
-            .filter(s => s.chargers?.some(c => c.status === "available"))
-            .slice(0, 10);
-
-          if (availableStops.length === 0) {
-            setIsAiLoading(false);
-            return;
-          }
-
-          const response = await fetch(`${backendURL}/api/ai/recommend`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userLocation: fromLocation,
-              vehicleInfo: user?.vehicles?.[activeVehicleIndex] || {},
-              stations: availableStops,
-              destination: to
-            }),
-          });
-          const data = await response.json();
-          if (data.success) {
-            setAiRecommendations(data.recommendations);
-            localStorage.setItem("evsync_ai_trip", JSON.stringify(data.recommendations));
-          }
-        } catch (error) {
-          console.error("Error fetching AI recommendations:", error);
-        } finally {
-          setIsAiLoading(false);
-        }
-      };
-      fetchAIRecommendations();
-    }
-  }, [isRouteCalculated, itineraryStops.length, fromLocation, user, activeVehicleIndex, to]);
 
   // Real-time charger updates
   useEffect(() => {
@@ -589,7 +590,6 @@ const TripPlannerPage = () => {
                     <input
                       type="text"
                       placeholder="Enter start location..."
-                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-green-500/50 transition-all font-medium text-gray-900"
                       value={from}
                       onChange={(e) => {
                         setFrom(e.target.value);
@@ -600,7 +600,12 @@ const TripPlannerPage = () => {
                         );
                         setShowFromSuggestions(true);
                       }}
-                      onFocus={() => setShowFromSuggestions(true)}
+                      onFocus={() => {
+                        setIsInputFocused(true);
+                        setShowFromSuggestions(true);
+                      }}
+                      onBlur={() => setTimeout(() => setIsInputFocused(false), 200)}
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-green-500/50 transition-all font-medium text-gray-900"
                     />
                     <div className="absolute right-10 top-1/2 -translate-y-1/2">
                       {isLoadingFrom && (
@@ -753,7 +758,7 @@ const TripPlannerPage = () => {
                     <input
                       type="text"
                       placeholder="Enter destination..."
-                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-green-500/50 transition-all font-medium text-gray-900"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-red-500/50 transition-all font-medium text-gray-900"
                       value={to}
                       onChange={(e) => {
                         setTo(e.target.value);
@@ -764,7 +769,11 @@ const TripPlannerPage = () => {
                         );
                         setShowToSuggestions(true);
                       }}
-                      onFocus={() => setShowToSuggestions(true)}
+                      onFocus={() => {
+                        setIsInputFocused(true);
+                        setShowToSuggestions(true);
+                      }}
+                      onBlur={() => setTimeout(() => setIsInputFocused(false), 200)}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       {isLoadingTo && (
@@ -1487,11 +1496,10 @@ const TripPlannerPage = () => {
                   </button>
                 </div>
 
-                {(aiRecommendations.length > 0 || isAiLoading) && (
-                  <AIRecommendationCard 
-                    recommendations={aiRecommendations} 
+                {smartRecommendations.length > 0 && (
+                  <SmartRecommendationCard 
+                    recommendations={smartRecommendations} 
                     stations={filteredStations}
-                    isLoading={isAiLoading} 
                   />
                 )}
 
@@ -2132,7 +2140,7 @@ const TripPlannerPage = () => {
 
                                         <div className="flex gap-2">
                                             <div className="flex-1 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100 flex items-center gap-2">
-                                                <PlugZap size={12} className="text-emerald-500" />
+<PlugZap size={12} className="text-emerald-500" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-gray-900 leading-none">{stop.chargers?.[0]?.power || "60"}kW</span>
                                                     <span className="text-[7px] text-gray-400 uppercase font-black">{stop.chargers?.[0]?.type || "CCS2"}</span>

@@ -83,7 +83,7 @@ const AddHomeChargerPage = () => {
     state: "",
     pinCode: "",
     location: { lat: 23.2599, lng: 77.4126 },
-    chargers: [{ type: "Type 2", power: 7, pricePerUnit: 12 }],
+    chargers: [{ chargerId: "HOME-01", type: "Type 2", power: 7, pricePerUnit: 12 }],
     images: [],
     availabilityType: "24/7",
     startTime: "09:00",
@@ -565,6 +565,8 @@ const AddHomeChargerPage = () => {
                           const newChargers = [...formData.chargers];
                           newChargers[0].type = newType;
                           newChargers[0].pricePerUnit = getStandardPrice(newType);
+                          // Ensure chargerId exists
+                          if (!newChargers[0].chargerId) newChargers[0].chargerId = "HOME-01";
                           setFormData({...formData, chargers: newChargers});
                         }}
                         className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-sm focus:outline-none appearance-none font-bold text-gray-700"

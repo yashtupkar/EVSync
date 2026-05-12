@@ -41,7 +41,7 @@ import {
   NavigationOverlay,
   HomeChargerPromoCard,
 } from "../components/DiscoveryComponents";
-import AIRecommendationCard from "../components/AIRecommendationCard";
+import SmartRecommendationCard from "../components/SmartRecommendationCard";
 import { motion, AnimatePresence } from "framer-motion";
 import evData from "../../data/ev-data.json";
 
@@ -89,12 +89,71 @@ const DiscoveryPage = () => {
   const [powerFilter, setPowerFilter] = useState(120);
   const [maxRange, setMaxRange] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
-  const [aiRecommendations, setAiRecommendations] = useState(() => {
-    const saved = localStorage.getItem("evsync_ai_discovery");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const lastAiLocation = useRef(null);
+  const smartRecommendations = useMemo(() => {
+    // 1. Get user's vehicle compatibility info
+    const activeVehicle = user?.vehicles?.[activeVehicleIndex];
+    const vehicleDetails = activeVehicle ? evData.data.find(d => d.id === activeVehicle.vehicleId) : null;
+    const userACPorts = (vehicleDetails?.ac_charger?.ports || []).map(p => p.toLowerCase());
+    const userDCPorts = (vehicleDetails?.dc_charger?.ports || []).map(p => p.toLowerCase());
+
+    const normalize = (str) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedAC = userACPorts.map(normalize);
+    const normalizedDC = userDCPorts.map(normalize);
+
+    const isCompatible = (charger) => {
+      if (!vehicleDetails) return true;
+      const charType = normalize(charger.type);
+      if (!charType) return false;
+
+      // If it's a DC charger, check DC ports
+      const isDC = ["ccs2", "chademo", "dc"].some(t => charType.includes(t));
+      if (isDC) return normalizedDC.some(p => charType.includes(p) || p.includes(charType));
+
+      // If it's an AC charger, check AC ports
+      const isAC = ["type2", "type1", "ac", "gb/t"].some(t => charType.includes(t));
+      if (isAC) return normalizedAC.some(p => charType.includes(p) || p.includes(charType));
+
+      // Fallback
+      return [...normalizedAC, ...normalizedDC].some(p => charType.includes(p) || p.includes(charType));
+    };
+
+    // 2. Filter stations with available AND compatible chargers
+    const stationsWithCompatiblePrice = stations.map(s => {
+      const compatibleAvailableChargers = s.chargers?.filter(c => c.status === "available" && isCompatible(c));
+      if (!compatibleAvailableChargers || compatibleAvailableChargers.length === 0) return { ...s, minPrice: Infinity };
+      const minPrice = Math.min(...compatibleAvailableChargers.map(c => c.pricePerUnit || 15));
+      return { ...s, minPrice };
+    }).filter(s => s.minPrice !== Infinity);
+
+    // 3. Compare prices
+    const globalMinPrice = stationsWithCompatiblePrice.length > 0 ? Math.min(...stationsWithCompatiblePrice.map(s => s.minPrice)) : 15;
+
+    return stationsWithCompatiblePrice
+      .filter(s => (s.rating || 0) >= 4 || s.minPrice <= globalMinPrice)
+      .sort((a, b) => {
+        const priceWeight = 5;
+        const scoreA = (a.distance || 0) + (a.minPrice - globalMinPrice) * priceWeight;
+        const scoreB = (b.distance || 0) + (b.minPrice - globalMinPrice) * priceWeight;
+        return scoreA - scoreB;
+      })
+      .slice(0, 5)
+      .map(s => {
+        const isLowPrice = s.minPrice <= globalMinPrice;
+        const badges = ["Fast Charging"];
+        if (s.rating >= 4.5) badges.push("Top Rated");
+        if (isLowPrice) badges.push("Best Value");
+        
+        return {
+          stationId: s._id,
+          reason: isLowPrice 
+            ? `Lowest price for your ${vehicleDetails?.name || 'vehicle'} at ₹${s.minPrice}/kWh.` 
+            : "Highly rated compatible station nearby.",
+          badges,
+          price: s.minPrice,
+          waitTime: "No wait"
+        };
+      });
+  }, [stations, user, activeVehicleIndex]);
   const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -303,61 +362,7 @@ const DiscoveryPage = () => {
     fetchNearbyStations();
   }, [userLocation?.lat, userLocation?.lng]);
 
-  useEffect(() => {
-    if (stations.length > 0 && userLocation) {
-      let shouldFetch = aiRecommendations.length === 0;
-      
-      if (lastAiLocation.current) {
-        const dist = calculateDistance(
-          userLocation.lat, 
-          userLocation.lng, 
-          lastAiLocation.current.lat, 
-          lastAiLocation.current.lng
-        );
-        if (dist > 0.1) shouldFetch = true;
-      } else {
-        shouldFetch = true;
-      }
 
-      if (!shouldFetch || isAiLoading) return;
-
-      const fetchAIRecommendations = async () => {
-        setIsAiLoading(true);
-        lastAiLocation.current = userLocation;
-        try {
-          const availableStations = stations
-            .filter(s => s.chargers?.some(c => c.status === "available"))
-            .sort((a, b) => (a.distance || 0) - (b.distance || 0))
-            .slice(0, 10);
-
-          if (availableStations.length === 0) {
-            setIsAiLoading(false);
-            return;
-          }
-
-          const response = await fetch(`${backendURL}/api/ai/recommend`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userLocation,
-              vehicleInfo: user?.vehicles?.[activeVehicleIndex] || {},
-              stations: availableStations,
-            }),
-          });
-          const data = await response.json();
-          if (data.success) {
-            setAiRecommendations(data.recommendations);
-            localStorage.setItem("evsync_ai_discovery", JSON.stringify(data.recommendations));
-          }
-        } catch (error) {
-          console.error("Error fetching AI recommendations:", error);
-        } finally {
-          setIsAiLoading(false);
-        }
-      };
-      fetchAIRecommendations();
-    }
-  }, [stations.length, userLocation, user, activeVehicleIndex]);
 
   // Real-time charger updates
   useEffect(() => {
@@ -592,18 +597,17 @@ const DiscoveryPage = () => {
                     </div>
                   </div>
 
-                  {(aiRecommendations.length > 0 || isAiLoading) && (
+                  {smartRecommendations.length > 0 && (
                     <div className="pt-2">
                       <div className="flex items-center gap-3 mb-5">
-                          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-                            <Zap size={16} className="text-yellow-400 fill-yellow-400" />
+                          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
+                            <Zap size={16} className="text-white fill-white" />
                           </div>
-                          <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">AI Top Picks</h3>
+                          <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Smart Picks</h3>
                       </div>
-                      <AIRecommendationCard 
-                          recommendations={aiRecommendations} 
+                      <SmartRecommendationCard 
+                          recommendations={smartRecommendations} 
                           stations={filteredStations}
-                          isLoading={isAiLoading} 
                         />
                     </div>
                   )}
@@ -789,12 +793,11 @@ const DiscoveryPage = () => {
                   </div>
                 )}
               </div>
-              {(aiRecommendations.length > 0 || isAiLoading) && (
+              {smartRecommendations.length > 0 && (
                 <div className="mt-2">
-                  <AIRecommendationCard 
-                    recommendations={aiRecommendations} 
+                  <SmartRecommendationCard 
+                    recommendations={smartRecommendations} 
                     stations={filteredStations}
-                    isLoading={isAiLoading} 
                   />
                 </div>
               )}
