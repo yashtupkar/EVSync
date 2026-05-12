@@ -157,6 +157,10 @@ const ProfilePage = () => {
       toast.success("Profile updated successfully!");
       if (user.role === 'station_owner') {
         navigate("/owner-dashboard");
+      } else if (user.role === 'operator') {
+        navigate("/operator-dashboard");
+      } else if (user.role === 'admin') {
+        navigate("/admin");
       } else {
         navigate("/vehicle-selection");
       }
@@ -169,11 +173,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div style={{
-      backgroundImage: "url('/assets/login.png')",
-      backgroundPosition: 'bottom 0% left 20%',
-      backgroundRepeat: 'no-repeat'
-    }}  className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 lg:bg-[url('/assets/login.png')] lg:bg-[position:bottom_0%_left_20%] lg:bg-no-repeat">
       {/* --- TOP NAVIGATION BAR --- */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ const ProfilePage = () => {
       </header>
 
       {/* --- MAIN LAYOUT --- */}
-      <main className="flex-grow shadow-xl max-w-7xl rounded-xl overflow-hidden flex m-auto max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0">
+      <main className="flex-grow shadow-2xl max-w-5xl rounded-xl overflow-hidden flex m-auto lg:max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0 w-full">
         
         {/* LEFT COMPONENT: Branding & Visuals (Hidden on small screens) */}
         <section 

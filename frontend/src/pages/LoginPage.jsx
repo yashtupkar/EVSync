@@ -136,20 +136,21 @@ const LoginPage = ({ role }) => {
     }
 
     // Role-based redirection logic
+    if (isNewUser) {
+      navigate("/profile", { replace: true });
+      return;
+    }
+
     if (user.role === "admin") {
       navigate("/admin", { replace: true });
     } else if (user.role === "station_owner") {
-      if (isNewUser) {
-        navigate("/profile", { replace: true });
-      } else {
-        navigate("/owner-dashboard", { replace: true });
-      }
+      navigate("/owner-dashboard", { replace: true });
     } else if (user.role === "operator") {
       navigate("/operator-dashboard", { replace: true });
     } else {
       navigate("/", { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, isNewUser, navigate]);
 
   useEffect(() => {
     if (view !== "otp_verify") {
@@ -158,7 +159,7 @@ const LoginPage = ({ role }) => {
   }, [dispatch, view]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 lg:bg-[url('/assets/login.png')] lg:bg-[position:bottom_0%_left_20%] lg:bg-no-repeat items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 lg:bg-[url('/assets/login.png')] lg:bg-[position:bottom_0%_left_20%] lg:bg-no-repeat items-center justify-center p-4 md:p-8 overflow-hidden">
       {/* --- TOP NAVIGATION BAR --- */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2">
@@ -177,7 +178,7 @@ const LoginPage = ({ role }) => {
       </header>
 
       {/* --- MAIN LAYOUT --- */}
-      <main className="md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-3xl md:rounded-[2.5rem] overflow-hidden flex md:m-auto lg:max-h-[85vh] flex-col lg:flex-row w-full max-w-5xl md:bg-white z-10 relative">
+      <main className="lg:shadow-2xl max-w-5xl lg:rounded-xl overflow-hidden flex lg:max-h-[80vh] flex-col lg:flex-row w-full lg:bg-white z-10 relative">
 
         {/* LEFT COMPONENT: Branding & Visuals */}
         <section className="hidden lg:flex w-1/2 flex-col bg-[#FBFCFE] bg-cover bg-center relative overflow-hidden">
@@ -271,7 +272,7 @@ const LoginPage = ({ role }) => {
         </section>
 
         {/* RIGHT COMPONENT: Auth Form */}
-        <section className="w-full lg:w-1/2 flex md:bg-white flex-col items-center justify-center py-4 md:py-10 relative">
+        <section className="w-full lg:w-1/2 flex flex-col items-center justify-center py-4 md:py-10 relative">
           <div className="w-full max-w-[480px] p-4 md:p-12 transition-all duration-500">
 
             {view === "login" ? (

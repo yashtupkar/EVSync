@@ -142,12 +142,7 @@ const VehicleSelectionPage = () => {
   };
 
   return (
-    <div style={{
-      backgroundImage: "url('/assets/login.png')",
-      backgroundSize: '100%',
-      backgroundPosition: 'bottom -10% left 0%',
-      backgroundRepeat: 'no-repeat'
-    }} className="min-h-screen bg-white flex flex-col font-sans text-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 overflow-x-hidden lg:bg-[url('/assets/login.png')] lg:bg-[size:100%] lg:bg-[position:bottom_-10%_left_0%] lg:bg-no-repeat">
       {/* --- TOP NAVIGATION BAR --- */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-2">
@@ -166,7 +161,7 @@ const VehicleSelectionPage = () => {
       </header>
 
       {/* --- MAIN LAYOUT --- */}
-      <main className="flex-grow flex max-w-5xl m-auto flex-col lg:flex-row max-h-[80vh] shadow-xl rounded-xl overflow-hidden mt-20 mb-10">
+      <main className="flex-grow flex max-w-5xl m-auto flex-col lg:flex-row lg:max-h-[80vh] shadow-2xl rounded-xl overflow-hidden mt-20 mb-10 w-full">
         
         {/* LEFT COMPONENT: Branding & Visuals */}
         <section className="hidden lg:flex w-[40%] flex-col bg-[#FBFCFE] relative overflow-hidden p-12">
