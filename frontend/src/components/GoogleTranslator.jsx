@@ -20,7 +20,15 @@ const GoogleTranslator = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('en');
 
-  useEffect(() => {
+  // Robust language detection
+  const detectLanguage = () => {
+    // 1. Check HTML lang attribute (most reliable as Google Translate updates this)
+    const htmlLang = document.documentElement.lang;
+    if (htmlLang && htmlLang !== 'en' && languages.some(l => l.code === htmlLang)) {
+      return htmlLang;
+    }
+
+    // 2. Check cookies
     const getCookie = (name) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
@@ -32,56 +40,74 @@ const GoogleTranslator = () => {
     };
 
     const googTrans = getCookie('googtrans');
-    const savedLang = localStorage.getItem('userLanguage');
-
     if (googTrans) {
       const lang = googTrans.split('/').pop();
-      if (lang && lang.length <= 5) {
-        setCurrentLang(lang);
-        if (lang !== savedLang) {
-          localStorage.setItem('userLanguage', lang);
-        }
-      }
-    } else if (savedLang && savedLang !== 'en') {
-      // Safeguard against reload loops: 
-      // Only auto-apply if we haven't reloaded for this reason in the last 10 seconds
-      const lastAutoApply = sessionStorage.getItem('last_lang_auto_apply');
-      const now = Date.now();
-      
-      if (!lastAutoApply || (now - parseInt(lastAutoApply)) > 10000) {
-        sessionStorage.setItem('last_lang_auto_apply', now.toString());
-        setCurrentLang(savedLang);
-        applyLanguage(savedLang);
-      } else {
-        // If we are likely in a loop, just set the state but don't reload
-        setCurrentLang(savedLang);
+      if (lang && languages.some(l => l.code === lang)) {
+        return lang;
       }
     }
-  }, []);
+
+    // 3. Check localStorage
+    const savedLang = localStorage.getItem('userLanguage');
+    if (savedLang && languages.some(l => l.code === savedLang)) {
+      return savedLang;
+    }
+
+    return 'en';
+  };
+
+  useEffect(() => {
+    // Initial detection
+    const activeLang = detectLanguage();
+    setCurrentLang(activeLang);
+
+    // Sync with localStorage
+    if (activeLang !== localStorage.getItem('userLanguage')) {
+      localStorage.setItem('userLanguage', activeLang);
+    }
+
+    // Set up observer to watch for Google Translate changing the lang attribute
+    const observer = new MutationObserver(() => {
+      const newLang = detectLanguage();
+      if (newLang !== currentLang) {
+        setCurrentLang(newLang);
+      }
+    });
+
+    observer.observe(document.documentElement, { 
+      attributes: true, 
+      attributeFilter: ['lang'] 
+    });
+
+    return () => observer.disconnect();
+  }, [currentLang]);
 
   const applyLanguage = (langCode) => {
     const cookieValue = `/en/${langCode}`;
-    
-    // Set cookie for current domain and base domain
     const hostname = window.location.hostname;
+    
+    // Set cookie for current domain
+    document.cookie = `googtrans=${cookieValue}; path=/; SameSite=Lax`;
+    
+    // Also set for base domain if applicable to ensure it's picked up
     const domainParts = hostname.split('.');
-    const baseDomain = domainParts.length >= 2 ? `.${domainParts.slice(-2).join('.')}` : '';
-
-    // Clear existing
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    if (baseDomain) document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${baseDomain};`;
-
-    // Set new
-    document.cookie = `googtrans=${cookieValue}; path=/;`;
-    if (baseDomain) {
-      document.cookie = `googtrans=${cookieValue}; path=/; domain=${baseDomain};`;
+    if (domainParts.length >= 2) {
+      const baseDomain = `.${domainParts.slice(-2).join('.')}`;
+      // Note: This might fail on public suffixes like .vercel.app, which is fine
+      try {
+        document.cookie = `googtrans=${cookieValue}; path=/; domain=${baseDomain}; SameSite=Lax`;
+      } catch (e) {
+        console.warn('Failed to set cookie on base domain:', e);
+      }
     }
 
     localStorage.setItem('userLanguage', langCode);
+    setCurrentLang(langCode);
     
+    // Force a reload to trigger translation
     setTimeout(() => {
       window.location.reload();
-    }, 100);
+    }, 150);
   };
 
   const changeLanguage = (langCode) => {
@@ -89,9 +115,6 @@ const GoogleTranslator = () => {
       setIsOpen(false);
       return;
     }
-    // Set a manual reload flag to skip the auto-apply safeguard
-    sessionStorage.setItem('last_lang_auto_apply', Date.now().toString());
-    setCurrentLang(langCode);
     setIsOpen(false);
     applyLanguage(langCode);
   };
