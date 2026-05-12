@@ -686,6 +686,27 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useSelector((state) => state.auth);
   const chargerScrollRef = React.useRef(null);
+  
+  // Favorites Logic
+  const [isFavorited, setIsFavorited] = React.useState(false);
+
+  React.useEffect(() => {
+    const favorites = JSON.parse(localStorage.getItem('evsync_favorites') || '[]');
+    setIsFavorited(favorites.includes(station._id));
+  }, [station._id]);
+
+  const toggleFavorite = (e) => {
+    e.stopPropagation();
+    const favorites = JSON.parse(localStorage.getItem('evsync_favorites') || '[]');
+    let newFavorites;
+    if (favorites.includes(station._id)) {
+      newFavorites = favorites.filter(id => id !== station._id);
+    } else {
+      newFavorites = [...favorites, station._id];
+    }
+    localStorage.setItem('evsync_favorites', JSON.stringify(newFavorites));
+    setIsFavorited(!isFavorited);
+  };
 
   const scroll = (dir) => {
     if (chargerScrollRef.current) {
@@ -799,14 +820,16 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
             <MapPin size={12} className="text-gray-400 mt-0.5 shrink-0" />
             <p className="text-[12px] md:text-[11px] text-gray-500 font-medium leading-snug">{station.address}</p>
           </div>
-          
-          <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar">
-            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{maxPower} kW</span>
-            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.chargers?.[0]?.type || "CCS2"}</span>
-            {station.distance && (
-              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.distance.toFixed(1)} km away</span>
-            )}
-          </div>
+        </div>
+
+        {/* Favorite & Action Buttons */}
+        <div className="flex gap-2 shrink-0 self-end md:self-start">
+           <button 
+             onClick={toggleFavorite}
+             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-red-50 text-red-500 border-red-100' : 'bg-gray-50 text-gray-400 border-gray-100'} border shadow-sm hover:scale-105 active:scale-95`}
+           >
+             <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
+           </button>
         </div>
 
         {/* Action Buttons */}
@@ -842,6 +865,14 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar px-4">
+        <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{maxPower} kW</span>
+        <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.chargers?.[0]?.type || "CCS2"}</span>
+        {station.distance && (
+          <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg whitespace-nowrap">{station.distance.toFixed(1)} km away</span>
+        )}
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 border-b border-gray-100">
         {[
@@ -861,6 +892,7 @@ export const StationDetailView = ({ station, onClose, onNavigate }) => {
           </div>
         ))}
       </div>
+      
 
       {/* Chargers Section */}
       <div className="p-5">

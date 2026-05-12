@@ -30,6 +30,7 @@ const VerifyBookingPage = () => {
   const [verifying, setVerifying] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [otp, setOtp] = useState('');
+  const [useMqtt, setUseMqtt] = useState(true);
   const [unitsConsumed, setUnitsConsumed] = useState('');
   const [isGeneratingBill, setIsGeneratingBill] = useState(false);
   const [showBillForm, setShowBillForm] = useState(false);
@@ -70,7 +71,10 @@ const VerifyBookingPage = () => {
     try {
       setVerifying(true);
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${backendURL}/api/bookings/${bookingId}/start-charging`, { otp }, {
+      const response = await axios.post(`${backendURL}/api/bookings/${bookingId}/start-charging`, { 
+        otp,
+        useMqtt 
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -341,17 +345,38 @@ const VerifyBookingPage = () => {
 
         {/* OTP Input Section */}
         {booking.bookingStatus === 'upcoming' && (
-          <div className="bg-white rounded-3xl border-2 border-slate-100 p-6 space-y-4 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Enter Customer OTP</p>
-            <div className="flex justify-center gap-2">
-              <input
-                type="text"
-                maxLength="4"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="0000"
-                className="w-full text-center bg-slate-50 border-2 border-slate-50 rounded-2xl py-4 text-3xl font-black tracking-[0.5em] text-emerald-600 focus:border-emerald-500 focus:bg-white transition-all outline-none"
-              />
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl border-2 border-slate-100 p-6 space-y-4 shadow-sm">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Enter Customer OTP</p>
+              <div className="flex justify-center gap-2">
+                <input
+                  type="text"
+                  maxLength="4"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="0000"
+                  className="w-full text-center bg-slate-50 border-2 border-slate-50 rounded-2xl py-4 text-3xl font-black tracking-[0.5em] text-emerald-600 focus:border-emerald-500 focus:bg-white transition-all outline-none"
+                />
+              </div>
+            </div>
+
+            {/* IoT Toggle Option */}
+            <div 
+              onClick={() => setUseMqtt(!useMqtt)}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${useMqtt ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${useMqtt ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                   <Zap size={20} fill={useMqtt ? "currentColor" : "none"} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">IoT Smart Start</h4>
+                  <p className="text-[10px] font-bold text-slate-400">Sync real-time data to user app</p>
+                </div>
+              </div>
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${useMqtt ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${useMqtt ? 'right-1' : 'left-1'}`}></div>
+              </div>
             </div>
           </div>
         )}

@@ -6,6 +6,7 @@ import SlotBookingPage from "./pages/SlotBookingPage";
 import ProfilePage from "./components/ProfilePage";
 import BookingSuccessPage from "./pages/BookingSuccessPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import VerifyBookingPage from "./pages/VerifyBookingPage";
 import ChargingProgressPage from "./pages/ChargingProgressPage";
 import EmergencyPage from "./pages/EmergencyPage";
@@ -25,6 +26,8 @@ import OperatorBookingsPage from "./pages/OperatorBookingsPage";
 import LoginPage from "./pages/LoginPage";
 import AddStationPage from "./pages/AddStationPage";
 import AddHomeChargerPage from "./pages/AddHomeChargerPage";
+import HostDashboardPage from "./pages/HostDashboardPage";
+import BookingNotificationListener from "./components/BookingNotificationListener";
 import UserLayout from "./layouts/UserLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { adminSidebarItems } from "./config/adminSidebar";
@@ -61,6 +64,7 @@ function App() {
   return (
     <Router>
       <Toaster />
+      <BookingNotificationListener />
       <Routes>
         <Route path="/login" element={<LoginPage role="user" />} />
         <Route path="/owner-login" element={<LoginPage role="station_owner" />} />
@@ -91,6 +95,8 @@ function App() {
           <Route path="/charging-progress/:bookingId" element={<ChargingProgressPage />} />
           <Route path="/emergency" element={<EmergencyPage />} />
           <Route path="/add-home-charger" element={<ProtectedRoute><AddHomeChargerPage /></ProtectedRoute>} />
+          <Route path="/host-dashboard" element={<ProtectedRoute><HostDashboardPage /></ProtectedRoute>} />
+          <Route path="/favorites" element={<FavoritesPage />} />
         </Route>
         <Route path="/verify-booking/:bookingId" element={<VerifyBookingPage />} />
 

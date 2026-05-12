@@ -536,8 +536,30 @@ const DiscoveryPage = () => {
                       <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Hub Identity</span>
                       <h3 className="text-sm font-bold text-gray-800">Station Overview</h3>
                     </div>
-                    <button className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500">
-                      <Heart size={18} />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const favorites = JSON.parse(localStorage.getItem('evsync_favorites') || '[]');
+                        let newFavorites;
+                        if (favorites.includes(selectedStation._id)) {
+                          newFavorites = favorites.filter(id => id !== selectedStation._id);
+                        } else {
+                          newFavorites = [...favorites, selectedStation._id];
+                        }
+                        localStorage.setItem('evsync_favorites', JSON.stringify(newFavorites));
+                        window.dispatchEvent(new Event('storage')); // Trigger update
+                        setSelectedStationId(prev => prev); // Force re-render
+                      }}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${
+                        JSON.parse(localStorage.getItem('evsync_favorites') || '[]').includes(selectedStation._id)
+                        ? 'bg-red-50 text-red-500'
+                        : 'bg-gray-50 text-gray-500'
+                      }`}
+                    >
+                      <Heart 
+                        size={18} 
+                        fill={JSON.parse(localStorage.getItem('evsync_favorites') || '[]').includes(selectedStation._id) ? "currentColor" : "none"} 
+                      />
                     </button>
                   </div>
                   <StationDetailView

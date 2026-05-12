@@ -187,7 +187,7 @@ const AddHomeChargerPage = () => {
       const data = await response.json();
       if (data.success) {
         toast.success("Home charger listed successfully!");
-        navigate("/owner-dashboard");
+        navigate("/host-dashboard");
       } else {
         toast.error(data.message || "Failed to list charger");
       }

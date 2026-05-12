@@ -8,8 +8,11 @@ import {
 } from "../features/auth/authSelectors";
 import toast from "react-hot-toast";
 import GoogleTranslator from "./GoogleTranslator";
+import { useState, useEffect, useRef } from "react";
 
 const Navbar = () => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,6 +40,22 @@ const Navbar = () => {
     toast.success("Logout successful");
     navigate("/login");
   }
+
+  // Handle outside click to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close dropdown on route change
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [location.pathname]);
 
   // Hide navbar on auth, profile, vehicle, and dashboard related pages
   if (isLogin || isProfile || isVehicle || isDashboard) return null;
@@ -88,9 +107,12 @@ const Navbar = () => {
       <div className="flex items-center gap-4">
         <GoogleTranslator />
         {isAuthenticated ? (
-          <div className="relative group">
+          <div className="relative group" ref={dropdownRef}>
             {/* Avatar Profile */}
-            <div className="w-10 h-10 rounded-full bg-green-50 border-2 border-white flex items-center justify-center text-xs font-bold text-emerald-500 cursor-pointer shadow-sm group-hover:shadow-md transition-all ring-2 ring-transparent group-hover:ring-green-100 relative">
+            <div 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-10 h-10 rounded-full bg-green-50 border-2 border-white flex items-center justify-center text-xs font-bold text-emerald-500 cursor-pointer shadow-sm group-hover:shadow-md transition-all ring-2 ring-transparent group-hover:ring-green-100 relative"
+            >
               {currentUser?.avatar ? (
                 <img src={currentUser.avatar} alt={currentUser?.name} className="w-full h-full rounded-full object-cover" />
               ) : (
@@ -100,7 +122,9 @@ const Navbar = () => {
             </div>
 
             {/* Dropdown Menu */}
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right z-50">
+            <div className={`absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 transition-all duration-300 transform origin-top-right z-50 
+              md:group-hover:opacity-100 md:group-hover:visible md:group-hover:translate-y-0
+              ${isDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
               <div className="p-4 border-b border-gray-50">
                 <p className="text-sm font-bold text-gray-900 truncate">{currentUser?.name || 'User'}</p>
                 <p className="text-xs text-gray-500 truncate mt-0.5">{currentUser?.email || 'user@example.com'}</p>
@@ -110,13 +134,19 @@ const Navbar = () => {
                   <User size={16} /> My Profile
                 </Link>
                 <Link to="/favorites" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
-                  <Heart size={16} /> Saved Stations
+                  <Heart size={16} /> Favorites
                 </Link>
                 <Link to="/my-bookings" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-emerald-500 hover:bg-green-50 rounded-xl transition-colors">
                   <Clock size={16} /> My Bookings
                 </Link>
                 <Link to="/emergency" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors">
                   <ShieldAlert size={16} /> Emergency & SOS
+                </Link>
+
+                <div className="my-2 border-t border-gray-50"></div>
+
+                <Link to="/host-dashboard" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-emerald-600 hover:bg-green-50 rounded-xl transition-colors">
+                  <Zap size={16} fill="currentColor" /> Host Dashboard
                 </Link>
 
                 {currentUser?.role === "admin" && (
