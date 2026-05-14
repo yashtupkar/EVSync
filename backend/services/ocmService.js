@@ -18,14 +18,29 @@ exports.fetchExternalStations = async (params = {}) => {
     url += `&countrycode=IN`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`OCM API responded with status: ${response.status}`);
-    const data = await response.json();
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     
+    if (!response.ok) {
+      console.warn(`[OCM] API responded with status: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
     return data.map(station => mapOCMToEVSync(station));
   } catch (error) {
-    console.error('Error fetching from OCM:', error);
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.warn('[OCM] Fetch timed out after 5s. Skipping external stations.');
+    } else if (error.code === 'UND_ERR_CONNECT_TIMEOUT') {
+      console.warn('[OCM] Connection timeout. External network unreachable.');
+    } else {
+      console.error('[OCM] Error fetching external stations:', error.message);
+    }
     return [];
   }
 };

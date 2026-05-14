@@ -34,6 +34,8 @@ const BookingSuccessPage = () => {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [batteryConfig, setBatteryConfig] = useState({ current: 20, target: 80 });
   const [isStarting, setIsStarting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
 
 
   useEffect(() => {
@@ -94,6 +96,35 @@ const BookingSuccessPage = () => {
     } finally {
       setIsStarting(false);
       setShowSetupModal(false);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!window.confirm('Are you sure you want to cancel this booking? Note: Excessive cancellations may lead to an automatic account ban.')) {
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+      const token = localStorage.getItem('token');
+      const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+      
+      const response = await axios.patch(`${backendURL}/api/bookings/${bookingId}/status`, {
+        status: 'cancelled'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        toast.success("Booking cancelled successfully");
+        setBooking(prev => ({ ...prev, bookingStatus: 'cancelled' }));
+        setTimeout(() => navigate('/discovery'), 1500);
+      }
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast.error(error.response?.data?.message || "Failed to cancel booking");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -311,21 +342,32 @@ const BookingSuccessPage = () => {
 
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {booking.bookingStatus === 'upcoming' && (
                 <button 
-                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.stationId.location.coordinates[1]},${booking.stationId.location.coordinates[0]}`, '_blank')}
-                  className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl transition-all"
+                  onClick={handleCancelBooking}
+                  disabled={isCancelling}
+                  className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl transition-all border border-red-100"
                 >
-                  <Navigation size={18} />
-                  Get Directions
+                  {isCancelling ? (
+                    <RefreshCcw size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <AlertTriangle size={18} />
+                      Cancel Booking
+                    </>
+                  )}
                 </button>
+              )}
                 <button 
-                  onClick={() => navigate('/discovery')}
+                  onClick={() => navigate('/')}
                   className="flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-2xl transition-all"
                 >
                   Back to Discovery
                   <ArrowRight size={18} />
                 </button>
               </div>
+
+            
             </div>
           </div>
         </div>

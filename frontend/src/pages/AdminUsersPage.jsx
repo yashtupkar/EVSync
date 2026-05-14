@@ -104,16 +104,12 @@ const AdminUsersPage = () => {
     }, [users]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700">
+  
+            <div className="space-y-6 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/admin')}
-                        className="p-2 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
-                    >
-                        <ArrowLeft size={20} className="text-slate-600" />
-                    </button>
+
                     <div>
                         <h1 className="text-2xl font-black text-slate-800 tracking-tight">Users Management</h1>
                         <p className="text-sm text-slate-500 font-medium">Manage user accounts, roles, and access status</p>
@@ -294,12 +290,12 @@ const AdminUsersPage = () => {
                 </div>
             </div>
 
-            {/* Footer Info */}
-            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                <AlertCircle size={14} />
-                <span>Note: Users with 3+ cancellations are automatically banned by the system.</span>
+                <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                    <AlertCircle size={14} />
+                    <span>Note: Users with 5+ cancellations are automatically banned by the system.</span>
+                </div>
             </div>
-        </div>
+      
     );
 };
 

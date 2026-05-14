@@ -77,8 +77,38 @@ exports.rejectStation = async (req, res) => {
  */
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find();
-        res.status(200).json({ success: true, users });
+        const users = await User.find().lean();
+        const Booking = require('../models/Booking');
+        
+        // For each user, calculate total cancellations and enforce ban
+        const usersWithCounts = await Promise.all(users.map(async (user) => {
+            const totalCancellations = await Booking.countDocuments({ 
+                userId: user._id, 
+                bookingStatus: 'cancelled' 
+            });
+            
+            // Proactive Auto-Ban: If total cancellations > 5 and not already banned, ban them now.
+            let isBanned = user.isBanned;
+            let banReason = user.banReason;
+
+            if (totalCancellations > 5 && !isBanned) {
+                await User.findByIdAndUpdate(user._id, {
+                    isBanned: true,
+                    banReason: `Automatic ban: Total cancellations (${totalCancellations}) exceeded the limit of 5.`
+                });
+                isBanned = true;
+                banReason = `Automatic ban: Total cancellations (${totalCancellations}) exceeded the limit of 5.`;
+            }
+            
+            return { 
+                ...user, 
+                isBanned,
+                banReason,
+                cancellationCount: totalCancellations 
+            };
+        }));
+
+        res.status(200).json({ success: true, users: usersWithCounts });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

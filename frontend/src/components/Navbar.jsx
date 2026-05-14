@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Map, ShieldCheck, Zap, User, Route, Heart, Clock, MapPin, Calendar, ShieldAlert } from "lucide-react";
+import { Map, ShieldCheck, Zap, User, Route, Heart, Clock, MapPin, Calendar, ShieldAlert, Award, Coins } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import {
@@ -105,20 +105,32 @@ const Navbar = () => {
 
 
       <div className="flex items-center gap-4">
+         <div className="hidden sm:flex items-center gap-1.5 px-4 py-2  rounded-xl bg-black/2 animate-in fade-in zoom-in duration-500">
+                  <Coins
+                   size={16} className="text-yellow-500" />
+                <span className="text-[11px] font-black text-black uppercase tracking-wider">
+                  {currentUser?.credits || 0} Credits
+                </span>
+              </div>
         <GoogleTranslator />
+        
         {isAuthenticated ? (
           <div className="relative group" ref={dropdownRef}>
-            {/* Avatar Profile */}
-            <div 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-10 h-10 rounded-full bg-green-50 border-2 border-white flex items-center justify-center text-xs font-bold text-emerald-500 cursor-pointer shadow-sm group-hover:shadow-md transition-all ring-2 ring-transparent group-hover:ring-green-100 relative"
-            >
-              {currentUser?.avatar ? (
-                <img src={currentUser.avatar} alt={currentUser?.name} className="w-full h-full rounded-full object-cover" />
-              ) : (
-                <span>{userInitials}</span>
-              )}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm"></div>
+            {/* Credits & Profile */}
+            <div className="flex items-center gap-3">
+             
+
+              <div 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-10 h-10 rounded-full bg-green-50 border-2 border-white flex items-center justify-center text-xs font-bold text-emerald-500 cursor-pointer shadow-sm hover:shadow-md transition-all ring-2 ring-transparent hover:ring-green-100 relative group-hover:scale-105"
+              >
+                {currentUser?.avatar ? (
+                  <img src={currentUser.avatar} alt={currentUser?.name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span>{userInitials}</span>
+                )}
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm"></div>
+              </div>
             </div>
 
             {/* Dropdown Menu */}

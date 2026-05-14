@@ -38,7 +38,10 @@ const userSchema = new mongoose.Schema({
   // BANNING SYSTEM
   isBanned: { type: Boolean, default: false },
   cancellationCount: { type: Number, default: 0 },
-  banReason: { type: String }
+  banReason: { type: String },
+
+  // REWARD SYSTEM
+  credits: { type: Number, default: 0 }
 }, { timestamps: true });
 
 userSchema.index(

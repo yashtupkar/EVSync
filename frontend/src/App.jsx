@@ -16,7 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import VehicleSelectionPage from "./components/VehicleSelectionPage";
 import PendingApprovalPage from "./components/PendingApprovalPage";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import AdminPanel from "./pages/AdminPanel";
 import AdminStationRequestsPage from "./pages/AdminStationRequestsPage";
 import AdminStationsManagementPage from "./pages/AdminStationsManagementPage";
@@ -41,6 +41,8 @@ import { selectUser } from "./features/auth/authSelectors";
 import { connectSocket, disconnectSocket } from "./utils/socket";
 import { loadUser } from "./features/auth/authSlice";
 import { useDispatch } from "react-redux";
+import { socket } from "./utils/socket";
+
 
 
 function App() {
@@ -51,10 +53,23 @@ function App() {
     if (user) {
       connectSocket(user._id);
       dispatch(loadUser());
+
+      // Listen for rewards/credits updates
+      const handleCreditsUpdate = (data) => {
+        dispatch(loadUser());
+        toast.success(data.message || `You earned ${data.creditsEarned} credits!`, {
+          icon: '🏆',
+          duration: 4000
+        });
+      };
+
+      socket.on('credits_updated', handleCreditsUpdate);
+      return () => {
+        socket.off('credits_updated', handleCreditsUpdate);
+      };
     } else {
       disconnectSocket();
     }
-    return () => disconnectSocket();
   }, [user, dispatch]);
 
   const StationOwnerSidebarItems = [

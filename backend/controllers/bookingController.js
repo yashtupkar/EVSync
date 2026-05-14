@@ -355,23 +355,26 @@ exports.updateBookingStatus = async (req, res) => {
     booking.bookingStatus = status;
     await booking.save();
 
-    // Automated Banning Logic
+    // Automated Banning Logic: Check total cancellations
     if (status === 'cancelled' && previousStatus !== 'cancelled') {
-      const user = await User.findById(booking.userId);
-      if (user) {
-        user.cancellationCount += 1;
-        if (user.cancellationCount >= 3) {
-          user.isBanned = true;
-          user.banReason = 'Automatic ban: Excessive cancellations (3+ in a row).';
-        }
-        await user.save();
+      const totalCancellations = await Booking.countDocuments({ 
+        userId: booking.userId, 
+        bookingStatus: 'cancelled' 
+      });
+
+      if (totalCancellations > 5) {
+        await User.findByIdAndUpdate(booking.userId, {
+          isBanned: true,
+          banReason: `Automatic ban: Total cancellations (${totalCancellations}) exceeded the limit of 5.`
+        });
       }
-    } else if (status === 'completed') {
-      const user = await User.findById(booking.userId);
-      if (user) {
-        user.cancellationCount = 0;
-        await user.save();
-      }
+      
+      // Update counter for UI
+      await User.findByIdAndUpdate(booking.userId, { cancellationCount: totalCancellations });
+    }
+
+    if (status === 'completed' && previousStatus !== 'completed') {
+      await User.findByIdAndUpdate(booking.userId, { $inc: { credits: 10 } });
     }
 
     const io = req.app.get('socketio');
@@ -382,6 +385,14 @@ exports.updateBookingStatus = async (req, res) => {
         status: status,
         userId: booking.userId.toString()
       });
+      
+      // Notify user about credits if completed
+      if (status === 'completed' && previousStatus !== 'completed') {
+        io.to(booking.userId.toString()).emit('credits_updated', {
+          creditsEarned: 10,
+          message: 'You earned 10 credits for completing your session!'
+        });
+      }
     }
 
     res.status(200).json({ success: true, message: `Booking marked as ${status}`, booking });
@@ -668,6 +679,13 @@ exports.confirmBillPayment = async (req, res) => {
       io.emit('bill_paid', {
         bookingId: bookingId.toString(),
         stationId: booking.stationId._id.toString()
+      });
+
+      // Award credits and notify
+      await User.findByIdAndUpdate(booking.userId, { $inc: { credits: 10 } });
+      io.to(booking.userId.toString()).emit('credits_updated', {
+        creditsEarned: 10,
+        message: 'You earned 10 credits for completing your session!'
       });
     }
 

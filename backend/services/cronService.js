@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const Booking = require('../models/Booking');
 const Station = require('../models/Station');
+const User = require('../models/User');
 
 const parseBookingTime = (dateStr, timeStr) => {
     return new Date(`${dateStr} ${timeStr}`);
@@ -52,6 +53,22 @@ const startCronJobs = (io) => {
                         booking.paymentStatus = 'refunded'; // Simulate refund
                         booking.statusMessage = 'Auto-cancelled: Did not start within 15 minutes';
                         await booking.save();
+
+                        // Automated Banning Logic for Auto-cancellations: Check total cancellations
+                        const totalCancellations = await Booking.countDocuments({ 
+                            userId: booking.userId, 
+                            bookingStatus: 'cancelled' 
+                        });
+
+                        if (totalCancellations > 5) {
+                            await User.findByIdAndUpdate(booking.userId, {
+                                isBanned: true,
+                                banReason: `Automatic ban: Total cancellations (${totalCancellations}) exceeded the limit of 5.`
+                            });
+                        }
+                        
+                        // Update counter for UI
+                        await User.findByIdAndUpdate(booking.userId, { cancellationCount: totalCancellations });
 
                         // Release the charger slot back to 'available'
                         await Station.findOneAndUpdate(
