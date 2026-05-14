@@ -9,7 +9,8 @@ const {
     getAllStationRequests,
     createAdminStation,
     updateAdminStation,
-    deleteAdminStation
+    deleteAdminStation,
+    toggleUserBan
 } = require('../controllers/adminController');
 const { assignOperator } = require('../controllers/stationOwnerController');
 
@@ -23,6 +24,7 @@ router.get('/all-stations', getAllStationRequests);
 router.post('/approve/:id', approveStation);
 router.post('/reject/:id', rejectStation);
 router.get('/users', getAllUsers);
+router.patch('/users/:id/toggle-ban', toggleUserBan);
 
 // Full CRUD for stations
 router.post('/station', createAdminStation);

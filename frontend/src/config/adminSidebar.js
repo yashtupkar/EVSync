@@ -1,4 +1,4 @@
-import { LayoutDashboard, Shield, MapPin } from 'lucide-react';
+import { LayoutDashboard, Shield, MapPin, Users } from 'lucide-react';
 
 export const adminSidebarItems = [
     {
@@ -15,5 +15,10 @@ export const adminSidebarItems = [
         label: 'Stations Management',
         icon: MapPin,
         path: '/admin/stations',
+    },
+    {
+        label: 'Users Management',
+        icon: Users,
+        path: '/admin/users',
     },
 ];

@@ -33,7 +33,12 @@ const userSchema = new mongoose.Schema({
   vehicles: [{
     vehicleId: { type: String, required: true },
     nickname: { type: String }
-  }]
+  }],
+
+  // BANNING SYSTEM
+  isBanned: { type: Boolean, default: false },
+  cancellationCount: { type: Number, default: 0 },
+  banReason: { type: String }
 }, { timestamps: true });
 
 userSchema.index(

@@ -20,6 +20,7 @@ import { Toaster } from "react-hot-toast";
 import AdminPanel from "./pages/AdminPanel";
 import AdminStationRequestsPage from "./pages/AdminStationRequestsPage";
 import AdminStationsManagementPage from "./pages/AdminStationsManagementPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import StationOwnerDashboard from "./pages/StationOwnerDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import OperatorBookingsPage from "./pages/OperatorBookingsPage";
@@ -38,19 +39,23 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "./features/auth/authSelectors";
 import { connectSocket, disconnectSocket } from "./utils/socket";
+import { loadUser } from "./features/auth/authSlice";
+import { useDispatch } from "react-redux";
 
 
 function App() {
   const user = useSelector(selectUser);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (user) {
       connectSocket(user._id);
+      dispatch(loadUser());
     } else {
       disconnectSocket();
     }
     return () => disconnectSocket();
-  }, [user]);
+  }, [user, dispatch]);
 
   const StationOwnerSidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/owner-dashboard' },
@@ -129,6 +134,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminStationsManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminUsersPage />
               </ProtectedRoute>
             }
           />

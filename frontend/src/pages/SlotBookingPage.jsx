@@ -35,7 +35,9 @@ import {
   Minus,
   Bookmark,
   History,
-  Navigation
+  Navigation,
+  Ban,
+  ShieldAlert
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getStationById } from "../api/stationApi";
@@ -484,6 +486,10 @@ const SlotBookingPage = () => {
   };
 
   const handleInstantBooking = async () => {
+    if (user?.isBanned) {
+      toast.error("Your account is banned due to excessive cancellations. Please contact support.");
+      return;
+    }
     if (!selectedSlot) {
       alert("Please select a charger first");
       return;
@@ -572,6 +578,10 @@ const SlotBookingPage = () => {
   };
 
   const handleBooking = async () => {
+    if (user?.isBanned) {
+      toast.error("Your account is banned due to excessive cancellations. Please contact support.");
+      return;
+    }
     if (!selectedSlot || !selectedStartTime) {
       alert("Please select a charger and a start time");
       return;
@@ -790,6 +800,21 @@ const SlotBookingPage = () => {
           </div>
         </div>
       </div>
+
+      {user?.isBanned && (
+       <div className="   z-[5000] bg-red-600 text-white px-4 py-2.5 flex items-center justify-center gap-3 shadow-lg animate-in slide-in-from-top duration-500">
+          <ShieldAlert size={18} className="animate-pulse" />
+          <p className="text-[11px] font-black uppercase tracking-widest">
+            Account Restricted: {user.banReason || 'Excessive booking cancellations detected'}
+          </p>
+          <button 
+            onClick={() => navigate('/emergency')}
+            className="ml-4 px-3 py-1 bg-white text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all shadow-sm active:scale-95"
+          >
+            Appeal Ban
+          </button>
+        </div>
+      )}
 
       <div className="max-w-full mx-auto px-4 lg:px-6 grid grid-cols-1 lg:grid-cols-[400px_1fr_350px] gap-4 mt-4">
         

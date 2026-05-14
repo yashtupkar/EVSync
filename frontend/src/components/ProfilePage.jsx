@@ -1,17 +1,17 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { 
-  ArrowLeft, 
-  Pencil, 
-  ChevronDown, 
-  Calendar, 
-  Zap, 
-  MapPin, 
-  Navigation, 
-  Users, 
-  Leaf, 
-  User, 
+import {
+  ArrowLeft,
+  Pencil,
+  ChevronDown,
+  Calendar,
+  Zap,
+  MapPin,
+  Navigation,
+  Users,
+  Leaf,
+  User,
   Mail,
   Camera,
   Phone,
@@ -44,7 +44,7 @@ const ProfilePage = () => {
 
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
   const [avatarFile, setAvatarFile] = useState(null);
-  
+
   // OTP States
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -67,7 +67,7 @@ const ProfilePage = () => {
     if (name === "mobile" && mobileError) {
       setMobileError("");
     }
-    
+
     if (name === "mobile" && isGoogleUser) {
       setIsMobileVerified(value === normalizeMobileForInput(user?.mobile) && !!value);
       setIsOtpSent(false);
@@ -93,7 +93,7 @@ const ProfilePage = () => {
       toast.error(message);
       return;
     }
-    
+
     try {
       setVerifying(true);
       await dispatch(sendOtp(mobileNumber)).unwrap();
@@ -193,14 +193,14 @@ const ProfilePage = () => {
 
       {/* --- MAIN LAYOUT --- */}
       <main className="flex-grow shadow-2xl max-w-5xl rounded-xl overflow-hidden flex m-auto lg:max-h-[80vh] flex-col lg:flex-row pt-24 lg:pt-0 w-full">
-        
+
         {/* LEFT COMPONENT: Branding & Visuals (Hidden on small screens) */}
-        <section 
+        <section
           className="hidden lg:flex w-1/2 flex-col bg-[#FBFCFE]  bg-cover bg-center relative overflow-hidden"
         >
-          <div 
+          <div
             className="absolute inset-0 z-0 opacity-100 mix-blend-multiply transition-opacity duration-1000"
-            style={{ 
+            style={{
               backgroundImage: "url('/assets/login-bg.png')",
               backgroundSize: '100%',
               backgroundPosition: 'bottom -10% left 20%',
@@ -213,7 +213,7 @@ const ProfilePage = () => {
               Join the Green<br />
               <span className="text-emerald-500">Revolution.</span>
             </h2>
-            
+
             <p className="text-sm text-slate-600 mb-8 max-w-md font-medium leading-relaxed">
               Your profile helps us personalize your charging experience and find the best routes for your specific vehicle.
             </p>
@@ -256,7 +256,7 @@ const ProfilePage = () => {
         {/* RIGHT COMPONENT: Profile Form */}
         <section className="w-full lg:w-1/2 flex bg-white flex-col items-center justify-center  relative overflow-y-auto custom-scrollbar">
           <div className="w-full h-full max-w-[480px] p-4 md:p-8 transition-all duration-500">
-            
+
 
             <h2 className="text-2xl font-bold text-slate-800 mb-2">
               Complete Your <span className="text-emerald-500">Profile</span>
@@ -276,7 +276,7 @@ const ProfilePage = () => {
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                 </div>
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-2 rounded-lg shadow-lg hover:bg-emerald-600 transition-all transform hover:scale-110"
                 >
@@ -331,13 +331,12 @@ const ProfilePage = () => {
                   Mobile Number
                 </label>
                 <div className="flex flex-col gap-2">
-                  <div className={`flex items-center gap-3 px-4 py-2.5 border rounded-xl transition-colors ${
-                    mobileError
+                  <div className={`flex items-center gap-3 px-4 py-2.5 border rounded-xl transition-colors ${mobileError
                       ? 'border-red-500 bg-red-50/40'
                       : !isGoogleUser
                         ? 'border-black/10 bg-slate-100'
                         : 'border-black/10 bg-slate-50/50 focus-within:border-emerald-500'
-                  }`}>
+                    }`}>
                     <Phone size={16} className="text-slate-400" />
                     <input
                       type="tel"
@@ -429,7 +428,7 @@ const ProfilePage = () => {
             >
               {loading ? "Updating..." : "Finish Setup"}
             </button>
-            
+
             <p className="text-center pb-10 text-[10px] text-slate-400 mt-4 px-4 leading-relaxed">
               By continuing, you agree to our Terms of Service and Privacy Policy regarding data handling.
             </p>
@@ -446,16 +445,16 @@ const ProfilePage = () => {
 
 // Internal ShieldCheck component
 const ShieldCheck = ({ size, className }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />

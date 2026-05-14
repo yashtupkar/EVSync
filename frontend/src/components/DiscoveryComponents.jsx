@@ -31,6 +31,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setActiveVehicle } from "../features/auth/authSlice";
 import evData from "../../data/ev-data.json";
+import {motion} from "framer-motion"
 
 export const VehicleCard = () => {
   const navigate = useNavigate();
@@ -287,9 +288,9 @@ export const ReachableStationsCard = ({ total = 0, withinRange = 0, onRangeFilte
 
 
 
-export const FilterSection = ({ onShowStations, stations = [] }) => {
+export const FilterSection = ({ onShowStations, stations = [] ,open}) => {
   const { user, activeVehicleIndex } = useSelector((state) => state.auth);
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(open);
   const [selectedFilter, setSelectedFilter] = React.useState("All");
   const [availability, setAvailability] = React.useState({
     now: false,
@@ -298,6 +299,7 @@ export const FilterSection = ({ onShowStations, stations = [] }) => {
   });
   const [powerValue, setPowerValue] = React.useState(120);
   const [distanceValue, setDistanceValue] = React.useState(20);
+  const [sortBy, setSortBy] = React.useState("distance");
 
   const activeVehicle = user?.vehicles?.[activeVehicleIndex];
   const vehicleDetails = activeVehicle ? evData.data.find(v => v.id === activeVehicle.vehicleId) : null;
@@ -310,11 +312,13 @@ export const FilterSection = ({ onShowStations, stations = [] }) => {
     setAvailability({ now: false, today: false, occupied: false });
     setPowerValue(120);
     setDistanceValue(20);
+    setSortBy("distance");
     onShowStations({
       type: "All",
       availability: { now: false, today: false, occupied: false },
       power: 120,
-      distance: null
+      distance: null,
+      sortBy: "distance"
     });
   };
 
@@ -323,7 +327,8 @@ export const FilterSection = ({ onShowStations, stations = [] }) => {
       type: selectedFilter,
       availability,
       power: powerValue,
-      distance: distanceValue
+      distance: distanceValue,
+      sortBy: sortBy
     });
     // Optional: auto-collapse on apply to save space
     // setIsExpanded(false);
@@ -441,6 +446,30 @@ export const FilterSection = ({ onShowStations, stations = [] }) => {
             </div>
           </div>
 
+          {/* Sort By */}
+          <div className="space-y-3">
+            <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider block">Sort Results By</span>
+            <div className="flex gap-2">
+              {[
+                { id: 'distance', label: 'Distance', icon: Navigation },
+                { id: 'rating', label: 'Top Rated', icon: Star }
+              ].map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => setSortBy(item.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold transition-all border ${
+                    sortBy === item.id 
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm" 
+                    : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
+                  }`}
+                >
+                  <item.icon size={12} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button 
             onClick={handleApply}
             className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-[0.1em] shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-[0.98]"
@@ -451,7 +480,37 @@ export const FilterSection = ({ onShowStations, stations = [] }) => {
       )}
     </div>
   );
-}
+};
+
+export const FilterDropdown = ({ isOpen, onClose, onShowStations, stations = [] }) => {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={onClose}></div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 z-[9999] overflow-hidden origin-top-right"
+      >
+        <div className="">
+        
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+            <FilterSection 
+              stations={stations} 
+              open={isOpen}
+              onShowStations={(filters) => {
+                onShowStations(filters);
+                onClose();
+              }} 
+            />
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+};
+
 
 
 

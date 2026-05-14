@@ -134,6 +134,22 @@ export const addVehicle = createAsyncThunk(
   }
 );
 
+export const loadUser = createAsyncThunk(
+  "auth/loadUser",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { token } = getState().auth;
+      if (!token) return null;
+      const response = await axios.get(`${backendURL}/api/user`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to load user");
+    }
+  }
+);
+
 const initialState = {
   user: persistedAuth?.user || null,
   token: persistedAuth?.token || null,
@@ -245,6 +261,10 @@ const authSlice = createSlice({
       .addCase(addVehicle.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(loadUser.fulfilled, (state, action) => {
+        state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
       });
   },
 });

@@ -16,6 +16,8 @@ export const getAllStations = () => api.get('/api/stations');
 export const createStation = (stationData) => api.post('/api/stations', stationData);
 
 export const getAllUsers = (token) => api.get('/api/admin/users', getAuthConfig(token));
+export const toggleUserBan = (userId, banReason, token) => 
+  api.patch(`/api/admin/users/${userId}/toggle-ban`, { banReason }, getAuthConfig(token));
 export const getPendingStationRequests = (token) =>
   api.get('/api/admin/pending-stations', getAuthConfig(token));
 export const getAllStationRequests = (token) =>

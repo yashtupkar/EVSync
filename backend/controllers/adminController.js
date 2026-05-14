@@ -160,3 +160,37 @@ exports.deleteAdminStation = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+/**
+ * Toggle a user's ban status (Admin)
+ */
+exports.toggleUserBan = async (req, res) => {
+    const { id } = req.params;
+    const { banReason } = req.body;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        user.isBanned = !user.isBanned;
+        if (user.isBanned) {
+            user.banReason = banReason || 'Manually banned by administrator.';
+        } else {
+            user.banReason = undefined;
+            user.cancellationCount = 0; // Reset count when unbanning
+        }
+
+        await user.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: `User ${user.isBanned ? 'banned' : 'unbanned'} successfully`,
+            user 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

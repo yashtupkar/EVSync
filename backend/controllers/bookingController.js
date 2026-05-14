@@ -87,6 +87,16 @@ exports.createBooking = async (req, res) => {
     } = req.body;
 
     const userId = req.user.id; // From authMiddleware
+    const user = await User.findById(userId);
+
+    // Check if user is banned
+    if (user && user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        isBanned: true,
+        message: 'Your account has been banned due to excessive cancellations. Please contact support.'
+      });
+    }
 
     // Check for overlaps with existing active or upcoming bookings
     // Ignore cancelled, completed, and stale pending_payment bookings (> 10 mins)
@@ -341,8 +351,28 @@ exports.updateBookingStatus = async (req, res) => {
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+    const previousStatus = booking.bookingStatus;
     booking.bookingStatus = status;
     await booking.save();
+
+    // Automated Banning Logic
+    if (status === 'cancelled' && previousStatus !== 'cancelled') {
+      const user = await User.findById(booking.userId);
+      if (user) {
+        user.cancellationCount += 1;
+        if (user.cancellationCount >= 3) {
+          user.isBanned = true;
+          user.banReason = 'Automatic ban: Excessive cancellations (3+ in a row).';
+        }
+        await user.save();
+      }
+    } else if (status === 'completed') {
+      const user = await User.findById(booking.userId);
+      if (user) {
+        user.cancellationCount = 0;
+        await user.save();
+      }
+    }
 
     const io = req.app.get('socketio');
     if (io) {

@@ -29,6 +29,7 @@ import {
   Calendar,
   MapPin,
   Route,
+  ShieldAlert
 } from "lucide-react";
 import {
   VehicleCard,
@@ -40,6 +41,7 @@ import {
   StationDetailView,
   NavigationOverlay,
   HomeChargerPromoCard,
+  FilterDropdown,
 } from "../components/DiscoveryComponents";
 import SmartRecommendationCard from "../components/SmartRecommendationCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,6 +90,8 @@ const DiscoveryPage = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState({ now: false, today: false, occupied: false });
   const [powerFilter, setPowerFilter] = useState(120);
   const [maxRange, setMaxRange] = useState(null);
+  const [sortBy, setSortBy] = useState("distance");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const smartRecommendations = useMemo(() => {
     // 1. Get user's vehicle compatibility info
@@ -300,18 +304,32 @@ const DiscoveryPage = () => {
         return station.distance !== null && station.distance <= maxRange;
       })
       .sort((a, b) => {
-        if (a.distance === null && b.distance === null) return 0;
-        if (a.distance === null) return 1;
-        if (b.distance === null) return -1;
+        if (sortBy === "rating") {
+          // Sort by rating descending
+          const ratingA = a.rating || 0;
+          const ratingB = b.rating || 0;
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          
+          // If ratings are equal, sort by distance ascending
+          if (a.distance === null && b.distance === null) return 0;
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        } else {
+          // Default: Sort by distance ascending
+          if (a.distance === null && b.distance === null) return 0;
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
 
-        if (Math.abs(a.distance - b.distance) < 0.1) {
-          if (!a.external && b.external) return -1;
-          if (a.external && !b.external) return 1;
+          if (Math.abs(a.distance - b.distance) < 0.1) {
+            if (!a.external && b.external) return -1;
+            if (a.external && !b.external) return 1;
+          }
+
+          return a.distance - b.distance;
         }
-
-        return a.distance - b.distance;
       });
-  }, [stations, searchQuery, selectedFilter, availabilityFilter, powerFilter, maxRange, userLocation]);
+  }, [stations, searchQuery, selectedFilter, availabilityFilter, powerFilter, maxRange, sortBy, userLocation]);
 
   // Split into Map vs List
   const listStations = useMemo(() => {
@@ -450,7 +468,21 @@ const DiscoveryPage = () => {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-screen w-full  bg-[#F8FAF9] flex flex-col font-sans overflow-x-hidden">
+      {user?.isBanned && (
+        <div className="z-[5000] bg-red-600 text-white px-4 py-2.5 flex items-center justify-center gap-3 shadow-lg animate-in slide-in-from-top duration-500">
+          <ShieldAlert size={18} className="animate-pulse" />
+          <p className="text-[11px] font-black uppercase tracking-widest">
+            Account Restricted: {user.banReason || 'Excessive booking cancellations detected'}
+          </p>
+          <button 
+            onClick={() => navigate('/emergency')}
+            className="ml-4 px-3 py-1 bg-white text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all shadow-sm active:scale-95"
+          >
+            Appeal Ban
+          </button>
+        </div>
+      )}
       {isMobile ? (
         <div className="relative h-[calc(100vh-140px)] w-full overflow-hidden bg-white">
           {/* Map Section */}
@@ -581,12 +613,34 @@ const DiscoveryPage = () => {
                           <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em]">Live in your area</p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <div className="px-4 py-1.5 bg-gray-900 rounded-xl shadow-2xl shadow-gray-200">
-                          <span className="text-lg font-black text-white leading-none">{listStations.length}</span>
+                        <div className="flex items-center gap-2 relative">
+                          <button 
+                            onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                            className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200 flex items-center justify-center"
+                          >
+                            <FilterIcon size={18} />
+                          </button>
+                          
+                          <FilterDropdown 
+                            isOpen={isFilterDropdownOpen} 
+                            onClose={() => setIsFilterDropdownOpen(false)}
+                            stations={stations}
+                            onShowStations={(filters) => {
+                              setSelectedFilter(filters.type);
+                              setAvailabilityFilter(filters.availability);
+                              setPowerFilter(filters.power);
+                              setMaxRange(filters.distance);
+                              setSortBy(filters.sortBy || "distance");
+                            }}
+                          />
+
+                          <div className="flex flex-col items-end gap-1.5">
+                            <div className="px-4 py-1.5 bg-gray-900 rounded-xl shadow-2xl shadow-gray-200">
+                              <span className="text-lg font-black text-white leading-none">{listStations.length}</span>
+                            </div>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Found Nearby</span>
+                          </div>
                         </div>
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Found Nearby</span>
-                      </div>
                     </div>
                   </div>
 
@@ -711,6 +765,7 @@ const DiscoveryPage = () => {
                   setAvailabilityFilter(filters.availability);
                   setPowerFilter(filters.power);
                   setMaxRange(filters.distance);
+                  setSortBy(filters.sortBy || "distance");
                 }}
               />
               <HomeChargerPromoCard />
@@ -788,9 +843,33 @@ const DiscoveryPage = () => {
             <aside className="w-96 bg-white p-4 shadow-sm rounded-xl flex flex-col gap-4 shrink-0 pr-2">
               <div className="flex justify-between items-center px-2">
                 <h2 className="text-lg font-bold text-gray-800">Nearby Stations</h2>
-                <span className="bg-green-50 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                  {listStations.length} Results
-                </span>
+                <div className="flex items-center gap-2 relative">
+               
+
+                  <span className="bg-green-50 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    {listStations.length} Results
+                  </span>
+                      <button 
+                    onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                    className="p-2 text-gray-400 cursor-pointer hover:text-emerald-500 bg-gray-50 rounded-lg transition-colors border border-gray-100"
+                    title="Filter Stations"
+                  >
+                    <FilterIcon size={12} />
+                  </button>
+
+                  <FilterDropdown 
+                    isOpen={isFilterDropdownOpen} 
+                    onClose={() => setIsFilterDropdownOpen(false)}
+                    stations={stations}
+                    onShowStations={(filters) => {
+                      setSelectedFilter(filters.type);
+                      setAvailabilityFilter(filters.availability);
+                      setPowerFilter(filters.power);
+                      setMaxRange(filters.distance);
+                      setSortBy(filters.sortBy || "distance");
+                    }}
+                  />
+                </div>
               </div>
               <div className="flex-grow overflow-y-auto px-2 custom-scrollbar space-y-4">
                 {listStations.length > 0 ? (
